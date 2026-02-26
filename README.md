@@ -1,4 +1,4 @@
-![Logo](https://media.forgecdn.net/avatars/thumbnails/1173/683/64/64/638745550141648979.png)
+![Logo](https://media.forgecdn.net/avatars/thumbnails/1170/969/64/64/638742120961407199.png)
 # MC-Creative Mode Tweaks
 [![Custom Badge](https://img.shields.io/badge/Download-CurseForge-orange?style=for-the-badge&logo=curseforge)](https://www.curseforge.com/minecraft/mc-mods/creative-mode-tweaks)
 
