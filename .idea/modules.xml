@@ -2,9 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/creativeModeTweaks.main.iml" filepath="$PROJECT_DIR$/.idea/modules/creativeModeTweaks.main.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/creativeModeTweaks.test.iml" filepath="$PROJECT_DIR$/.idea/modules/creativeModeTweaks.test.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/org.zipcoder.creativeModeTweaks.test.iml" filepath="$PROJECT_DIR$/.idea/modules/org.zipcoder.creativeModeTweaks.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/Creative_Mode_Tweaks.main.iml" filepath="$PROJECT_DIR$/.idea/modules/Creative_Mode_Tweaks.main.iml" />
     </modules>
   </component>
 </project>
