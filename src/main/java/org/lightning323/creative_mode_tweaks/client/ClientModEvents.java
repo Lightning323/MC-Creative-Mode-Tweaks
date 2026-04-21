@@ -93,12 +93,13 @@ public class ClientModEvents {
     @SubscribeEvent
     public static void onRenderFog(ViewportEvent.RenderFog event) {
         if (ClientSettings.isNightVision() &&
-                event.getType() != FogType.POWDER_SNOW) {
+                event.getType() != FogType.POWDER_SNOW &&
+                event.getType() != FogType.NONE) {//Air
+
             if (event.getType() == FogType.LAVA) {
                 event.setNearPlaneDistance(10.0F);
                 event.setFarPlaneDistance(200.0F);
             } else {
-                event.setNearPlaneDistance(10.0F);
                 event.setFarPlaneDistance(1000.0F);
             }
             event.setCanceled(true);
