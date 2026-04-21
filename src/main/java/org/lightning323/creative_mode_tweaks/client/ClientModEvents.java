@@ -7,6 +7,7 @@ import net.minecraft.client.telemetry.TelemetryProperty;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.GameType;
+import net.minecraft.world.level.material.FogType;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.*;
@@ -90,7 +91,27 @@ public class ClientModEvents {
     }
 
     @SubscribeEvent
+    public static void onRenderFog(ViewportEvent.RenderFog event) {
+        if (ClientSettings.isNightVision() &&
+                event.getType() != FogType.POWDER_SNOW) {
+            if (event.getType() == FogType.LAVA) {
+                event.setNearPlaneDistance(10.0F);
+                event.setFarPlaneDistance(200.0F);
+            } else {
+                event.setNearPlaneDistance(10.0F);
+                event.setFarPlaneDistance(1000.0F);
+            }
+            event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
     public static void onKeyInput(InputEvent.Key event) {
+        if (Minecraft.getInstance().screen != null) {
+            //Do nothing if the player is in a screen
+            return;
+        }
+
         Player player = Minecraft.getInstance().player;
         if (player != null &&
                 (player.isCreative() || player.isSpectator())

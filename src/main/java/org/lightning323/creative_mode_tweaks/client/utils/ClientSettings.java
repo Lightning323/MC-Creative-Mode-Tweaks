@@ -53,11 +53,11 @@ public class ClientSettings {
     private static double getGammaClamped() {
         double value = gamma.get();
         if (value < 0.0D) return 0.0D;
-        else if (value > 1.0D) return 1.0D;
+        if (value > 1.0D) return 1.0D;
         else return value;
     }
 
     public static boolean isNightVision() {
-        return getGamma() == MAX_GAMMA;
+        return getGamma() > 1.0D;
     }
 }

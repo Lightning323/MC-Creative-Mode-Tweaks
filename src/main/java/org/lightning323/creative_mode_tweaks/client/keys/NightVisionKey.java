@@ -13,7 +13,7 @@ public class NightVisionKey extends KeyBase {
     }
 
     public void onKeyRelease() {
-        ClientSettings.setNightVision(ClientSettings.isNightVision());
+        ClientSettings.setNightVision(!ClientSettings.isNightVision());
         ClientUtils.showToast("Night Vision", "Night Vision " + (ClientSettings.isNightVision() ? "Enabled" : "Disabled"));
     }
 }

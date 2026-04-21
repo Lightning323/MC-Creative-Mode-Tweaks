@@ -5,10 +5,12 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.GameType;
 import net.neoforged.bus.api.IEventBus;
+import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.RegisterGameTestsEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 import org.lightning323.creative_mode_tweaks.network.packets.PacketGameModeChanged;
@@ -25,6 +27,7 @@ public class CreativeModeTweaks {
         modContainer.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
         NeoForge.EVENT_BUS.addListener(PlayerEvent.PlayerLoggedInEvent.class, CreativeModeTweaks::onPlayerLogin);
         NeoForge.EVENT_BUS.addListener(PlayerEvent.PlayerChangeGameModeEvent.class, CreativeModeTweaks::onGameModeChange);
+        modEventBus.addListener(CreativeModeTweaks::onRegisterTests);
     }
 
     public static void serverGameModeChanged(ServerPlayer player, GameType gameType) {
@@ -46,6 +49,10 @@ public class CreativeModeTweaks {
         ServerPlayer player = (ServerPlayer) event.getEntity();
         serverGameModeChanged(player, event.getNewGameMode());
         PacketDistributor.sendToPlayer(player, new PacketGameModeChanged(event.getNewGameMode().getId()));
+    }
+
+    public static void onRegisterTests(RegisterGameTestsEvent event) {
+        event.register(ModTests.class);
     }
 
 }
