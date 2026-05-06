@@ -32,22 +32,6 @@ public abstract class GuiMixin {
     int halfHotbarLength = 91;
     int hotbarHeight = 22;
 
-    boolean displayArm = false;
-
-    private void drawHotbar(GuiGraphics graphics, int x, int y, int horizontalHotbars) {
-        int x0 = (graphics.guiWidth() / 2) - horizontalHotbars * (HotbarUtil.HOTBAR_UNIT_LENGTH/2);
-
-        int hotbarY = graphics.guiHeight() - (HotbarUtil.HOTBAR_UNIT_HEIGHT * y);
-        int hotbarX = x0 + (x * HotbarUtil.HOTBAR_UNIT_LENGTH);
-
-            graphics.blitSprite(HotbarUtil.HOTBAR_SPRITE,
-                    hotbarX, //X
-                    hotbarY, //Y
-                    HotbarUtil.HOTBAR_UNIT_LENGTH, //width
-                    HotbarUtil.HOTBAR_UNIT_HEIGHT //height
-            );
-    }
-
     @Overwrite
     private void renderItemHotbar(GuiGraphics graphics, DeltaTracker deltaTracker) {
         Player player = this.getCameraPlayer();
@@ -64,11 +48,17 @@ public abstract class GuiMixin {
             graphics.pose().pushPose();
             graphics.pose().translate(0.0F, 0.0F, -90.0F);
 
-            //Draw the hotbars themselves
-            drawHotbar(graphics,0,1,2);
-            drawHotbar(graphics,1,1,2);
-            drawHotbar(graphics,0,2,2);
-            drawHotbar(graphics,1,2,2);
+
+            int hotbarY = graphics.guiHeight() - HotbarUtil.HOTBAR_UNIT_HEIGHT;
+            int hotbarX = x0;
+
+            //TODO: Make the hotbar wider
+            graphics.blitSprite(HotbarUtil.HOTBAR_SPRITE,
+                    hotbarX, //X
+                    hotbarY, //Y
+                    HotbarUtil.HOTBAR_UNIT_LENGTH, //width
+                    HotbarUtil.HOTBAR_UNIT_HEIGHT //height
+            );
 
             graphics.blitSprite(HotbarUtil.HOTBAR_SELECTION_SPRITE, x0 - 1 + player.getInventory().selected * 20 + player.getInventory().selected / 9 * 2, graphics.guiHeight() - 22 - 1, 24, 23);
 

@@ -1,6 +1,7 @@
 package org.lightning323.creative_mode_tweaks;
 
 import com.mojang.logging.LogUtils;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.GameType;
@@ -55,4 +56,7 @@ public class CreativeModeTweaks {
         event.register(ModTests.class);
     }
 
+    public static ResourceLocation resource(String s) {
+        return ResourceLocation.fromNamespaceAndPath(MODID, s);
+    }
 }

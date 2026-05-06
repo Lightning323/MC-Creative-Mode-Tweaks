@@ -2,8 +2,10 @@ package org.lightning323.creative_mode_tweaks.utils;
 
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
+import org.lightning323.creative_mode_tweaks.CreativeModeTweaks;
 
 public class HotbarUtil {
+   public static final ResourceLocation WIDE_HOTBAR_SPRITE = CreativeModeTweaks.resource("hud/hotbar");
    //The actual hotbar sprite
    public static final ResourceLocation HOTBAR_SPRITE = ResourceLocation.withDefaultNamespace("hud/hotbar");
    //the hotbar selection box
@@ -19,6 +21,7 @@ public class HotbarUtil {
 
 
    public static int getBarCount(int guiWidth) {
-      return Mth.clamp(guiWidth / 182, 1, 4);
+      return 1;
+      //return Mth.clamp(guiWidth / 182, 1, 4);
    }
 }
