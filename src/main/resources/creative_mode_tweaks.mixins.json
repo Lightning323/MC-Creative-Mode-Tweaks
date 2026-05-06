@@ -8,7 +8,10 @@
   ],
   "client": [
     "HookClientPlayerTick",
-    "OptionInstanceMixin"
+    "OptionInstanceMixin",
+    "hotbar.GuiMixin",
+    "hotbar.InventoryMixin",
+    "hotbar.MinecraftMixin"
   ],
   "injectors": {
     "defaultRequire": 1
