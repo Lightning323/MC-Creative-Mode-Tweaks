@@ -20,12 +20,12 @@ This mod changes how the hotbar works in creative mode to prevent the issues tha
 - https://www.curseforge.com/minecraft/mc-mods/slot-cycler
 - https://www.curseforge.com/minecraft/mc-mods/inventory-overhaul
 
-### It is very easy to let the hotbars fill up with items that are not used often.
+### problem: It is very easy to let the hotbars fill up with items that are not used often.
    2. SOLUTION: Expand the hotbar to easily select and see all 4 slots
-      3. We can fit 18x2 slots in a normal screensize without disrupting the HUD
-      4. If we want a more clean look, we can have a 9x2 or 18x1 grid, and when we scroll off the hotbar, it switches
+      - if enough room is available, hotbar will be 16 slots wide instead of 9
+      - you can "scroll" across the hotbar like in tessera (it wraps around)
    3. Whatever "slot" the player is on when we open the creative menu is what we see in the inventory screen
-   4. switch between slots with arrow keys in inventory or hotbar (scrolling in inventory lets you switch hotbars) (When holding the key, we see all slots when the key pressed)
+   4. switch between slots with arrow keys in inventory or hotbar (scrolling in inventory lets you switch hotbars) (When holding the key, we see all slots)
 
-### There is no easy way to ditch unused items
+### problem: There is no easy way to ditch unused items
    4. SOLUTION: Q doesnt drop the item, it erases it entirely (Or set a diff keybind)
