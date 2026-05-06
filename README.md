@@ -14,6 +14,12 @@ Improves the Creative Mode experience by adding subtle enhancements and quality-
 ## Hotbar overhaul
 This mod changes how the hotbar works in creative mode to prevent the issues that arise with only 9 slots for quick access:
 
+## Ideas
+- https://www.curseforge.com/minecraft/mc-mods/hotbar-swapper
+- https://www.curseforge.com/minecraft/mc-mods/scroll2key/comments
+- https://www.curseforge.com/minecraft/mc-mods/slot-cycler
+- https://www.curseforge.com/minecraft/mc-mods/inventory-overhaul
+
 ## It is very easy to let the hotbars fill up with items that are not used often.
    2. SOLUTION: Expand the hotbar to easily select and see all 4 slots
       3. We can fit 18x2 slots in a normal screensize without disrupting the HUD
