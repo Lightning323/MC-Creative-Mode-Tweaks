@@ -39,9 +39,6 @@ public record PacketReplace(BlockPos pos, BlockState state, BlockState checkStat
             // Security & Validation
             if (!player.isCreative()) return;
 
-            if (state.isAir()) {
-                return;
-            }
 
             // Using center of block for distance check is usually more accurate
             double dist = player.getEyePosition(1.0F).distanceTo(pos.getCenter());

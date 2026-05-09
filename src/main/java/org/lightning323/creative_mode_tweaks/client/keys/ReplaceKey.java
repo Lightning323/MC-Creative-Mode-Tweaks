@@ -33,7 +33,7 @@ public class ReplaceKey extends KeyBase {
 
     @Override
     public void onKeyRelease(LocalPlayer player) {
-       if (player.isCreative() || player.isSpectator()) lockedBlockState = null;
+        if (player.isCreative() || player.isSpectator()) lockedBlockState = null;
     }
 
 
@@ -69,17 +69,15 @@ public class ReplaceKey extends KeyBase {
         }
         BlockPos pos = ((BlockHitResult) target).getBlockPos();
         BlockState state = mc.level.getBlockState(pos);
-        if (state.isAir()) {
+        if (state.isAir() || !state.canSurvive(mc.level, pos)) {
             return;
-        }
+        } //TODO: Add a quick delete feature that allows replacement with air
+
         if (lockedBlockState != null && lockedBlockState != state) {
             return;
         }
         ItemStack itemStack = mc.player.getInventory().getSelected();
         Block block = Block.byItem(itemStack.getItem());
-//        if (itemStack.isEmpty() || block == Blocks.AIR) { //Allow air
-//            return;
-//        }
         BlockState newBlockState = block.getStateForPlacement(new BlockPlaceContext(mc.player, InteractionHand.MAIN_HAND, itemStack, (BlockHitResult) target));
         PacketDistributor.sendToServer(new PacketReplace(pos, newBlockState, state));
     }
