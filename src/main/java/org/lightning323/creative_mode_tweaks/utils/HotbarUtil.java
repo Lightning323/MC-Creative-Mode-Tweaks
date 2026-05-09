@@ -1,20 +1,14 @@
 package org.lightning323.creative_mode_tweaks.utils;
 
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.core.NonNullList;
-import net.minecraft.network.protocol.game.ServerboundSetCreativeModeSlotPacket;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.PacketDistributor;
 import org.lightning323.creative_mode_tweaks.Config;
 import org.lightning323.creative_mode_tweaks.CreativeModeTweaks;
 import org.lightning323.creative_mode_tweaks.network.packets.InventoryRotatePayload;
 
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 
 public class HotbarUtil {
 
@@ -33,12 +27,22 @@ public class HotbarUtil {
     public static final ResourceLocation HOTBAR_ATTACK_INDICATOR_PROGRESS_SPRITE = ResourceLocation.withDefaultNamespace("hud/hotbar_attack_indicator_progress");
 
     public static final int HOTBAR_SLOT_GUI_SIZE = 20;
+    public static final int INVENTORY_SIZE = 36;
+
+    //Available to other parts of the mod
     public static int hotbarScroll = 0;
+    public static int hotbarSlots = 0;
 
     public static void rotateInventoryAndSync(LocalPlayer player, int offset, boolean keepSelection) {
         if (player == null || player.connection == null) return;
         rotateInventory(player, offset, keepSelection);
         PacketDistributor.sendToServer(new InventoryRotatePayload(offset, keepSelection));
+    }
+
+    public static int getDistanceOnInvWheel(int a, int b) {
+        int diff = a - b;
+        // Wraps the difference into the range [-total/2, total/2]
+        return Math.floorMod(diff + INVENTORY_SIZE / 2, INVENTORY_SIZE) - INVENTORY_SIZE / 2;
     }
 
     /**

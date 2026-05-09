@@ -77,9 +77,9 @@ public class ReplaceKey extends KeyBase {
         }
         ItemStack itemStack = mc.player.getInventory().getSelected();
         Block block = Block.byItem(itemStack.getItem());
-        if (itemStack.isEmpty() || block == Blocks.AIR) {
-            return;
-        }
+//        if (itemStack.isEmpty() || block == Blocks.AIR) { //Allow air
+//            return;
+//        }
         BlockState newBlockState = block.getStateForPlacement(new BlockPlaceContext(mc.player, InteractionHand.MAIN_HAND, itemStack, (BlockHitResult) target));
         PacketDistributor.sendToServer(new PacketReplace(pos, newBlockState, state));
     }

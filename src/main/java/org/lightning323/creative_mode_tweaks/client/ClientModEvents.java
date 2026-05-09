@@ -31,6 +31,7 @@ import java.util.Collections;
 
 import static org.lightning323.creative_mode_tweaks.CreativeModeTweaks.LOGGER;
 import static org.lightning323.creative_mode_tweaks.CreativeModeTweaks.MODID;
+import static org.lightning323.creative_mode_tweaks.utils.HotbarUtil.getDistanceOnInvWheel;
 
 
 // You can use EventBusSubscriber to automatically register all static methods in the class annotated with @SubscribeEvent
@@ -89,7 +90,21 @@ public class ClientModEvents {
                 (event.getNewScreen() instanceof CreativeModeInventoryScreen && Config.enhanceCreativeHotbar) ||
                         (event.getNewScreen() instanceof InventoryScreen && Config.enhanceSurvivalHotbar)
         ) {
-            int shiftAmt = (int) Math.floor((double) player.getInventory().selected / 9) * 9;
+            int shiftAmt = player.getInventory().selected - 4;//We want to get the center of the hotbar X X X X Y X X X X
+
+            //Move the window to the left or right if we are going into slots we cant see
+            int distToBackOfHotbar = Math.abs(getDistanceOnInvWheel(player.getInventory().selected, HotbarUtil.hotbarScroll));
+            if (distToBackOfHotbar < 4) {
+                shiftAmt = player.getInventory().selected - distToBackOfHotbar;
+            } else {
+                int distToFrontOfHotbar = Math.abs(getDistanceOnInvWheel(player.getInventory().selected, HotbarUtil.hotbarScroll + HotbarUtil.hotbarSlots));
+                if (distToFrontOfHotbar <= 4) {
+                    shiftAmt = (player.getInventory().selected - 9) + distToFrontOfHotbar;
+                }
+            }
+
+            if (Config.hotbarLoadActiveSelectionAsRow)
+                shiftAmt = (int) Math.floor((double) shiftAmt / 9) * 9; //Should we align the active selection to the row?
             HotbarUtil.rotateInventoryAndSync(player, shiftAmt, true);
         }
     }

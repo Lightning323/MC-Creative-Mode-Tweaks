@@ -12,15 +12,19 @@ public class Config {
 
     // Common
     public static final ModConfigSpec.BooleanValue ENHANCE_CREATIVE_HOTBAR =
-            COMMON_BUILDER.comment("If we want to enhance creative hotbar. (Default: true)")
+            COMMON_BUILDER.comment("If we want to enhance creative hotbar")
                     .define("hotbar.common.ENHANCE_CREATIVE_HOTBAR", true);
 
     public static final ModConfigSpec.BooleanValue ENHANCE_SURVIVAL_HOTBAR =
-            COMMON_BUILDER.comment("If we want to enhance survival hotbar. (Default: false)")
+            COMMON_BUILDER.comment("If we want to enhance survival hotbar")
                     .define("hotbar.common.ENHANCE_SURVIVAL_HOTBAR", false);
 
+    public static final ModConfigSpec.BooleanValue HOTBAR_LOAD_ACTIVE_SELECTION_AS_ROW =
+            COMMON_BUILDER.comment("If we want to load hotbar selection as the correct row in inventory")
+                    .define("hotbar.common.HOTBAR_LOAD_ACTIVE_SELECTION_AS_ROW", false);
+
     public static final ModConfigSpec.BooleanValue ALLOW_INVENTORY_ROTATION_IN_SURVIVAL =
-            COMMON_BUILDER.comment("If we want to allow inventory rotation in survival. (Default: false)")
+            COMMON_BUILDER.comment("If we want to allow inventory rotation in survival")
                     .define("hotbar.common.ALLOW_INVENTORY_ROTATION_IN_SURVIVAL", false);
 
     public static final ModConfigSpec.IntValue CREATIVE_HOTBAR_MAX_SIZE =
@@ -31,13 +35,13 @@ public class Config {
             COMMON_BUILDER.comment("Size of enhanced hotbar (valid values: 9,12,15,18)")
                     .defineInRange("hotbar.client.SURVIVAL_HOTBAR_MAX_SIZE", 9, 9, 18);
 
-    public static final ModConfigSpec.DoubleValue HOTBAR_MIN_SCROLL_MARGIN =
-            COMMON_BUILDER.comment("Minimum number of preview slots on either side when scrolling (set to max value to always keep the selector in the center)")
-                    .defineInRange("hotbar.client.HOTBAR_MIN_SCROLL_MARGIN", 0, 0.0, 9.0);
+    public static final ModConfigSpec.IntValue HOTBAR_MIN_SCROLL_MARGIN =
+            COMMON_BUILDER.comment("Minimum number of preview slots on either side when scrolling (setting this to the max value will always keep the selector in the center)")
+                    .defineInRange("hotbar.client.HOTBAR_MIN_SCROLL_MARGIN", 0, 0, 100);
 
-    public static final ModConfigSpec.DoubleValue HOTBAR_MAX_SCROLL_MARGIN =
-            COMMON_BUILDER.comment("Maximum number of preview slots on either side when scrolling (set to max value to always keep the selector in the center)")
-                    .defineInRange("hotbar.client.HOTBAR_MAX_SCROLL_MARGIN", 4, 0.0, 18.0);
+    public static final ModConfigSpec.IntValue HOTBAR_MAX_SCROLL_MARGIN =
+            COMMON_BUILDER.comment("Maximum number of preview slots on either side when scrolling (setting this to the max value will always keep the selector in the center)")
+                    .defineInRange("hotbar.client.HOTBAR_MAX_SCROLL_MARGIN", 4, 0, 100);
 
     public static final ModConfigSpec.IntValue REACH_MIN_RANGE =
             COMMON_BUILDER.comment("Minimum reach distance")
@@ -80,8 +84,9 @@ public class Config {
     public static int survivalHotbarMaxSize;
 
     public static boolean allowInventoryRotationInSurvival;
-    public static double hotbarMinScrollMargin;
-    public static double hotbarMaxScrollMargin;
+    public static int hotbarMinScrollMargin;
+    public static int hotbarMaxScrollMargin;
+    public static boolean hotbarLoadActiveSelectionAsRow;
 
 
     @SubscribeEvent
@@ -97,6 +102,7 @@ public class Config {
             hotbarMinScrollMargin = HOTBAR_MIN_SCROLL_MARGIN.get();
             hotbarMaxScrollMargin = HOTBAR_MAX_SCROLL_MARGIN.get();
             allowInventoryRotationInSurvival = ALLOW_INVENTORY_ROTATION_IN_SURVIVAL.get();
+            hotbarLoadActiveSelectionAsRow = HOTBAR_LOAD_ACTIVE_SELECTION_AS_ROW.get();
         }
     }
 }

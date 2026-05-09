@@ -36,13 +36,26 @@ public abstract class GuiMixin {
     //Constants that dont change
     @Unique
     final int hotbarHeight = HOTBAR_SLOT_GUI_SIZE + 2;
-
     @Unique
-    private int getDistanceOnWheel(int a, int b, int total) {
-        int diff = a - b;
-        // Wraps the difference into the range [-total/2, total/2]
-        return Math.floorMod(diff + total / 2, total) - total / 2;
-    }
+    private int maxHotbarSize;
+    @Unique
+    private double availableSlots;
+    @Unique
+    private int xCenter;
+    @Unique
+    private int scrollMargin;
+    @Unique
+    private int selection;
+    @Unique
+    private int hotbarWidth;
+    @Unique
+    private int hotbarX;
+    @Unique
+    private int hotbarY;
+    @Unique
+    private int x1;
+
+
 
     @Inject(
             method = "renderItemHotbar",
@@ -57,15 +70,17 @@ public abstract class GuiMixin {
             HumanoidArm humanoidarm = player.getMainArm().getOpposite();
 
             //Constants
-            final int xCenter = graphics.guiWidth() / 2;
-            final double availableSlots = ((double) graphics.guiWidth() / HOTBAR_SLOT_GUI_SIZE) - 4;
-            final int maxHotbarSize = player.isCreative() ? Config.creativeHotbarMaxSize : Config.survivalHotbarMaxSize;
-            final int hotbarSlots = (int) Math.floor(Mth.clamp(availableSlots, 9, maxHotbarSize) / 3) * 3;
-            final int scrollMargin = (int) Mth.map(hotbarSlots, 9, maxHotbarSize, Config.hotbarMinScrollMargin, Config.hotbarMaxScrollMargin);
-            final int hotbarWidth = (HOTBAR_SLOT_GUI_SIZE * hotbarSlots) + 2;
-            final int hotbarX = xCenter - (hotbarWidth / 2);
-            final int hotbarY = graphics.guiHeight() - hotbarHeight;
-            final int x1 = hotbarX + hotbarWidth;
+            xCenter = graphics.guiWidth() / 2;
+            availableSlots = ((double) graphics.guiWidth() / HOTBAR_SLOT_GUI_SIZE) - 4;
+            maxHotbarSize = player.isCreative() ? Config.creativeHotbarMaxSize : Config.survivalHotbarMaxSize;
+            hotbarSlots = (int) Math.floor(Mth.clamp(availableSlots, 9, maxHotbarSize) / 3) * 3;
+            scrollMargin = hotbarSlots == 9 ? Config.hotbarMinScrollMargin :
+                    (int) Mth.map(hotbarSlots, 9, maxHotbarSize, Config.hotbarMinScrollMargin, Config.hotbarMaxScrollMargin);
+            selection = player.getInventory().selected;
+            hotbarWidth = (HOTBAR_SLOT_GUI_SIZE * hotbarSlots) + 2;
+            hotbarX = xCenter - (hotbarWidth / 2);
+            hotbarY = graphics.guiHeight() - hotbarHeight;
+            x1 = hotbarX + hotbarWidth;
 
             RenderSystem.enableBlend();
             graphics.pose().pushPose();
@@ -84,10 +99,9 @@ public abstract class GuiMixin {
                     hotbarHeight //height
             );
 
-            int selection = player.getInventory().selected;
 
             //We want the hotbar scroll to move with the selection, Selectron starts at 0, 9 is one slot over the gui
-            int relativePos = getDistanceOnWheel(selection, hotbarScroll, 36);
+            int relativePos = getDistanceOnInvWheel(selection, hotbarScroll);
 
             if (scrollMargin >= hotbarSlots / 2)
                 hotbarScroll = selection - (hotbarSlots / 2);
@@ -99,7 +113,7 @@ public abstract class GuiMixin {
                 }
             }
 
-            int selectionXAxis = getDistanceOnWheel(selection, hotbarScroll, 36);//If the scroll is 3, and the selection is 18, we want 18-6
+            int selectionXAxis = getDistanceOnInvWheel(selection, hotbarScroll);//If the scroll is 3, and the selection is 18, we want 18-6
 
             graphics.blitSprite(HotbarUtil.HOTBAR_SELECTION_SPRITE,
                     hotbarX - 1 + selectionXAxis * 20 + selectionXAxis / hotbarSlots * 2,
