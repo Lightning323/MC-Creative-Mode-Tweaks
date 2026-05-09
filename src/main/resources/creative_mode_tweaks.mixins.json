@@ -12,7 +12,7 @@
     "hotbar.GuiMixin",
     "hotbar.InventoryMixin",
     "hotbar.MinecraftMixin",
-    "hotbar.SlotWrapperAccessor"
+    "hotbar.CreativeModeInventoryScreenMixin"
   ],
   "injectors": {
     "defaultRequire": 1

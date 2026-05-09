@@ -17,6 +17,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import static org.lightning323.creative_mode_tweaks.utils.HotbarUtil.hotbarScroll;
+
 @Mixin({Gui.class})
 public abstract class GuiMixin {
     @Shadow
@@ -28,9 +30,6 @@ public abstract class GuiMixin {
 
     @Shadow
     protected abstract void renderSlot(GuiGraphics var1, int var2, int var3, DeltaTracker var4, Player var5, ItemStack var6, int var7);
-
-    @Unique
-    int hotbarScroll = 0;
 
     @Inject(
             method = "renderItemHotbar",
@@ -46,8 +45,8 @@ public abstract class GuiMixin {
             int xCenter = graphics.guiWidth() / 2;
             int hotbarSlots = HotbarUtil.getHotbarSlots(graphics.guiWidth());
 
-            int hotbarWidth = (HotbarUtil.HOTBAR_UNIT_SIZE * hotbarSlots) + 2;
-            int hotbarHeight = HotbarUtil.HOTBAR_UNIT_SIZE + 2;
+            int hotbarWidth = (HotbarUtil.HOTBAR_SLOT_GUI_SIZE * hotbarSlots) + 2;
+            int hotbarHeight = HotbarUtil.HOTBAR_SLOT_GUI_SIZE + 2;
 
 
             int x0 = xCenter - (hotbarWidth / 2);

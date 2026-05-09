@@ -1,49 +1,32 @@
-//package org.lightning323.creative_mode_tweaks.mixin.hotbar;
-//
-//import net.minecraft.client.Minecraft;
-//import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
-//import net.minecraft.world.inventory.Slot;
-//import org.spongepowered.asm.mixin.Mixin;
-//import org.spongepowered.asm.mixin.injection.At;
-//import org.spongepowered.asm.mixin.injection.Redirect;
-//
-//@Mixin(CreativeModeInventoryScreen.class)
-//public abstract class CreativeModeInventoryScreenMixin {
-////    Slots 0–4: The Crafting Grid + Result (5 slots).
-////    Slots 5–8: The Armor Slots (4 slots).
-////    Slots 9–35: The Main Inventory ($3 \times 9 = 27$ slots).
-////    Slots 36–44: The Hotbar (9 slots).
-////    Slot 45: The Offhand slot.
-//
-//
-//    @Redirect(
-//            method = "selectTab",
-//            at = @At(
-//                    value = "NEW",
-//                    target = "(Lnet/minecraft/world/inventory/Slot;III)Lnet/minecraft/client/gui/screens/inventory/CreativeModeInventoryScreen$SlotWrapper;"
-//            )
-//    )
-//    private CreativeModeInventoryScreen.SlotWrapper bypassSlotWrapper(Slot originalTarget, int index, int x, int y) {
-//        var player = Minecraft.getInstance().player;
-//
-//        // index is 'k' from the loop (0-45)
-//        // 36-44 is the Hotbar area at the bottom of the screen
-//        if (player != null && player.isCreative() && index >= 36 && index <= 44) {
-//
-//            // originalTarget is the player's hotbar (0-8)
-//            // We want to pull from the 2nd row of the inventory (9-17)
-//            int secondRowIndex = originalTarget.getContainerSlot() + 9;
-//
-//            if (secondRowIndex < player.inventoryMenu.slots.size()) {
-//                Slot rowTwoSlot = player.inventoryMenu.slots.get(secondRowIndex);
-//
-//                // Return a STANDARD Slot instead of a SlotWrapper
-//                // This circumvents the inner class entirely
-//                return new CreativeModeInventoryScreen.SlotWrapper(rowTwoSlot.container, rowTwoSlot.getContainerSlot(), x, y);
-//            }
-//        }
-//
-//        // For all other slots (armor, inventory rows), return a standard slot too
-//        return new CreativeModeInventoryScreen.SlotWrapper(originalTarget.container, originalTarget.getContainerSlot(), x, y);
-//    }
-//}
+package org.lightning323.creative_mode_tweaks.mixin.hotbar;
+
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
+import net.minecraft.client.player.LocalPlayer;
+import org.lightning323.creative_mode_tweaks.utils.HotbarUtil;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+
+import static org.lightning323.creative_mode_tweaks.client.ClientModEvents.KEY_ROTATE_INV_DOWN;
+import static org.lightning323.creative_mode_tweaks.client.ClientModEvents.KEY_ROTATE_INV_UP;
+
+@Mixin(CreativeModeInventoryScreen.class)
+public abstract class CreativeModeInventoryScreenMixin {
+    @Inject(
+            method = "keyReleased(III)Z",
+            at = @At("TAIL"),
+            cancellable = true
+    )
+    private void onKeyReleased(int keyCode, int scanCode, int modifiers, CallbackInfoReturnable<Boolean> cir) {
+        LocalPlayer player = Minecraft.getInstance().player;
+        if (player != null) {
+            if (keyCode == KEY_ROTATE_INV_UP.getKey().getValue()) {
+                HotbarUtil.rotateInventoryAndSync(player, -9);
+            } else if (keyCode == KEY_ROTATE_INV_DOWN.getKey().getValue()) {
+                HotbarUtil.rotateInventoryAndSync(player, 9);
+            }
+        }
+    }
+}

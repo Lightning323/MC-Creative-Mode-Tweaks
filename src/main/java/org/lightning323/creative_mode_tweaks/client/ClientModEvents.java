@@ -3,9 +3,16 @@ package org.lightning323.creative_mode_tweaks.client;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.LayeredDraw;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.telemetry.TelemetryProperty;
+import net.minecraft.core.NonNullList;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.material.FogType;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -15,7 +22,10 @@ import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
 import org.lightning323.creative_mode_tweaks.Config;
 import org.lightning323.creative_mode_tweaks.client.keys.*;
 import org.lightning323.creative_mode_tweaks.client.utils.ClientSettings;
+import org.lightning323.creative_mode_tweaks.utils.HotbarUtil;
 import org.lwjgl.glfw.GLFW;
+
+import java.util.Collections;
 
 import static org.lightning323.creative_mode_tweaks.CreativeModeTweaks.LOGGER;
 import static org.lightning323.creative_mode_tweaks.CreativeModeTweaks.MODID;
@@ -27,7 +37,11 @@ public class ClientModEvents {
 
     public static final String DEFAULT_CATEGORY = "key." + MODID + ".default";
 
+    //Dumb keys
+    public static final KeyMapping KEY_ROTATE_INV_UP = new KeyMapping("key." + MODID + ".rotate_inv_up", GLFW.GLFW_KEY_UP, DEFAULT_CATEGORY);
+    public static final KeyMapping KEY_ROTATE_INV_DOWN = new KeyMapping("key." + MODID + ".rotate_inv_down", GLFW.GLFW_KEY_DOWN, DEFAULT_CATEGORY);
 
+    //Smart keys
     public static final KeyMapping KEY_TOGGLE_NOCLIP = new ToggleNoclipKey(
             "key." + MODID + ".toggle_noclip",
             GLFW.GLFW_KEY_UNKNOWN, DEFAULT_CATEGORY);
@@ -44,12 +58,29 @@ public class ClientModEvents {
             "key." + MODID + ".nightvision",
             GLFW.GLFW_KEY_N, DEFAULT_CATEGORY);
 
+    /**
+     * https://discord.com/channels/313125603924639766/1249305774987939900/1502692290601160895
+     * The creative mode inventory is handled by the client
+     *
+     * @param event
+     */
     @SubscribeEvent
     public static void onScreenEventOpening(ScreenEvent.Opening event) {
-        if (Minecraft.getInstance().player != null) {
-            LOGGER.info("OPENING " + event.getNewScreen() + " Clientside = " + Minecraft.getInstance().player.level().isClientSide());
+        LocalPlayer player = Minecraft.getInstance().player;
+        if (player != null && event.getNewScreen() instanceof CreativeModeInventoryScreen) {
+                int shiftAmt = (int)Math.floor((double) player.getInventory().selected / 9) * 9;
+                //We want to be on the same row as the selection
+                HotbarUtil.rotateInventoryAndSync(player, shiftAmt);
         }
     }
+//
+//    @SubscribeEvent
+//    public static void onScreenEventClosing(ScreenEvent.Opening event) {
+//        LocalPlayer player = Minecraft.getInstance().player;
+//        if (player != null && event.getScreen() instanceof CreativeModeInventoryScreen) {
+//        }
+//    }
+
 
     @SubscribeEvent
     public static void onPlayerLoggedIn(ClientPlayerNetworkEvent.LoggingIn event) {
@@ -66,6 +97,8 @@ public class ClientModEvents {
         for (KeyMapping key : KeyBase.keys) {
             event.register(key);
         }
+        event.register(KEY_ROTATE_INV_UP);
+        event.register(KEY_ROTATE_INV_DOWN);
     }
 
     @SubscribeEvent
@@ -91,8 +124,8 @@ public class ClientModEvents {
         if (player == null) return;
         LOGGER.debug("Client game mode set to {}", gameType);
         if (gameType == GameType.CREATIVE || gameType == GameType.SPECTATOR) {
-
         } else {
+            player.getInventory().selected = Mth.clamp(player.getInventory().selected, 0, 8);
             ClientSettings.setNightVision(false);
         }
     }

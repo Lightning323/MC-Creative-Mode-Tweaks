@@ -4,10 +4,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
-import org.lightning323.creative_mode_tweaks.network.packets.PacketAdjustRange;
-import org.lightning323.creative_mode_tweaks.network.packets.PacketGameModeChanged;
-import org.lightning323.creative_mode_tweaks.network.packets.PacketReplace;
-import org.lightning323.creative_mode_tweaks.network.packets.PacketToggleNoclip;
+import org.lightning323.creative_mode_tweaks.network.packets.*;
 
 import static org.lightning323.creative_mode_tweaks.CreativeModeTweaks.MODID;
 
@@ -44,6 +41,12 @@ public class PacketHandler {
                 PacketGameModeChanged.TYPE,
                 PacketGameModeChanged.CODEC,
                 PacketGameModeChanged::handle
+        );
+
+        registrar.playToServer(
+                InventoryRotatePayload.TYPE,
+                InventoryRotatePayload.STREAM_CODEC,
+                InventoryRotatePayload::handle
         );
     }
 }

@@ -3,5 +3,7 @@
   "key.creative_mode_tweaks.toggle_noclip": "Toggle No-Clip",
   "key.creative_mode_tweaks.adjustrange": "Adjust Range",
   "key.creative_mode_tweaks.replace": "Replace Tool",
-  "key.creative_mode_tweaks.nightvision": "Night Vision"
+  "key.creative_mode_tweaks.nightvision": "Night Vision",
+  "key.creative_mode_tweaks.rotate_inv_up": "Shift Inventory Rows Up",
+  "key.creative_mode_tweaks.rotate_inv_down": "Shift Inventory Rows Down"
 }
