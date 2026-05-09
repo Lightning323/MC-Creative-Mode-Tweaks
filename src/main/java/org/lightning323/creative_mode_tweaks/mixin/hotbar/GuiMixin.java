@@ -7,6 +7,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -30,6 +31,13 @@ public abstract class GuiMixin {
 
     @Shadow
     protected abstract void renderSlot(GuiGraphics var1, int var2, int var3, DeltaTracker var4, Player var5, ItemStack var6, int var7);
+
+    @Unique
+    private int getDistanceOnWheel(int a, int b, int total) {
+        int diff = a - b;
+        // Wraps the difference into the range [-total/2, total/2]
+        return Math.floorMod(diff + total / 2, total) - total / 2;
+    }
 
     @Inject(
             method = "renderItemHotbar",
@@ -73,13 +81,16 @@ public abstract class GuiMixin {
             int selection = player.getInventory().selected;
 
             //We want the hotbar scroll to move with the selection, Selectron starts at 0, 9 is one slot over the gui
-            if (selection >= hotbarScroll + hotbarSlots) { //if the selection is 18, the hotbar scroll should be 18-9
-                hotbarScroll = selection - (hotbarSlots - 1);
-            } else if (selection < hotbarScroll) {
-                hotbarScroll = selection;
+
+            int relativePos = getDistanceOnWheel(selection, hotbarScroll, 36);
+            int scrollMargin = (int) (hotbarSlots * 0.5);
+            if (relativePos < scrollMargin) {
+                hotbarScroll = selection - scrollMargin;
+            } else if (relativePos >= hotbarSlots - scrollMargin) {
+                hotbarScroll = selection - (hotbarSlots - 1 - scrollMargin);
             }
 
-            int selectionXAxis = selection - hotbarScroll;//If the scroll is 3, and the selection is 18, we want 18-6
+            int selectionXAxis = getDistanceOnWheel(selection, hotbarScroll, 36);//If the scroll is 3, and the selection is 18, we want 18-6
 
             graphics.blitSprite(HotbarUtil.HOTBAR_SELECTION_SPRITE,
                     x0 - 1 + selectionXAxis * 20 + selectionXAxis / hotbarSlots * 2,
@@ -102,7 +113,12 @@ public abstract class GuiMixin {
             for (int i = 0; i < hotbarSlots; ++i) {
                 int x = x0 + i * 20 + 3 + i / hotbarSlots * 2;
                 int y = graphics.guiHeight() - 16 - 3;
-                ItemStack item = (ItemStack) player.getInventory().items.get(i + hotbarScroll);
+                int index = Math.floorMod(
+                        i + hotbarScroll,
+                        player.getInventory().items.size()
+                );
+
+                ItemStack item = (ItemStack) player.getInventory().items.get(index);
                 this.renderSlot(graphics, x, y, deltaTracker, player, item, l++);
             }
 
