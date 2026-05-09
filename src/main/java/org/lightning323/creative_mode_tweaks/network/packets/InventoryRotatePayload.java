@@ -9,6 +9,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.lightning323.creative_mode_tweaks.CreativeModeTweaks;
+import org.lightning323.creative_mode_tweaks.utils.HotbarUtil;
 
 import java.util.Collections;
 
@@ -35,12 +36,8 @@ public record InventoryRotatePayload(int offset) implements CustomPacketPayload 
         context.enqueueWork(() -> {
             if (!(context.player() instanceof ServerPlayer player)) return;
             if (!player.isCreative()) return;
-            var inv = player.getInventory();
-            // ONLY rotate the 36 main slots (Dont rotate armor or other slots)
-            NonNullList<ItemStack> items = inv.items;
-            Collections.rotate(items/*.subList(0, 36)*/, -offset());
-            inv.selected = Math.floorMod(inv.selected - offset(), 36);
-//            player.inventoryMenu.broadcastChanges();
+            HotbarUtil.rotateInventory(player,offset());
+            player.inventoryMenu.broadcastChanges();
         });
     }
 }

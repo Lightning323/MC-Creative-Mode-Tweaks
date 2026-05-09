@@ -5,6 +5,7 @@ import net.minecraft.core.NonNullList;
 import net.minecraft.network.protocol.game.ServerboundSetCreativeModeSlotPacket;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.PacketDistributor;
 import org.lightning323.creative_mode_tweaks.CreativeModeTweaks;
@@ -34,16 +35,24 @@ public class HotbarUtil {
 
     public static void rotateInventoryAndSync(LocalPlayer player, int offset) {
         if (player == null || player.connection == null) return;
+        rotateInventory(player, offset);
+        PacketDistributor.sendToServer(new InventoryRotatePayload(offset));
+    }
 
-//        Collections.rotate(player.getInventory().items, -offset);
+    /**
+     * Runs both client side and server side
+     *
+     * @param player
+     * @param offset
+     */
+    public static void rotateInventory(Player player, int offset) {
+        Collections.rotate(player.getInventory().items, -offset);
         int scrollOffsset = player.getInventory().selected - HotbarUtil.hotbarScroll;
         player.getInventory().selected = Math.floorMod(
                 player.getInventory().selected - offset,
                 36
         ); //Do this to keep the selection consistent
-        HotbarUtil.hotbarScroll = player.getInventory().selected-scrollOffsset;
-        player.inventoryMenu.broadcastChanges();
-        PacketDistributor.sendToServer(new InventoryRotatePayload(offset));
+        if (player instanceof LocalPlayer) HotbarUtil.hotbarScroll = player.getInventory().selected - scrollOffsset;
     }
 
 
