@@ -83,7 +83,7 @@ public abstract class GuiMixin {
             //We want the hotbar scroll to move with the selection, Selectron starts at 0, 9 is one slot over the gui
 
             int relativePos = getDistanceOnWheel(selection, hotbarScroll, 36);
-            int scrollMargin = (int) (hotbarSlots * 0.5);
+            int scrollMargin = (int) (hotbarSlots * 0.25);
             if (relativePos < scrollMargin) {
                 hotbarScroll = selection - scrollMargin;
             } else if (relativePos >= hotbarSlots - scrollMargin) {

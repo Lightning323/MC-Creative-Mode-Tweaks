@@ -36,10 +36,12 @@ public class HotbarUtil {
         if (player == null || player.connection == null) return;
 
 //        Collections.rotate(player.getInventory().items, -offset);
+        int scrollOffsset = player.getInventory().selected - HotbarUtil.hotbarScroll;
         player.getInventory().selected = Math.floorMod(
                 player.getInventory().selected - offset,
                 36
         ); //Do this to keep the selection consistent
+        HotbarUtil.hotbarScroll = player.getInventory().selected-scrollOffsset;
         player.inventoryMenu.broadcastChanges();
         PacketDistributor.sendToServer(new InventoryRotatePayload(offset));
     }
