@@ -6,15 +6,16 @@ import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 import org.lightning323.creative_mode_tweaks.utils.HotbarUtil;
-import org.spongepowered.asm.mixin.Final;
-import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Overwrite;
-import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.*;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin({Gui.class})
 public abstract class GuiMixin {
@@ -28,39 +29,63 @@ public abstract class GuiMixin {
     @Shadow
     protected abstract void renderSlot(GuiGraphics var1, int var2, int var3, DeltaTracker var4, Player var5, ItemStack var6, int var7);
 
-    int oneHotbarLength = 182;
-    int halfHotbarLength = 91;
-    int hotbarHeight = 22;
+    @Unique
+    int hotbarScroll = 0;
 
-    @Overwrite
-    private void renderItemHotbar(GuiGraphics graphics, DeltaTracker deltaTracker) {
+    @Inject(
+            method = "renderItemHotbar",
+            at = @At("HEAD"), // Or "RETURN" to run after the original code
+            cancellable = true
+    )
+    private void onRenderItemHotbar(GuiGraphics graphics, DeltaTracker deltaTracker, CallbackInfo ci) {
         Player player = this.getCameraPlayer();
-        if (player != null) {
+        if (player != null && player.isCreative()) {
+            ci.cancel();
             ItemStack itemstack = player.getOffhandItem();
             HumanoidArm humanoidarm = player.getMainArm().getOpposite();
             int xCenter = graphics.guiWidth() / 2;
-            int hotbarCount = HotbarUtil.getBarCount(graphics.guiWidth());
+            int hotbarSlots = HotbarUtil.getHotbarSlots(graphics.guiWidth());
+
+            int hotbarWidth = (HotbarUtil.HOTBAR_UNIT_SIZE * hotbarSlots) + 2;
+            int hotbarHeight = HotbarUtil.HOTBAR_UNIT_SIZE + 2;
 
 
-            int x0 = xCenter - hotbarCount * 91;
-            int x1 = x0 + hotbarCount * 182;
+            int x0 = xCenter - (hotbarWidth / 2);
+            int x1 = x0 + hotbarWidth;
             RenderSystem.enableBlend();
             graphics.pose().pushPose();
             graphics.pose().translate(0.0F, 0.0F, -90.0F);
 
-
-            int hotbarY = graphics.guiHeight() - HotbarUtil.HOTBAR_UNIT_HEIGHT;
+            //Hotbar sprite
+            int hotbarY = graphics.guiHeight() - hotbarHeight;
             int hotbarX = x0;
 
             //TODO: Make the hotbar wider
-            graphics.blitSprite(HotbarUtil.HOTBAR_SPRITE,
+            ResourceLocation sprite = HotbarUtil.HOTBAR_SPRITE_9;
+            if (hotbarSlots == 12) sprite = HotbarUtil.HOTBAR_SPRITE_12;
+            else if (hotbarSlots == 15) sprite = HotbarUtil.HOTBAR_SPRITE_15;
+            graphics.blitSprite(sprite,
                     hotbarX, //X
                     hotbarY, //Y
-                    HotbarUtil.HOTBAR_UNIT_LENGTH, //width
-                    HotbarUtil.HOTBAR_UNIT_HEIGHT //height
+                    hotbarWidth, //width
+                    hotbarHeight //height
             );
 
-            graphics.blitSprite(HotbarUtil.HOTBAR_SELECTION_SPRITE, x0 - 1 + player.getInventory().selected * 20 + player.getInventory().selected / 9 * 2, graphics.guiHeight() - 22 - 1, 24, 23);
+            int selection = player.getInventory().selected;
+
+            //We want the hotbar scroll to move with the selection, Selectron starts at 0, 9 is one slot over the gui
+            if (selection >= hotbarScroll + hotbarSlots) { //if the selection is 18, the hotbar scroll should be 18-9
+                hotbarScroll = selection - (hotbarSlots - 1);
+            } else if (selection < hotbarScroll) {
+                hotbarScroll = selection;
+            }
+
+            int selectionXAxis = selection - hotbarScroll;//If the scroll is 3, and the selection is 18, we want 18-6
+
+            graphics.blitSprite(HotbarUtil.HOTBAR_SELECTION_SPRITE,
+                    x0 - 1 + selectionXAxis * 20 + selectionXAxis / hotbarSlots * 2,
+                    graphics.guiHeight() - 22 - 1,
+                    24, 23);
 
             if (!itemstack.isEmpty()) {
                 if (humanoidarm == HumanoidArm.LEFT) {
@@ -72,12 +97,14 @@ public abstract class GuiMixin {
 
             graphics.pose().popPose();
             RenderSystem.disableBlend();
-            int l = 1;
 
-            for (int i = 0; i < hotbarCount * 9; ++i) {
-                int x = x0 + i * 20 + 3 + i / 9 * 2;
+            //Display the items in the hotbar
+            int l = 1;
+            for (int i = 0; i < hotbarSlots; ++i) {
+                int x = x0 + i * 20 + 3 + i / hotbarSlots * 2;
                 int y = graphics.guiHeight() - 16 - 3;
-                this.renderSlot(graphics, x, y, deltaTracker, player, (ItemStack) player.getInventory().items.get(i), l++);
+                ItemStack item = (ItemStack) player.getInventory().items.get(i + hotbarScroll);
+                this.renderSlot(graphics, x, y, deltaTracker, player, item, l++);
             }
 
             if (!itemstack.isEmpty()) {

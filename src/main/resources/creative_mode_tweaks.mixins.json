@@ -11,7 +11,8 @@
     "OptionInstanceMixin",
     "hotbar.GuiMixin",
     "hotbar.InventoryMixin",
-    "hotbar.MinecraftMixin"
+    "hotbar.MinecraftMixin",
+    "hotbar.SlotWrapperAccessor"
   ],
   "injectors": {
     "defaultRequire": 1

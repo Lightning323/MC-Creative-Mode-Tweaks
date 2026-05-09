@@ -45,6 +45,13 @@ public class ClientModEvents {
             GLFW.GLFW_KEY_N, DEFAULT_CATEGORY);
 
     @SubscribeEvent
+    public static void onScreenEventOpening(ScreenEvent.Opening event) {
+        if (Minecraft.getInstance().player != null) {
+            LOGGER.info("OPENING " + event.getNewScreen() + " Clientside = " + Minecraft.getInstance().player.level().isClientSide());
+        }
+    }
+
+    @SubscribeEvent
     public static void onPlayerLoggedIn(ClientPlayerNetworkEvent.LoggingIn event) {
         ClientSettings.setNoClip(Config.NOCLIP_ON_LOGIN.get()); //Set noclip when we login to true or false
 
