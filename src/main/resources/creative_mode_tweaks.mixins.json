@@ -12,6 +12,7 @@
     "hotbar.GuiMixin",
     "hotbar.InventoryMixin",
     "hotbar.MinecraftMixin",
+    "hotbar.InventoryScreenMixin",
     "hotbar.CreativeModeInventoryScreenMixin"
   ],
   "injectors": {

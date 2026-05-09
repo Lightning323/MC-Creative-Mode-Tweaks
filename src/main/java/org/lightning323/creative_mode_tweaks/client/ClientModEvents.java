@@ -1,10 +1,12 @@
 package org.lightning323.creative_mode_tweaks.client;
 
+import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.LayeredDraw;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.telemetry.TelemetryProperty;
 import net.minecraft.core.NonNullList;
@@ -38,8 +40,23 @@ public class ClientModEvents {
     public static final String DEFAULT_CATEGORY = "key." + MODID + ".default";
 
     //Dumb keys
-    public static final KeyMapping KEY_ROTATE_INV_UP = new KeyMapping("key." + MODID + ".rotate_inv_up", GLFW.GLFW_KEY_UP, DEFAULT_CATEGORY);
-    public static final KeyMapping KEY_ROTATE_INV_DOWN = new KeyMapping("key." + MODID + ".rotate_inv_down", GLFW.GLFW_KEY_DOWN, DEFAULT_CATEGORY);
+    public static final KeyMapping KEY_ROTATE_INV_UP = new KeyBase("key." + MODID + ".rotate_inv_up", GLFW.GLFW_KEY_UP, DEFAULT_CATEGORY) {
+        @Override
+        public void onKeyRelease(LocalPlayer player) {
+            if (player.isCreative() || Config.allowInventoryRotationInSurvival) {
+                HotbarUtil.rotateInventoryAndSync(player, 9, false);
+            }
+        }
+    };
+
+    public static final KeyMapping KEY_ROTATE_INV_DOWN = new KeyBase("key." + MODID + ".rotate_inv_down", GLFW.GLFW_KEY_DOWN, DEFAULT_CATEGORY) {
+        @Override
+        public void onKeyRelease(LocalPlayer player) {
+            if (player.isCreative() || Config.allowInventoryRotationInSurvival) {
+                HotbarUtil.rotateInventoryAndSync(player, -9, false);
+            }
+        }
+    };
 
     //Smart keys
     public static final KeyMapping KEY_TOGGLE_NOCLIP = new ToggleNoclipKey(
@@ -67,13 +84,16 @@ public class ClientModEvents {
     @SubscribeEvent
     public static void onScreenEventOpening(ScreenEvent.Opening event) {
         LocalPlayer player = Minecraft.getInstance().player;
-        if (player != null && event.getNewScreen() instanceof CreativeModeInventoryScreen) {
-                int shiftAmt = (int)Math.floor((double) player.getInventory().selected / 9) * 9;
-                //We want to be on the same row as the selection
-                HotbarUtil.rotateInventoryAndSync(player, shiftAmt);
+        if (player == null) return;
+        if (
+                (event.getNewScreen() instanceof CreativeModeInventoryScreen && Config.enhanceCreativeHotbar) ||
+                        (event.getNewScreen() instanceof InventoryScreen && Config.enhanceSurvivalHotbar)
+        ) {
+            int shiftAmt = (int) Math.floor((double) player.getInventory().selected / 9) * 9;
+            HotbarUtil.rotateInventoryAndSync(player, shiftAmt, true);
         }
     }
-//
+
 //    @SubscribeEvent
 //    public static void onScreenEventClosing(ScreenEvent.Opening event) {
 //        LocalPlayer player = Minecraft.getInstance().player;
@@ -97,8 +117,6 @@ public class ClientModEvents {
         for (KeyMapping key : KeyBase.keys) {
             event.register(key);
         }
-        event.register(KEY_ROTATE_INV_UP);
-        event.register(KEY_ROTATE_INV_DOWN);
     }
 
     @SubscribeEvent
@@ -147,14 +165,12 @@ public class ClientModEvents {
             return;
         }
 
-        Player player = Minecraft.getInstance().player;
-        if (player != null &&
-                (player.isCreative() || player.isSpectator())
-        ) {
+        LocalPlayer player = Minecraft.getInstance().player;
+        if (player != null) {
             for (KeyMapping key : KeyBase.keys) {
                 if (event.getKey() == key.getKey().getValue()) {
-                    if (event.getAction() == GLFW.GLFW_PRESS) ((KeyBase) key).onKeyPress();
-                    else ((KeyBase) key).onKeyRelease();
+                    if (event.getAction() == GLFW.GLFW_PRESS) ((KeyBase) key).onKeyPress(player);
+                    else ((KeyBase) key).onKeyRelease(player);
                 }
             }
         }

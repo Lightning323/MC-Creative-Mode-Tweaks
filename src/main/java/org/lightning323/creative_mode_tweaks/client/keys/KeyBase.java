@@ -1,6 +1,7 @@
 package org.lightning323.creative_mode_tweaks.client.keys;
 
 import net.minecraft.client.KeyMapping;
+import net.minecraft.client.player.LocalPlayer;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
@@ -24,9 +25,9 @@ public class KeyBase extends KeyMapping {
     public void onClientTick(ClientTickEvent.Post event) {
     }
 
-    public void onKeyPress() {
+    public void onKeyPress(LocalPlayer player) {
     }
 
-    public void onKeyRelease() {
+    public void onKeyRelease(LocalPlayer player) {
     }
 }

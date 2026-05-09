@@ -1,6 +1,7 @@
 package org.lightning323.creative_mode_tweaks.client.keys;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
@@ -27,12 +28,12 @@ public class ReplaceKey extends KeyBase {
     }
 
     @Override
-    public void onKeyPress() {
+    public void onKeyPress(LocalPlayer player) {
     }
 
     @Override
-    public void onKeyRelease() {
-        lockedBlockState = null;
+    public void onKeyRelease(LocalPlayer player) {
+       if (player.isCreative() || player.isSpectator()) lockedBlockState = null;
     }
 
 

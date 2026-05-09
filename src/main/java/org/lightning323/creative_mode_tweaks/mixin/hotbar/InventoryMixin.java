@@ -22,20 +22,25 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import static net.minecraft.world.entity.player.Inventory.INVENTORY_SIZE;
+import static org.lightning323.creative_mode_tweaks.utils.HotbarUtil.enableEnhancedHotbar;
 
 @Mixin(Inventory.class)
 public abstract class InventoryMixin {
-    @Shadow public int selected;
-    @Shadow @Final public Player player;
-    @Shadow @Final public NonNullList<ItemStack> items;
+    @Shadow
+    public int selected;
+    @Shadow
+    @Final
+    public Player player;
+    @Shadow
+    @Final
+    public NonNullList<ItemStack> items;
 
     /**
      * Replaces the constant 9 with INVENTORY_SIZE only if in creative.
      */
     @ModifyConstant(method = "isHotbarSlot", constant = @Constant(intValue = 9))
     private static int isHotbarSlotMixin(int constant) {
-        Player player = Minecraft.getInstance().player;
-        if (player != null && player.isCreative()) {
+        if (enableEnhancedHotbar(Minecraft.getInstance().player)) {
             return Inventory.INVENTORY_SIZE;
         }
         return constant;
@@ -47,7 +52,7 @@ public abstract class InventoryMixin {
      */
     @Inject(method = "swapPaint", at = @At("HEAD"), cancellable = true)
     public void onSwapPaint(double pDirection, CallbackInfo ci) {
-        if (this.player.isCreative()) {
+        if (enableEnhancedHotbar(player)) {
             int i = (int) Math.signum(pDirection);
             int max = Inventory.INVENTORY_SIZE;
 
@@ -64,8 +69,7 @@ public abstract class InventoryMixin {
      */
     @Inject(method = "getSelectionSize", at = @At("HEAD"), cancellable = true)
     private static void onGetSelectionSize(CallbackInfoReturnable<Integer> cir) {
-        Player player = Minecraft.getInstance().player;
-        if (player != null && player.isCreative()) {
+        if (enableEnhancedHotbar(Minecraft.getInstance().player)) {
             cir.setReturnValue(Inventory.INVENTORY_SIZE);
         }
     }
@@ -75,7 +79,7 @@ public abstract class InventoryMixin {
      */
     @Inject(method = "getSuitableHotbarSlot", at = @At("HEAD"), cancellable = true)
     public void onGetSuitableHotbarSlot(CallbackInfoReturnable<Integer> cir) {
-        if (this.player.isCreative()) {
+        if (enableEnhancedHotbar(player)) {
             int max = Inventory.INVENTORY_SIZE;
 
             // Check for empty slots

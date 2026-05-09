@@ -1,6 +1,7 @@
 package org.lightning323.creative_mode_tweaks.client.keys;
 
 
+import net.minecraft.client.player.LocalPlayer;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import org.lightning323.creative_mode_tweaks.client.utils.ClientSettings;
@@ -12,8 +13,10 @@ public class NightVisionKey extends KeyBase {
         super(name, keyCode, category);
     }
 
-    public void onKeyRelease() {
-        ClientSettings.setNightVision(!ClientSettings.isNightVision());
-        ClientUtils.showToast("Night Vision", "Night Vision " + (ClientSettings.isNightVision() ? "Enabled" : "Disabled"));
+    public void onKeyRelease(LocalPlayer player) {
+        if (player.isCreative() || player.isSpectator()) {
+            ClientSettings.setNightVision(!ClientSettings.isNightVision());
+            ClientUtils.showToast("Night Vision", "Night Vision " + (ClientSettings.isNightVision() ? "Enabled" : "Disabled"));
+        }
     }
 }

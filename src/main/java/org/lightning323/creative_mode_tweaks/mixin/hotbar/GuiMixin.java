@@ -12,13 +12,14 @@ import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
+import org.lightning323.creative_mode_tweaks.Config;
 import org.lightning323.creative_mode_tweaks.utils.HotbarUtil;
 import org.spongepowered.asm.mixin.*;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import static org.lightning323.creative_mode_tweaks.utils.HotbarUtil.hotbarScroll;
+import static org.lightning323.creative_mode_tweaks.utils.HotbarUtil.*;
 
 @Mixin({Gui.class})
 public abstract class GuiMixin {
@@ -31,6 +32,10 @@ public abstract class GuiMixin {
 
     @Shadow
     protected abstract void renderSlot(GuiGraphics var1, int var2, int var3, DeltaTracker var4, Player var5, ItemStack var6, int var7);
+
+    //Constants that dont change
+    @Unique
+    final int hotbarHeight = HOTBAR_SLOT_GUI_SIZE + 2;
 
     @Unique
     private int getDistanceOnWheel(int a, int b, int total) {
@@ -46,31 +51,32 @@ public abstract class GuiMixin {
     )
     private void onRenderItemHotbar(GuiGraphics graphics, DeltaTracker deltaTracker, CallbackInfo ci) {
         Player player = this.getCameraPlayer();
-        if (player != null && player.isCreative()) {
+        if (enableEnhancedHotbar(Minecraft.getInstance().player)) {
             ci.cancel();
             ItemStack itemstack = player.getOffhandItem();
             HumanoidArm humanoidarm = player.getMainArm().getOpposite();
-            int xCenter = graphics.guiWidth() / 2;
-            int hotbarSlots = HotbarUtil.getHotbarSlots(graphics.guiWidth());
 
-            int hotbarWidth = (HotbarUtil.HOTBAR_SLOT_GUI_SIZE * hotbarSlots) + 2;
-            int hotbarHeight = HotbarUtil.HOTBAR_SLOT_GUI_SIZE + 2;
+            //Constants
+            final int xCenter = graphics.guiWidth() / 2;
+            final double availableSlots = ((double) graphics.guiWidth() / HOTBAR_SLOT_GUI_SIZE) - 4;
+            final int maxHotbarSize = player.isCreative() ? Config.creativeHotbarMaxSize : Config.survivalHotbarMaxSize;
+            final int hotbarSlots = (int) Math.floor(Mth.clamp(availableSlots, 9, maxHotbarSize) / 3) * 3;
+            final int scrollMargin = (int) Mth.map(hotbarSlots, 9, maxHotbarSize, Config.hotbarMinScrollMargin, Config.hotbarMaxScrollMargin);
+            final int hotbarWidth = (HOTBAR_SLOT_GUI_SIZE * hotbarSlots) + 2;
+            final int hotbarX = xCenter - (hotbarWidth / 2);
+            final int hotbarY = graphics.guiHeight() - hotbarHeight;
+            final int x1 = hotbarX + hotbarWidth;
 
-
-            int x0 = xCenter - (hotbarWidth / 2);
-            int x1 = x0 + hotbarWidth;
             RenderSystem.enableBlend();
             graphics.pose().pushPose();
             graphics.pose().translate(0.0F, 0.0F, -90.0F);
 
             //Hotbar sprite
-            int hotbarY = graphics.guiHeight() - hotbarHeight;
-            int hotbarX = x0;
 
-            //TODO: Make the hotbar wider
             ResourceLocation sprite = HotbarUtil.HOTBAR_SPRITE_9;
             if (hotbarSlots == 12) sprite = HotbarUtil.HOTBAR_SPRITE_12;
             else if (hotbarSlots == 15) sprite = HotbarUtil.HOTBAR_SPRITE_15;
+            else if (hotbarSlots == 18) sprite = HotbarUtil.HOTBAR_SPRITE_18;
             graphics.blitSprite(sprite,
                     hotbarX, //X
                     hotbarY, //Y
@@ -81,25 +87,28 @@ public abstract class GuiMixin {
             int selection = player.getInventory().selected;
 
             //We want the hotbar scroll to move with the selection, Selectron starts at 0, 9 is one slot over the gui
-
             int relativePos = getDistanceOnWheel(selection, hotbarScroll, 36);
-            int scrollMargin = (int) (hotbarSlots * 0.25);
-            if (relativePos < scrollMargin) {
-                hotbarScroll = selection - scrollMargin;
-            } else if (relativePos >= hotbarSlots - scrollMargin) {
-                hotbarScroll = selection - (hotbarSlots - 1 - scrollMargin);
+
+            if (scrollMargin >= hotbarSlots / 2)
+                hotbarScroll = selection - (hotbarSlots / 2);
+            else {
+                if (relativePos < scrollMargin) {
+                    hotbarScroll = selection - scrollMargin;
+                } else if (relativePos >= hotbarSlots - scrollMargin) {
+                    hotbarScroll = selection - (hotbarSlots - 1 - scrollMargin);
+                }
             }
 
             int selectionXAxis = getDistanceOnWheel(selection, hotbarScroll, 36);//If the scroll is 3, and the selection is 18, we want 18-6
 
             graphics.blitSprite(HotbarUtil.HOTBAR_SELECTION_SPRITE,
-                    x0 - 1 + selectionXAxis * 20 + selectionXAxis / hotbarSlots * 2,
+                    hotbarX - 1 + selectionXAxis * 20 + selectionXAxis / hotbarSlots * 2,
                     graphics.guiHeight() - 22 - 1,
                     24, 23);
 
             if (!itemstack.isEmpty()) {
                 if (humanoidarm == HumanoidArm.LEFT) {
-                    graphics.blitSprite(HotbarUtil.HOTBAR_OFFHAND_LEFT_SPRITE, x0 - 29, graphics.guiHeight() - 23, 29, 24);
+                    graphics.blitSprite(HotbarUtil.HOTBAR_OFFHAND_LEFT_SPRITE, hotbarX - 29, graphics.guiHeight() - 23, 29, 24);
                 } else {
                     graphics.blitSprite(HotbarUtil.HOTBAR_OFFHAND_RIGHT_SPRITE, x1 + 91, graphics.guiHeight() - 23, 29, 24);
                 }
@@ -111,7 +120,7 @@ public abstract class GuiMixin {
             //Display the items in the hotbar
             int l = 1;
             for (int i = 0; i < hotbarSlots; ++i) {
-                int x = x0 + i * 20 + 3 + i / hotbarSlots * 2;
+                int x = hotbarX + i * 20 + 3 + i / hotbarSlots * 2;
                 int y = graphics.guiHeight() - 16 - 3;
                 int index = Math.floorMod(
                         i + hotbarScroll,
@@ -125,7 +134,7 @@ public abstract class GuiMixin {
             if (!itemstack.isEmpty()) {
                 int i2 = graphics.guiHeight() - 16 - 3;
                 if (humanoidarm == HumanoidArm.LEFT) {
-                    this.renderSlot(graphics, x0 - 26, i2, deltaTracker, player, itemstack, l++);
+                    this.renderSlot(graphics, hotbarX - 26, i2, deltaTracker, player, itemstack, l++);
                 } else {
                     this.renderSlot(graphics, x1 + 10, i2, deltaTracker, player, itemstack, l++);
                 }
@@ -138,7 +147,7 @@ public abstract class GuiMixin {
                     int j2 = graphics.guiHeight() - 20;
                     int k2 = x1 + 6;
                     if (humanoidarm == HumanoidArm.RIGHT) {
-                        k2 = x0 - 22;
+                        k2 = hotbarX - 22;
                     }
 
                     int l1 = (int) (f * 19.0F);
@@ -150,4 +159,6 @@ public abstract class GuiMixin {
             }
         }
     }
+
+
 }
