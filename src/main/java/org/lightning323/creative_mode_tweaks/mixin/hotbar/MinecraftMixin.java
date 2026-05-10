@@ -15,7 +15,7 @@ public class MinecraftMixin {
    intValue = 36
 )}
    )
-   public int fromInventorySlotToMenuSlot(int value, @Local Inventory inventory) {
+   public int pickBlockMixin(int value, @Local Inventory inventory) {
       return inventory.selected >= 9 ? 0 : 36;
    }
 }

@@ -13,7 +13,8 @@
     "hotbar.InventoryMixin",
     "hotbar.MinecraftMixin",
     "hotbar.InventoryScreenMixin",
-    "hotbar.CreativeModeInventoryScreenMixin"
+    "hotbar.CreativeModeInventoryScreenMixin",
+    "MixinLocalPlayer"
   ],
   "injectors": {
     "defaultRequire": 1
