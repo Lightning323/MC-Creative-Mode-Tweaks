@@ -48,5 +48,11 @@ public class PacketHandler {
                 InventoryRotatePayload.STREAM_CODEC,
                 InventoryRotatePayload::handle
         );
+
+        registrar.playToServer(
+                DeleteItemPayload.TYPE,
+                DeleteItemPayload.STREAM_CODEC,
+                DeleteItemPayload::handle
+        );
     }
 }

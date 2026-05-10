@@ -1,9 +1,14 @@
 package org.lightning323.creative_mode_tweaks.mixin;
 
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
+import net.minecraft.network.protocol.game.ServerboundSetCreativeModeSlotPacket;
 import net.minecraft.world.item.ItemStack;
 import org.lightning323.creative_mode_tweaks.Config;
+import org.lightning323.creative_mode_tweaks.network.packets.DeleteItemPayload;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -44,8 +49,8 @@ public class MixinLocalPlayer {
         //Dont delete the item if it has custom data
         if (player.isCreative() && Config.enhanceCreativeHotbar && !isImportant(heldItem)) {
             cir.cancel();
+            player.connection.send(new DeleteItemPayload(player.getInventory().selected));
             if (!heldItem.isEmpty()) {
-                // Delete the item by setting the stack size to 0 or passing an empty stack
                 player.getInventory().setItem(player.getInventory().selected, ItemStack.EMPTY);
                 cir.setReturnValue(true);
             }
