@@ -54,5 +54,11 @@ public class PacketHandler {
                 DeleteItemPayload.STREAM_CODEC,
                 DeleteItemPayload::handle
         );
+
+        registrar.playBidirectional(
+                InventorySyncPayload.TYPE,
+                InventorySyncPayload.STREAM_CODEC,
+                InventorySyncPayload::handle
+        );
     }
 }

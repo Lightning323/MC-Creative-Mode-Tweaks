@@ -1,12 +1,20 @@
 package org.lightning323.creative_mode_tweaks.utils;
 
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.network.protocol.game.ClientboundContainerSetContentPacket;
+import net.minecraft.network.protocol.game.ServerboundSetCreativeModeSlotPacket;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.neoforged.neoforge.network.PacketDistributor;
 import org.lightning323.creative_mode_tweaks.Config;
 import org.lightning323.creative_mode_tweaks.CreativeModeTweaks;
+import org.lightning323.creative_mode_tweaks.network.ClientVanillaSender;
 import org.lightning323.creative_mode_tweaks.network.packets.InventoryRotatePayload;
+import org.lightning323.creative_mode_tweaks.network.packets.InventorySyncPayload;
 
 import java.util.Collections;
 
@@ -34,10 +42,11 @@ public class HotbarUtil {
     public static int hotbarSlots = 0;
 
     public static void rotateInventoryAndSync(LocalPlayer player, int offset, boolean keepSelection) {
-        if (player == null || player.connection == null) return;
-        rotateInventory(player, offset, keepSelection);
+        if (player == null) return;
         PacketDistributor.sendToServer(new InventoryRotatePayload(offset, keepSelection));
+        rotateInventory(player, offset, keepSelection);
     }
+
 
     public static int getDistanceOnInvWheel(int a, int b) {
         int diff = a - b;
@@ -60,7 +69,14 @@ public class HotbarUtil {
                     36
             ); //Do this to keep the selection consistent
             if (player instanceof LocalPlayer) HotbarUtil.hotbarScroll = player.getInventory().selected - scrollOffsset;
+
         }
+        if (player instanceof ServerPlayer serverPlayer) {
+            player.inventoryMenu.broadcastFullState();
+//                PacketDistributor.sendToServer(new InventorySyncPayload(player.getInventory().items));
+        }
+        int hash = InventoryHasher.computeInventoryHash(player.getInventory());
+        System.out.println("Player " + ((player instanceof LocalPlayer) ? "Client" : "Server") + ": " + hash);
     }
 
     public static boolean enableEnhancedHotbar(Player player) {

@@ -32,7 +32,6 @@ public record InventoryRotatePayload(int offset, boolean keepSelection) implemen
         context.enqueueWork(() -> {
             if (!(context.player() instanceof ServerPlayer player)) return;
             HotbarUtil.rotateInventory(player, offset(), keepSelection());
-            player.inventoryMenu.broadcastChanges();
         });
     }
 }
