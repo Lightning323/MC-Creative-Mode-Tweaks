@@ -36,7 +36,7 @@ public record InventoryRotatePayload(int desiredHash, int offset,
 
     public void handle(IPayloadContext context) {
         context.enqueueWork(() -> {
-            //Step 1: update the inventory on the server
+            //Step 1: update the inventory on the server FIRST
             HotbarUtil.rotateInventory(context.player(), offset(), keepSelection());
             int ourHash = InventoryUtils.computeInventoryHash(context.player().getInventory());
 
@@ -47,7 +47,7 @@ public record InventoryRotatePayload(int desiredHash, int offset,
                 //Step 3: After we have rotated the inventory on the client, force the server to match us (This should never happen)
                 if (desiredHash != 0 && ourHash != desiredHash) { //Check the hashes and ensure they match
                     CreativeModeTweaks.LOGGER.error("Inventory Hash mismatch: {} != {}", ourHash, desiredHash);
-                    PacketDistributor.sendToServer(new InventorySyncPayload(ourHash, context.player().getInventory().items));
+                    PacketDistributor.sendToServer(new InventorySyncPayload(context.player().getInventory().items));
                 }
             }
         });

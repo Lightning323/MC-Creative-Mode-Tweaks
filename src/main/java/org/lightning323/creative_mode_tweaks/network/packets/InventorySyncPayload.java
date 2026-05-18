@@ -10,23 +10,21 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import static org.lightning323.creative_mode_tweaks.utils.InventoryUtils.syncInventory;
 
-public record InventorySyncPayload(int targetHash, NonNullList<ItemStack> targetItems) implements CustomPacketPayload {
+public record InventorySyncPayload(NonNullList<ItemStack> targetItems) implements CustomPacketPayload {
 
     public static final Type<InventorySyncPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath("creative_mode_tweaks", "inventory_sync"));
 
     public static final StreamCodec<RegistryFriendlyByteBuf, InventorySyncPayload> STREAM_CODEC = StreamCodec.of((buf, payload) -> {
-        buf.writeInt(payload.targetHash()); // 1. Write the desiredHash first
         ItemStack.OPTIONAL_LIST_STREAM_CODEC.encode(buf, payload.targetItems());
     }, buf -> {
-        int decodedHash = buf.readInt(); // 2. Read the desiredHash back first
+        //Read the target inventory
         var list = ItemStack.OPTIONAL_LIST_STREAM_CODEC.decode(buf);
-
         NonNullList<ItemStack> nonNullList = NonNullList.withSize(list.size(), ItemStack.EMPTY);
         for (int i = 0; i < list.size(); i++) {
             nonNullList.set(i, list.get(i));
         }
         // 3. Pass both parameters to compile correctly
-        return new InventorySyncPayload(decodedHash, nonNullList);
+        return new InventorySyncPayload(nonNullList);
     });
 
     @Override
@@ -36,7 +34,7 @@ public record InventorySyncPayload(int targetHash, NonNullList<ItemStack> target
 
     public void handle(final IPayloadContext context) {
         context.enqueueWork(() -> {
-            syncInventory(context.player(), targetHash, targetItems);
+            syncInventory(context.player().getInventory(), targetItems);
         });
     }
 }

@@ -1,30 +1,29 @@
 package org.lightning323.creative_mode_tweaks.utils;
 
-import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.NonNullList;
+import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.core.component.DataComponentMap;
 import org.lightning323.creative_mode_tweaks.CreativeModeTweaks;
 
 import java.util.Objects;
 
 public class InventoryUtils {
 
-    public static boolean syncInventory(Player player, int targetHash, NonNullList<ItemStack> targetInv) {
-        Inventory inv = player.getInventory();
-        int ourHash = InventoryUtils.computeInventoryHash(inv);
+    public static boolean syncInventory(Inventory ourInv, NonNullList<ItemStack> targetInv) {
+        int ourHash = InventoryUtils.computeInventoryHash(ourInv);
+        int targetHash = InventoryUtils.computeInventoryHash(targetInv);
 
         // 5. Only overwrite if the hashes do not match
         if (ourHash != targetHash) {
-            int containerSize = inv.getContainerSize();
+            int containerSize = ourInv.getContainerSize();
             int targetSize = Math.min(targetInv.size(), containerSize);
 
             // 1. Gather all current targetItems into a tracking list (the pool)
             java.util.List<ItemStack> itemPool = new java.util.ArrayList<>();
             for (int i = 0; i < targetSize; i++) {
-                ItemStack existing = inv.getItem(i);
+                ItemStack existing = ourInv.getItem(i);
                 if (!existing.isEmpty()) {
                     itemPool.add(existing); // Keep a reference to the real instances
                 }
@@ -32,7 +31,7 @@ public class InventoryUtils {
 
             // 2. Temporarily clear the slots we are rearranging so we don't duplicate targetItems
             for (int i = 0; i < targetSize; i++) {
-                inv.setItem(i, ItemStack.EMPTY);
+                ourInv.setItem(i, ItemStack.EMPTY);
             }
 
             // 3. Reconstruct the inventory based on the incoming target targetItems
@@ -54,7 +53,7 @@ public class InventoryUtils {
 
                 if (!perfectMatch.isEmpty()) {
                     itemPool.remove(perfectMatch);
-                    inv.setItem(i, perfectMatch); // Rearrange existing instance
+                    ourInv.setItem(i, perfectMatch); // Rearrange existing instance
                     continue;
                 }
 
@@ -71,11 +70,11 @@ public class InventoryUtils {
                     if (dataMatch.getCount() > targetStack.getCount()) {
                         // The existing stack has MORE than we need; split it
                         ItemStack placedPiece = dataMatch.split(targetStack.getCount());
-                        inv.setItem(i, placedPiece);
+                        ourInv.setItem(i, placedPiece);
                     } else {
                         // The existing stack has LESS or EQUAL (but failed perfect match). Take all of it.
                         itemPool.remove(dataMatch);
-                        inv.setItem(i, dataMatch);
+                        ourInv.setItem(i, dataMatch);
                         // Note: If it's less, vanilla container logic or subsequent ticks will adjust it,
                         // but to guarantee exact matching when the pool falls short, we top it off below.
                         dataMatch.setCount(targetStack.getCount());
@@ -84,27 +83,30 @@ public class InventoryUtils {
                 }
 
                 // Strategy C: Absolute fallback. No matching item data found in the pool, instantiate a copy.
-                inv.setItem(i, targetStack.copy());
+                ourInv.setItem(i, targetStack.copy());
             }
 
-            ourHash = computeInventoryHash(inv);
-            CreativeModeTweaks.LOGGER.info("Inventory updated on {}. Our: {} {} Target: {}",
-                    player instanceof LocalPlayer ? "Client" : "Server",
+            ourHash = computeInventoryHash(ourInv);
+            CreativeModeTweaks.LOGGER.info("Inventory updated. Our: {} {} Target: {}",
                     ourHash, ourHash == targetHash ? "=" : "!=", targetHash);
         }
         return ourHash == targetHash;
+    }
+
+    public static int computeInventoryHash(Inventory inventory) {
+        return computeInventoryHash(inventory.items);
     }
 
     /**
      * Computes a highly reliable 32-bit desiredHash of the player's standard inventory slots (0-35).
      * This factors in item IDs, stack counts, slot positioning, and all active Data Components.
      */
-    public static int computeInventoryHash(Inventory inventory) {
+    public static int computeInventoryHash(NonNullList<ItemStack> targetInv) {
         int result = 1;
 
         // Iterate through standard inventory slots (includes hotbar and main inventory)
-        for (int slot = 0; slot < inventory.items.size(); slot++) {
-            ItemStack stack = inventory.items.get(slot);
+        for (int slot = 0; slot < targetInv.size(); slot++) {
+            ItemStack stack = targetInv.get(slot);
 
             int slotHash = 0;
             if (!stack.isEmpty()) {
