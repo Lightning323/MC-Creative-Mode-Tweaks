@@ -43,6 +43,12 @@ public class PacketHandler {
                 PacketGameModeChanged::handle
         );
 
+        registrar.playToClient(
+                ClientboundSyncConfigPayload.TYPE,
+                ClientboundSyncConfigPayload.STREAM_CODEC,
+                ClientboundSyncConfigPayload::handle
+        );
+
         registrar.playBidirectional(
                 InventoryRotatePayload.TYPE,
                 InventoryRotatePayload.STREAM_CODEC,

@@ -1,10 +1,11 @@
 package org.lightning323.creative_mode_tweaks.mixin.hotbar;
 
-import net.minecraft.client.Minecraft;
 import net.minecraft.core.NonNullList;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import org.lightning323.creative_mode_tweaks.hotbar.HotbarUtil;
+import org.lightning323.creative_mode_tweaks.utils.mixin.Player_I;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -33,10 +34,10 @@ public abstract class InventoryMixin {
      */
     @ModifyConstant(method = "isHotbarSlot", constant = @Constant(intValue = 9))
     private static int isHotbarSlotMixin(int constant) {
-        if (enableEnhancedHotbar(Minecraft.getInstance().player)) {
+//        if (enableEnhancedHotbar(Minecraft.getInstance().player)) {
             return Inventory.INVENTORY_SIZE;
-        }
-        return constant;
+//        }
+//        return constant;
     }
 
     /**
@@ -62,9 +63,9 @@ public abstract class InventoryMixin {
      */
     @Inject(method = "getSelectionSize", at = @At("HEAD"), cancellable = true)
     private static void onGetSelectionSize(CallbackInfoReturnable<Integer> cir) {
-        if (enableEnhancedHotbar(Minecraft.getInstance().player)) {
+//        if (enableEnhancedHotbar(Minecraft.getInstance().player)) {
             cir.setReturnValue(Inventory.INVENTORY_SIZE);
-        }
+//        }
     }
 
     /**

@@ -28,7 +28,21 @@ public class HotbarUtil {
      * @param offset
      */
     public static void rotateInventory(Player player, int offset, boolean keepSelection) {
-        Collections.rotate(player.getInventory().items, -offset);
+        var inventory = player.getInventory();
+        int mainSize = inventory.items.size(); // 36 slots
+
+        // 1. Snapshot the items using safe object copies
+        java.util.List<net.minecraft.world.item.ItemStack> tempItems = new java.util.ArrayList<>(mainSize);
+        for (int i = 0; i < mainSize; i++) {
+            tempItems.add(inventory.items.get(i).copy());
+        }
+        java.util.Collections.rotate(tempItems, -offset);
+
+        // 3. Update the slots while explicitly triggering inventory state changes
+        for (int i = 0; i < mainSize; i++) {
+            inventory.setItem(i, tempItems.get(i));
+        }
+
         if (keepSelection) {
             int scrollOffsset = player.getInventory().selected - HotbarUtil.hotbarScroll;
             player.getInventory().selected = Math.floorMod(
@@ -37,6 +51,12 @@ public class HotbarUtil {
             ); //Do this to keep the selection consistent
             //We CANNOT use client side classes in this since this method is used on both client and server
             if (player.level().isClientSide) HotbarUtil.hotbarScroll = player.getInventory().selected - scrollOffsset;
+        }
+
+        // Explicitly notify data flags
+        inventory.setChanged();
+        if (!player.level().isClientSide) {
+            player.containerMenu.broadcastChanges();
         }
     }
 

@@ -6,6 +6,7 @@ import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.player.Abilities;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import org.lightning323.creative_mode_tweaks.Config;
 import org.lightning323.creative_mode_tweaks.utils.mixin.Player_I;
 import org.objectweb.asm.Opcodes;
 import org.spongepowered.asm.mixin.Mixin;
@@ -29,6 +30,7 @@ public abstract class PlayerMixin extends LivingEntity implements Player_I {
 
     protected PlayerMixin(EntityType<? extends LivingEntity> pEntityType, Level pLevel) {
         super(pEntityType, pLevel);
+        setEnableEnhancedHotbar();
     }
 
     @Shadow

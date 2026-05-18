@@ -4,13 +4,13 @@
   "package": "org.lightning323.creative_mode_tweaks.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "PlayerMixin"
+    "PlayerMixin",
+    "hotbar.InventoryMixin"
   ],
   "client": [
     "HookClientPlayerTick",
     "OptionInstanceMixin",
     "hotbar.GuiMixin",
-    "hotbar.InventoryMixin",
     "hotbar.MinecraftMixin",
     "hotbar.InventoryScreenMixin",
     "hotbar.CreativeModeInventoryScreenMixin",

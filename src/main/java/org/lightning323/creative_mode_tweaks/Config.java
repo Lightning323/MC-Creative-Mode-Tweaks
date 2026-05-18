@@ -4,11 +4,10 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.event.config.ModConfigEvent;
 import net.neoforged.neoforge.common.ModConfigSpec;
+
 @EventBusSubscriber(modid = CreativeModeTweaks.MODID, bus = EventBusSubscriber.Bus.MOD)
 public class Config {
     private static final ModConfigSpec.Builder COMMON_BUILDER = new ModConfigSpec.Builder();
-
-    // --- 1. Define everything FIRST ---
 
     // Common
     public static final ModConfigSpec.BooleanValue ENHANCE_CREATIVE_HOTBAR =
@@ -86,7 +85,6 @@ public class Config {
     public static boolean allowInventoryRotationInSurvival;
     public static int hotbarMinScrollMargin;
     public static int hotbarMaxScrollMargin;
-    public static boolean hotbarLoadActiveSelectionAsRow;
 
 
     @SubscribeEvent
@@ -102,7 +100,6 @@ public class Config {
             hotbarMinScrollMargin = HOTBAR_MIN_SCROLL_MARGIN.get();
             hotbarMaxScrollMargin = HOTBAR_MAX_SCROLL_MARGIN.get();
             allowInventoryRotationInSurvival = ALLOW_INVENTORY_ROTATION_IN_SURVIVAL.get();
-            hotbarLoadActiveSelectionAsRow = HOTBAR_LOAD_ACTIVE_SELECTION_AS_ROW.get();
         }
     }
 }

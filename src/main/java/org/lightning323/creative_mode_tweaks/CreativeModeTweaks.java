@@ -14,8 +14,11 @@ import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.RegisterGameTestsEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
+import org.lightning323.creative_mode_tweaks.hotbar.HotbarUtil;
+import org.lightning323.creative_mode_tweaks.network.packets.ClientboundSyncConfigPayload;
 import org.lightning323.creative_mode_tweaks.network.packets.PacketGameModeChanged;
 import org.lightning323.creative_mode_tweaks.utils.ServerSettings;
+import org.lightning323.creative_mode_tweaks.utils.mixin.Player_I;
 import org.slf4j.Logger;
 
 // The value here should match an entry in the META-INF/neoforge.mods.toml file
@@ -42,8 +45,11 @@ public class CreativeModeTweaks {
     }
 
     public static void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
-        ServerPlayer player = (ServerPlayer) event.getEntity();
-        serverGameModeChanged(player, player.gameMode.getGameModeForPlayer());
+        if (event.getEntity() instanceof ServerPlayer player) {
+            serverGameModeChanged(player, player.gameMode.getGameModeForPlayer());
+            //Update the client-side config
+            PacketDistributor.sendToPlayer(player, new ClientboundSyncConfigPayload());
+        }
     }
 
     public static void onGameModeChange(PlayerEvent.PlayerChangeGameModeEvent event) {

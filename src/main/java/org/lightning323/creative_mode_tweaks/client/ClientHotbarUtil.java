@@ -4,6 +4,7 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.network.PacketDistributor;
 import org.lightning323.creative_mode_tweaks.CreativeModeTweaks;
+import org.lightning323.creative_mode_tweaks.hotbar.HotbarUtil;
 import org.lightning323.creative_mode_tweaks.network.packets.InventoryRotatePayload;
 
 public class ClientHotbarUtil {
@@ -21,6 +22,7 @@ public class ClientHotbarUtil {
     public static void rotateInventoryAndSync(LocalPlayer player, int offset, boolean keepSelection) {
         if (player == null) return;
         //The server has to update the inventory first and then update the client
+        HotbarUtil.rotateInventory(player, offset, keepSelection);
         PacketDistributor.sendToServer(new InventoryRotatePayload(0, offset, keepSelection));
     }
 }

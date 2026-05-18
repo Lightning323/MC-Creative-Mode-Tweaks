@@ -94,9 +94,6 @@ public class ClientModEvents {
                     shiftAmt = (player.getInventory().selected - 9) + distToFrontOfHotbar;
                 }
             }
-
-            if (Config.hotbarLoadActiveSelectionAsRow)
-                shiftAmt = (int) Math.floor((double) shiftAmt / 9) * 9; //Should we align the active selection to the row?
             ClientHotbarUtil.rotateInventoryAndSync(player, shiftAmt, true);
         }
     }

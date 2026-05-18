@@ -14,6 +14,8 @@ import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 import org.lightning323.creative_mode_tweaks.Config;
 import org.lightning323.creative_mode_tweaks.client.ClientHotbarUtil;
+import org.lightning323.creative_mode_tweaks.hotbar.HotbarUtil;
+import org.lightning323.creative_mode_tweaks.utils.mixin.Player_I;
 import org.spongepowered.asm.mixin.*;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -56,7 +58,6 @@ public abstract class GuiMixin {
     private int x1;
 
 
-
     @Inject(
             method = "renderItemHotbar",
             at = @At("HEAD"), // Or "RETURN" to run after the original code
@@ -64,7 +65,7 @@ public abstract class GuiMixin {
     )
     private void onRenderItemHotbar(GuiGraphics graphics, DeltaTracker deltaTracker, CallbackInfo ci) {
         Player player = this.getCameraPlayer();
-        if (enableEnhancedHotbar(Minecraft.getInstance().player)) {
+        if (enableEnhancedHotbar(player)) {
             ci.cancel();
             ItemStack itemstack = player.getOffhandItem();
             HumanoidArm humanoidarm = player.getMainArm().getOpposite();
