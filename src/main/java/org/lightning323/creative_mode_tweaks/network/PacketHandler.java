@@ -43,7 +43,7 @@ public class PacketHandler {
                 PacketGameModeChanged::handle
         );
 
-        registrar.playToServer(
+        registrar.playBidirectional(
                 InventoryRotatePayload.TYPE,
                 InventoryRotatePayload.STREAM_CODEC,
                 InventoryRotatePayload::handle

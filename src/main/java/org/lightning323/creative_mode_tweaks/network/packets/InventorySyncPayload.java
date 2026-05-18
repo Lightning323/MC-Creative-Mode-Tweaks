@@ -1,6 +1,7 @@
 package org.lightning323.creative_mode_tweaks.network.packets;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.NonNullList;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
@@ -9,6 +10,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
+import org.lightning323.creative_mode_tweaks.CreativeModeTweaks;
 import org.lightning323.creative_mode_tweaks.utils.InventoryHasher;
 
 import java.util.Objects;
@@ -21,11 +23,11 @@ public record InventorySyncPayload(int hash, NonNullList<ItemStack> items) imple
 
     public static final StreamCodec<RegistryFriendlyByteBuf, InventorySyncPayload> STREAM_CODEC = StreamCodec.of(
             (buf, payload) -> {
-                buf.writeInt(payload.hash()); // 1. Write the hash first
+                buf.writeInt(payload.hash()); // 1. Write the desiredHash first
                 ItemStack.OPTIONAL_LIST_STREAM_CODEC.encode(buf, payload.items());
             },
             buf -> {
-                int decodedHash = buf.readInt(); // 2. Read the hash back first
+                int decodedHash = buf.readInt(); // 2. Read the desiredHash back first
                 var list = ItemStack.OPTIONAL_LIST_STREAM_CODEC.decode(buf);
 
                 NonNullList<ItemStack> nonNullList = NonNullList.withSize(list.size(), ItemStack.EMPTY);
@@ -45,10 +47,10 @@ public record InventorySyncPayload(int hash, NonNullList<ItemStack> items) imple
     public void handle(final IPayloadContext context) {
         context.enqueueWork(() -> {
             Inventory inv = context.player().getInventory();
-            int currentClientHash = InventoryHasher.computeInventoryHash(inv);
+            int ourHash = InventoryHasher.computeInventoryHash(inv);
 
             // 5. Only overwrite if the hashes do not match
-            if (currentClientHash != this.hash) {
+            if (ourHash != this.hash) {
                 int containerSize = inv.getContainerSize();
                 int targetSize = Math.min(items().size(), containerSize);
 
@@ -117,6 +119,11 @@ public record InventorySyncPayload(int hash, NonNullList<ItemStack> items) imple
                     // Strategy C: Absolute fallback. No matching item data found in the pool, instantiate a copy.
                     inv.setItem(i, targetStack.copy());
                 }
+
+                ourHash = InventoryHasher.computeInventoryHash(inv);
+                CreativeModeTweaks.LOGGER.debug("Inventory updated on {}. Our: {} {} Target: {}",
+                        context.player() instanceof LocalPlayer ? "Client" : "Server",
+                        ourHash, ourHash == hash ? "=" : "!=", hash);
             }
         });
     }

@@ -43,8 +43,11 @@ public class HotbarUtil {
 
     public static void rotateInventoryAndSync(LocalPlayer player, int offset, boolean keepSelection) {
         if (player == null) return;
-        PacketDistributor.sendToServer(new InventoryRotatePayload(offset, keepSelection));
         rotateInventory(player, offset, keepSelection);
+        int hash = InventoryHasher.computeInventoryHash(player.getInventory());
+        //Send a request for the server to rotate the inventory
+        PacketDistributor.sendToServer(new InventoryRotatePayload(hash, offset, keepSelection));
+
     }
 
 
@@ -69,14 +72,7 @@ public class HotbarUtil {
                     36
             ); //Do this to keep the selection consistent
             if (player instanceof LocalPlayer) HotbarUtil.hotbarScroll = player.getInventory().selected - scrollOffsset;
-
         }
-        if (player instanceof ServerPlayer serverPlayer) {
-            player.inventoryMenu.broadcastFullState();
-//                PacketDistributor.sendToServer(new InventorySyncPayload(player.getInventory().items));
-        }
-        int hash = InventoryHasher.computeInventoryHash(player.getInventory());
-        System.out.println("Player " + ((player instanceof LocalPlayer) ? "Client" : "Server") + ": " + hash);
     }
 
     public static boolean enableEnhancedHotbar(Player player) {

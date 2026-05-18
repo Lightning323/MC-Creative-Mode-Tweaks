@@ -8,7 +8,7 @@ import java.util.Objects;
 public class InventoryHasher {
 
     /**
-     * Computes a highly reliable 32-bit hash of the player's standard inventory slots (0-35).
+     * Computes a highly reliable 32-bit desiredHash of the player's standard inventory slots (0-35).
      * This factors in item IDs, stack counts, slot positioning, and all active Data Components.
      */
     public static int computeInventoryHash(Inventory inventory) {
@@ -36,7 +36,7 @@ public class InventoryHasher {
             }
 
             // 4. Incorporate the slot position. 
-            // This ensures that moving an item from slot 0 to slot 1 changes the total hash.
+            // This ensures that moving an item from slot 0 to slot 1 changes the total desiredHash.
             result = 31 * result + (slotHash ^ slot);
         }
 
