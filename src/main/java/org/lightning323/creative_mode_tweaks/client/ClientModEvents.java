@@ -1,20 +1,14 @@
 package org.lightning323.creative_mode_tweaks.client;
 
-import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.LayeredDraw;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.client.telemetry.TelemetryProperty;
-import net.minecraft.core.NonNullList;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.material.FogType;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -24,14 +18,12 @@ import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
 import org.lightning323.creative_mode_tweaks.Config;
 import org.lightning323.creative_mode_tweaks.client.keys.*;
 import org.lightning323.creative_mode_tweaks.client.utils.ClientSettings;
-import org.lightning323.creative_mode_tweaks.utils.HotbarUtil;
+import org.lightning323.creative_mode_tweaks.hotbar.HotbarUtil;
 import org.lwjgl.glfw.GLFW;
-
-import java.util.Collections;
 
 import static org.lightning323.creative_mode_tweaks.CreativeModeTweaks.LOGGER;
 import static org.lightning323.creative_mode_tweaks.CreativeModeTweaks.MODID;
-import static org.lightning323.creative_mode_tweaks.utils.HotbarUtil.getDistanceOnInvWheel;
+import static org.lightning323.creative_mode_tweaks.hotbar.HotbarUtil.getDistanceOnInvWheel;
 
 
 // You can use EventBusSubscriber to automatically register all static methods in the class annotated with @SubscribeEvent
@@ -45,7 +37,7 @@ public class ClientModEvents {
         @Override
         public void onKeyRelease(LocalPlayer player) {
             if (player.isCreative() || Config.allowInventoryRotationInSurvival) {
-                HotbarUtil.rotateInventoryAndSync(player, 9, false);
+                ClientHotbarUtil.rotateInventoryAndSync(player, 9, false);
             }
         }
     };
@@ -54,7 +46,7 @@ public class ClientModEvents {
         @Override
         public void onKeyRelease(LocalPlayer player) {
             if (player.isCreative() || Config.allowInventoryRotationInSurvival) {
-                HotbarUtil.rotateInventoryAndSync(player, -9, false);
+                ClientHotbarUtil.rotateInventoryAndSync(player, -9, false);
             }
         }
     };
@@ -105,7 +97,7 @@ public class ClientModEvents {
 
             if (Config.hotbarLoadActiveSelectionAsRow)
                 shiftAmt = (int) Math.floor((double) shiftAmt / 9) * 9; //Should we align the active selection to the row?
-            HotbarUtil.rotateInventoryAndSync(player, shiftAmt, true);
+            ClientHotbarUtil.rotateInventoryAndSync(player, shiftAmt, true);
         }
     }
 

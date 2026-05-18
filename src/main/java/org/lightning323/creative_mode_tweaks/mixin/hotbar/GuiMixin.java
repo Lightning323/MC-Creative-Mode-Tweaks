@@ -13,13 +13,13 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 import org.lightning323.creative_mode_tweaks.Config;
-import org.lightning323.creative_mode_tweaks.utils.HotbarUtil;
+import org.lightning323.creative_mode_tweaks.client.ClientHotbarUtil;
 import org.spongepowered.asm.mixin.*;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import static org.lightning323.creative_mode_tweaks.utils.HotbarUtil.*;
+import static org.lightning323.creative_mode_tweaks.hotbar.HotbarUtil.*;
 
 @Mixin({Gui.class})
 public abstract class GuiMixin {
@@ -88,10 +88,10 @@ public abstract class GuiMixin {
 
             //Hotbar sprite
 
-            ResourceLocation sprite = HotbarUtil.HOTBAR_SPRITE_9;
-            if (hotbarSlots == 12) sprite = HotbarUtil.HOTBAR_SPRITE_12;
-            else if (hotbarSlots == 15) sprite = HotbarUtil.HOTBAR_SPRITE_15;
-            else if (hotbarSlots == 18) sprite = HotbarUtil.HOTBAR_SPRITE_18;
+            ResourceLocation sprite = ClientHotbarUtil.HOTBAR_SPRITE_9;
+            if (hotbarSlots == 12) sprite = ClientHotbarUtil.HOTBAR_SPRITE_12;
+            else if (hotbarSlots == 15) sprite = ClientHotbarUtil.HOTBAR_SPRITE_15;
+            else if (hotbarSlots == 18) sprite = ClientHotbarUtil.HOTBAR_SPRITE_18;
             graphics.blitSprite(sprite,
                     hotbarX, //X
                     hotbarY, //Y
@@ -115,23 +115,23 @@ public abstract class GuiMixin {
 
             int selectionXAxis = getDistanceOnInvWheel(selection, hotbarScroll);//If the scroll is 3, and the selection is 18, we want 18-6
 
-            graphics.blitSprite(HotbarUtil.HOTBAR_SELECTION_SPRITE,
+            graphics.blitSprite(ClientHotbarUtil.HOTBAR_SELECTION_SPRITE,
                     hotbarX - 1 + selectionXAxis * 20 + selectionXAxis / hotbarSlots * 2,
                     graphics.guiHeight() - 22 - 1,
                     24, 23);
 
             if (!itemstack.isEmpty()) {
                 if (humanoidarm == HumanoidArm.LEFT) {
-                    graphics.blitSprite(HotbarUtil.HOTBAR_OFFHAND_LEFT_SPRITE, hotbarX - 29, graphics.guiHeight() - 23, 29, 24);
+                    graphics.blitSprite(ClientHotbarUtil.HOTBAR_OFFHAND_LEFT_SPRITE, hotbarX - 29, graphics.guiHeight() - 23, 29, 24);
                 } else {
-                    graphics.blitSprite(HotbarUtil.HOTBAR_OFFHAND_RIGHT_SPRITE, x1 + 91, graphics.guiHeight() - 23, 29, 24);
+                    graphics.blitSprite(ClientHotbarUtil.HOTBAR_OFFHAND_RIGHT_SPRITE, x1 + 91, graphics.guiHeight() - 23, 29, 24);
                 }
             }
 
             graphics.pose().popPose();
             RenderSystem.disableBlend();
 
-            //Display the items in the hotbar
+            //Display the targetItems in the hotbar
             int l = 1;
             for (int i = 0; i < hotbarSlots; ++i) {
                 int x = hotbarX + i * 20 + 3 + i / hotbarSlots * 2;
@@ -165,8 +165,8 @@ public abstract class GuiMixin {
                     }
 
                     int l1 = (int) (f * 19.0F);
-                    graphics.blitSprite(HotbarUtil.HOTBAR_ATTACK_INDICATOR_BACKGROUND_SPRITE, k2, j2, 18, 18);
-                    graphics.blitSprite(HotbarUtil.HOTBAR_ATTACK_INDICATOR_PROGRESS_SPRITE, 18, 18, 0, 18 - l1, k2, j2 + 18 - l1, 18, l1);
+                    graphics.blitSprite(ClientHotbarUtil.HOTBAR_ATTACK_INDICATOR_BACKGROUND_SPRITE, k2, j2, 18, 18);
+                    graphics.blitSprite(ClientHotbarUtil.HOTBAR_ATTACK_INDICATOR_PROGRESS_SPRITE, 18, 18, 0, 18 - l1, k2, j2 + 18 - l1, 18, l1);
                 }
 
                 RenderSystem.disableBlend();

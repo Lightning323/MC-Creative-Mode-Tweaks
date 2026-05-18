@@ -8,8 +8,8 @@ import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.lightning323.creative_mode_tweaks.CreativeModeTweaks;
-import org.lightning323.creative_mode_tweaks.utils.HotbarUtil;
-import org.lightning323.creative_mode_tweaks.utils.InventoryHasher;
+import org.lightning323.creative_mode_tweaks.hotbar.HotbarUtil;
+import org.lightning323.creative_mode_tweaks.utils.InventoryUtils;
 
 public record InventoryRotatePayload(int desiredHash, int offset,
                                      boolean keepSelection) implements CustomPacketPayload {
@@ -36,14 +36,19 @@ public record InventoryRotatePayload(int desiredHash, int offset,
 
     public void handle(IPayloadContext context) {
         context.enqueueWork(() -> {
+            //Step 1: update the inventory on the server
             HotbarUtil.rotateInventory(context.player(), offset(), keepSelection());
-            int ourHash = InventoryHasher.computeInventoryHash(context.player().getInventory());
-            if (ourHash != desiredHash) { //Check the hashes and ensure they match
-                CreativeModeTweaks.LOGGER.error("Inventory Hash mismatch: {} != {}", ourHash, desiredHash);
-                if (context.player() instanceof ServerPlayer player)
-                    PacketDistributor.sendToPlayer(player, new InventorySyncPayload(ourHash, context.player().getInventory().items));
-                else
+            int ourHash = InventoryUtils.computeInventoryHash(context.player().getInventory());
+
+            if (context.player() instanceof ServerPlayer player) {
+                //Step 2: Send the request to the client to rotate the inventory AFTER the server has done it already
+                PacketDistributor.sendToServer(new InventoryRotatePayload(ourHash, offset, keepSelection));
+            } else {
+                //Step 3: After we have rotated the inventory on the client, force the server to match us (This should never happen)
+                if (desiredHash != 0 && ourHash != desiredHash) { //Check the hashes and ensure they match
+                    CreativeModeTweaks.LOGGER.error("Inventory Hash mismatch: {} != {}", ourHash, desiredHash);
                     PacketDistributor.sendToServer(new InventorySyncPayload(ourHash, context.player().getInventory().items));
+                }
             }
         });
     }

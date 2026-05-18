@@ -1,19 +1,13 @@
 package org.lightning323.creative_mode_tweaks.mixin.hotbar;
 
-import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.NonNullList;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
-import org.lightning323.creative_mode_tweaks.utils.HotbarUtil;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Constant;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -21,8 +15,7 @@ import org.spongepowered.asm.mixin.injection.ModifyConstant;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import static net.minecraft.world.entity.player.Inventory.INVENTORY_SIZE;
-import static org.lightning323.creative_mode_tweaks.utils.HotbarUtil.enableEnhancedHotbar;
+import static org.lightning323.creative_mode_tweaks.hotbar.HotbarUtil.enableEnhancedHotbar;
 
 @Mixin(Inventory.class)
 public abstract class InventoryMixin {

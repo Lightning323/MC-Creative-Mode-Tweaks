@@ -24,11 +24,11 @@ public class MixinLocalPlayer {
         // Most mods use CUSTOM_DATA to store their custom logic/links.
         if (stack.has(DataComponents.CUSTOM_DATA)) return true;
 
-        // 2. Protection against "Container" items
+        // 2. Protection against "Container" targetItems
         // If it's a backpack, a crate, or a bundle, it has the BUNDLE_CONTENTS component.
         if (stack.has(DataComponents.BUNDLE_CONTENTS) || stack.has(DataComponents.CONTAINER)) return true;
 
-        // 3. Protection against "Linked" items (Compasses, Lodestones, Maps)
+        // 3. Protection against "Linked" targetItems (Compasses, Lodestones, Maps)
         // Redstone controllers often mimic the Map or Compass logic.
         if (stack.has(DataComponents.LODESTONE_TRACKER) || stack.has(DataComponents.MAP_ID)) return true;
 
@@ -36,7 +36,7 @@ public class MixinLocalPlayer {
         if (stack.isEnchanted() || stack.has(DataComponents.CUSTOM_NAME)) return true;
 
         // 5. Check the Item Class/Tag
-        // Many redstone mods tag their items. We can check if the item is not "Simple"
+        // Many redstone mods tag their targetItems. We can check if the item is not "Simple"
         if (stack.getItem().isComplex()) return true;
 
         return false;
