@@ -11,6 +11,12 @@ import java.util.Objects;
 
 public class InventoryUtils {
 
+    /**
+     * Syncs the inventory of the player with the target inventory, while using existing items if possible.
+     * @param ourInv
+     * @param targetInv
+     * @return
+     */
     public static boolean syncInventory(Inventory ourInv, NonNullList<ItemStack> targetInv) {
         int ourHash = InventoryUtils.computeInventoryHash(ourInv);
         int targetHash = InventoryUtils.computeInventoryHash(targetInv);
