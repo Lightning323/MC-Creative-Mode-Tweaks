@@ -121,7 +121,7 @@ public record InventorySyncPayload(int hash, NonNullList<ItemStack> items) imple
                 }
 
                 ourHash = InventoryHasher.computeInventoryHash(inv);
-                CreativeModeTweaks.LOGGER.debug("Inventory updated on {}. Our: {} {} Target: {}",
+                CreativeModeTweaks.LOGGER.info("Inventory updated on {}. Our: {} {} Target: {}",
                         context.player() instanceof LocalPlayer ? "Client" : "Server",
                         ourHash, ourHash == hash ? "=" : "!=", hash);
             }
