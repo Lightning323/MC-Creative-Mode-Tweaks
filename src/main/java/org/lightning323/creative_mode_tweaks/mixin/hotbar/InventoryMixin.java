@@ -32,13 +32,13 @@ public abstract class InventoryMixin {
     /**
      * Replaces the constant 9 with INVENTORY_SIZE only if in creative.
      */
-    @ModifyConstant(method = "isHotbarSlot", constant = @Constant(intValue = 9))
-    private static int isHotbarSlotMixin(int constant) {
-//        if (enableEnhancedHotbar(Minecraft.getInstance().player)) {
-            return Inventory.INVENTORY_SIZE;
-//        }
+//    @ModifyConstant(method = "isHotbarSlot", constant = @Constant(intValue = 9))
+//    private static int isHotbarSlotMixin(int constant) {
+////        if (enableEnhancedHotbar(Minecraft.getInstance().player)) {
+////            return Inventory.INVENTORY_SIZE;
+////        }
 //        return constant;
-    }
+//    }
 
     /**
      * Injects at the head of swapPaint to implement custom scroll logic.
@@ -61,12 +61,12 @@ public abstract class InventoryMixin {
     /**
      * Changes the selection size constant.
      */
-    @Inject(method = "getSelectionSize", at = @At("HEAD"), cancellable = true)
-    private static void onGetSelectionSize(CallbackInfoReturnable<Integer> cir) {
-//        if (enableEnhancedHotbar(Minecraft.getInstance().player)) {
-            cir.setReturnValue(Inventory.INVENTORY_SIZE);
-//        }
-    }
+//    @Inject(method = "getSelectionSize", at = @At("HEAD"), cancellable = true)
+//    private static void onGetSelectionSize(CallbackInfoReturnable<Integer> cir) {
+////        if (enableEnhancedHotbar(Minecraft.getInstance().player)) {
+////            cir.setReturnValue(Inventory.INVENTORY_SIZE);
+////        }
+//    }
 
     /**
      * Redirects the logic for finding a suitable slot.
