@@ -5,14 +5,11 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import org.lightning323.creative_mode_tweaks.hotbar.HotbarUtil;
-import org.lightning323.creative_mode_tweaks.utils.mixin.Player_I;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Constant;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.ModifyConstant;
+import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.injection.*;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
@@ -34,11 +31,28 @@ public abstract class InventoryMixin {
      */
 //    @ModifyConstant(method = "isHotbarSlot", constant = @Constant(intValue = 9))
 //    private static int isHotbarSlotMixin(int constant) {
-////        if (enableEnhancedHotbar(Minecraft.getInstance().player)) {
-////            return Inventory.INVENTORY_SIZE;
-////        }
-//        return constant;
+//        return Inventory.INVENTORY_SIZE;
 //    }
+
+    // Redirect the isHotbarSlot check inside getSelected()
+    @Redirect(
+            method = "getSelected()Lnet/minecraft/world/item/ItemStack;",
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/player/Inventory;isHotbarSlot(I)Z")
+    )
+    private boolean redirectIsHotbarSlotInGetSelected(int index) {
+        int maxHotbar = HotbarUtil.getHotbarSize(player);
+        return index >= 0 && index < maxHotbar;
+    }
+
+    // Redirect the isHotbarSlot check inside setPickedItem()
+    @Redirect(
+            method = "setPickedItem(Lnet/minecraft/world/item/ItemStack;)V",
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/player/Inventory;isHotbarSlot(I)Z")
+    )
+    private boolean redirectIsHotbarSlotInSetPickedItem(int index) {
+        int maxHotbar = HotbarUtil.getHotbarSize(player);
+        return index >= 0 && index < maxHotbar;
+    }
 
     /**
      * Injects at the head of swapPaint to implement custom scroll logic.
@@ -61,12 +75,11 @@ public abstract class InventoryMixin {
     /**
      * Changes the selection size constant.
      */
-//    @Inject(method = "getSelectionSize", at = @At("HEAD"), cancellable = true)
-//    private static void onGetSelectionSize(CallbackInfoReturnable<Integer> cir) {
-////        if (enableEnhancedHotbar(Minecraft.getInstance().player)) {
-////            cir.setReturnValue(Inventory.INVENTORY_SIZE);
-////        }
-//    }
+    @Inject(method = "getSelectionSize", at = @At("HEAD"), cancellable = true)
+    private static void onGetSelectionSize(CallbackInfoReturnable<Integer> cir) {
+        cir.setReturnValue(HotbarUtil.INVENTORY_SIZE);
+    }
+
 
     /**
      * Redirects the logic for finding a suitable slot.

@@ -5,7 +5,8 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "PlayerMixin",
-    "hotbar.InventoryMixin"
+    "hotbar.InventoryMixin",
+    "hotbar.MixinServerGamePacketListener"
   ],
   "client": [
     "HookClientPlayerTick",

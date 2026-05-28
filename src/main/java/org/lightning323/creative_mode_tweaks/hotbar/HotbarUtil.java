@@ -1,5 +1,6 @@
 package org.lightning323.creative_mode_tweaks.hotbar;
 
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import org.lightning323.creative_mode_tweaks.Config;
 import java.util.Collections;
@@ -62,5 +63,12 @@ public class HotbarUtil {
 
     public static boolean enableEnhancedHotbar(Player player) {
         return (player != null && player.isCreative() && Config.enhanceCreativeHotbar) || Config.enhanceSurvivalHotbar;
+    }
+
+    public static int getHotbarSize(Player player) {
+        if (enableEnhancedHotbar(player)) {
+            return Inventory.INVENTORY_SIZE;
+        }
+        return 9;
     }
 }
