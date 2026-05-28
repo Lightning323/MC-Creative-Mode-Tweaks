@@ -3,7 +3,6 @@ package org.lightning323.creative_mode_tweaks.utils;
 import net.minecraft.core.NonNullList;
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import org.lightning323.creative_mode_tweaks.CreativeModeTweaks;
 
@@ -93,7 +92,7 @@ public class InventoryUtils {
             }
 
             ourHash = computeInventoryHash(ourInv);
-            CreativeModeTweaks.LOGGER.info("Inventory updated. Our: {} {} Target: {}",
+            CreativeModeTweaks.LOG.info("Inventory updated. Our: {} {} Target: {}",
                     ourHash, ourHash == targetHash ? "=" : "!=", targetHash);
         }
         return ourHash == targetHash;

@@ -21,7 +21,7 @@ import org.lightning323.creative_mode_tweaks.client.utils.ClientSettings;
 import org.lightning323.creative_mode_tweaks.hotbar.HotbarUtil;
 import org.lwjgl.glfw.GLFW;
 
-import static org.lightning323.creative_mode_tweaks.CreativeModeTweaks.LOGGER;
+import static org.lightning323.creative_mode_tweaks.CreativeModeTweaks.LOG;
 import static org.lightning323.creative_mode_tweaks.CreativeModeTweaks.MODID;
 import static org.lightning323.creative_mode_tweaks.hotbar.HotbarUtil.getDistanceOnInvWheel;
 
@@ -144,7 +144,7 @@ public class ClientModEvents {
 
     public static void clientGameModeChanged(Player player, GameType gameType) {
         if (player == null) return;
-        LOGGER.debug("Client game mode set to {}", gameType);
+        LOG.debug("Client game mode set to {}", gameType);
         if (gameType == GameType.CREATIVE || gameType == GameType.SPECTATOR) {
         } else {
             player.getInventory().selected = Mth.clamp(player.getInventory().selected, 0, 8);

@@ -37,7 +37,7 @@ public record PacketToggleNoclip(boolean enabled) implements CustomPacketPayload
 
                 // Replaced System.out with a proper logger if available,
                 // but kept the logic for parity with your snippet
-                CreativeModeTweaks.LOGGER.debug("SERVER: NoClip: {} player: {}",
+                CreativeModeTweaks.LOG.debug("SERVER: NoClip: {} player: {}",
                         player_i.isNoClip(),
                         player.getName().getString());
             }
