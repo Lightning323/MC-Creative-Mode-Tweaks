@@ -56,9 +56,9 @@ public class ClientModEvents {
             "key." + MODID + ".toggle_noclip",
             GLFW.GLFW_KEY_UNKNOWN, DEFAULT_CATEGORY);
 
-    public static final KeyMapping KEY_REPLACE = new ReplaceKey(
-            "key." + MODID + ".replace",
-            GLFW.GLFW_KEY_UNKNOWN, DEFAULT_CATEGORY);
+//    public static final KeyMapping KEY_REPLACE = new ReplaceKey(
+//            "key." + MODID + ".replace",
+//            GLFW.GLFW_KEY_UNKNOWN, DEFAULT_CATEGORY);
 
     public static final KeyMapping KEY_ADJUSTRANGE = new AdjustRangeKey(
             "key." + MODID + ".adjustrange",
@@ -126,7 +126,7 @@ public class ClientModEvents {
     @SubscribeEvent
     public static void onClientTick(ClientTickEvent.Post event) {
 //        for (KeyMapping key : KeyBase.keys) {
-        ((KeyBase) KEY_REPLACE).onClientTick(event);
+//        ((KeyBase) KEY_REPLACE).onClientTick(event);
 //        }
     }
 
