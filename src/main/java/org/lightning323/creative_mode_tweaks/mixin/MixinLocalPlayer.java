@@ -1,5 +1,6 @@
 package org.lightning323.creative_mode_tweaks.mixin;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -20,30 +21,44 @@ public class MixinLocalPlayer {
 
     @Unique
     private boolean isImportant(ItemStack stack) {
-        // 1. Protection against Modded Data (Frequencies, Links, Settings)
-        // Most mods use CUSTOM_DATA to store their custom logic/links.
-        if (stack.has(DataComponents.CUSTOM_DATA)) return true;
+        if (stack.isEmpty()) {
+            return false;
+        }
 
-        // 2. Protection against "Container" targetItems
-        // If it's a backpack, a crate, or a bundle, it has the BUNDLE_CONTENTS component.
-        if (stack.has(DataComponents.BUNDLE_CONTENTS) || stack.has(DataComponents.CONTAINER)) return true;
+        // Protect items that contain actual custom/modded data.
+        var customData = stack.get(DataComponents.CUSTOM_DATA);
 
-        // 3. Protection against "Linked" targetItems (Compasses, Lodestones, Maps)
-        // Redstone controllers often mimic the Map or Compass logic.
-        if (stack.has(DataComponents.LODESTONE_TRACKER) || stack.has(DataComponents.MAP_ID)) return true;
+        if (customData != null) {
+            var tag = customData.copyTag();
 
-        // 4. Protection against Tools/Gear with Progress
-        if (stack.isEnchanted() || stack.has(DataComponents.CUSTOM_NAME)) return true;
+            // Create-linked items store their configuration/link data here.
+            if (!tag.isEmpty()) {
+                return true;
+            }
+        }
 
-        // 5. Check the Item Class/Tag
-        // Many redstone mods tag their targetItems. We can check if the item is not "Simple"
-        if (stack.getItem().isComplex()) return true;
+        // Vanilla items with persistent state.
+        if (stack.has(DataComponents.BUNDLE_CONTENTS)
+                || stack.has(DataComponents.CONTAINER)
+                || stack.has(DataComponents.LODESTONE_TRACKER)
+                || stack.has(DataComponents.MAP_ID)) {
+            return true;
+        }
 
+        // Don't delete enchanted/named gear.
+        if (stack.isEnchanted() || stack.has(DataComponents.CUSTOM_NAME)) {
+            return true;
+        }
         return false;
     }
 
     @Inject(method = "drop(Z)Z", at = @At("HEAD"), cancellable = true, remap = true)
     public void onDeleteItemOnDrop(boolean dropStack, CallbackInfoReturnable<Boolean> cir) {
+
+        // Only use the enhanced deletion when Shift is held.
+        if (!Minecraft.getInstance().options.keyShift.isDown()) {
+            return;
+        }
         LocalPlayer player = (LocalPlayer) (Object) this;
         ItemStack heldItem = player.getInventory().getSelected();
         //Dont delete the item if it has custom data
