@@ -41,7 +41,7 @@ public class MirrorModifier extends AbstractModifier {
    private void applyAxisMirror(BlockSet blocks, int axis, int effectiveSize) {
       double halfSize = (double)effectiveSize / (double)2.0F;
 
-      for(BlockPos  pos : new ArrayList(blocks.keySet())) {
+      for (BlockPos pos : new ArrayList<>(blocks.keySet())) {
          double mx = (double)pos.getX();
          double my = (double)pos.getY();
          double mz = (double)pos.getZ();

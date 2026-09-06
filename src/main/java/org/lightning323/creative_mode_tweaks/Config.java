@@ -57,10 +57,6 @@ public class Config {
             COMMON_BUILDER.comment("Default reach distance when we enter creative mode")
                     .defineInRange("reach.common.REACH_DEFAULT_RANGE", 32, 5, 256);
 
-    public static final ModConfigSpec.BooleanValue INVERT_REPLACE_LOCK =
-            COMMON_BUILDER.comment("If we want to invert replace lock. (Default: false)")
-                    .define("replace.client.INVERT_REPLACE_LOCK", false);
-
     private static final ModConfigSpec.BooleanValue DISABLE_FLIGHT_INERTIA =
             COMMON_BUILDER.comment("Whether to disable flight inertia")
                     .define("flight.client.DISABLE_FLIGHT_INERTIA", true);
