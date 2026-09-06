@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import nl.requios.effortlessbuilding.buildmode.BuildModeEnum;
 import nl.requios.effortlessbuilding.buildmode.ModeOptions;
-import nl.requios.effortlessbuilding.item.TrowelItem;
 import nl.requios.effortlessbuilding.mixin.BucketItemAccessor;
 import nl.requios.effortlessbuilding.utilities.BlockEntry;
 import nl.requios.effortlessbuilding.utilities.BlockSet;
@@ -37,7 +36,7 @@ public class BuildPipeline {
    }
 
    public static boolean isBuildTriggerItem(ItemStack stack) {
-      if (stack.getItem() instanceof TrowelItem) {
+      if (TrowelSystem.isTrowel(stack)) {
          return true;
       } else {
          Item var2 = stack.getItem();

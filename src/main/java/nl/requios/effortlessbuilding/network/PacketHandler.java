@@ -10,7 +10,6 @@ import nl.requios.effortlessbuilding.buildmode.BuildSettings;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipeline;
 import nl.requios.effortlessbuilding.buildpipeline.SableCompat;
 import nl.requios.effortlessbuilding.buildpipeline.TrowelSystem;
-import nl.requios.effortlessbuilding.item.TrowelItem;
 import nl.requios.effortlessbuilding.mixin.BucketItemAccessor;
 import nl.requios.effortlessbuilding.modifier.IModifier;
 import nl.requios.effortlessbuilding.modifier.ModifierSerializer;
@@ -89,7 +88,7 @@ public class PacketHandler {
          BuildSettings.ReplaceMode replaceMode = packet.replaceMode();
          Map<BlockPos, UndoManager.BlockChange> undoChanges = new LinkedHashMap();
          int placed = 0;
-         if (held.getItem() instanceof TrowelItem) {
+         if (TrowelSystem.isTrowel(held)) {
             Map<Item, Integer> available = creative ? Map.of() : TrowelSystem.getHotbarBlockCounts(player);
 
             Map<Item, Integer> used = new HashMap();

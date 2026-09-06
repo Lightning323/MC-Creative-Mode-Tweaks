@@ -13,8 +13,8 @@ import nl.requios.effortlessbuilding.buildmode.BuildModeEnum;
 import nl.requios.effortlessbuilding.buildmode.BuildModes;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipeline;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipelineClient;
+import nl.requios.effortlessbuilding.buildpipeline.TrowelSystem;
 import nl.requios.effortlessbuilding.buildpipeline.SableCompat;
-import nl.requios.effortlessbuilding.item.TrowelItem;
 import nl.requios.effortlessbuilding.mixin.BucketItemAccessor;
 import nl.requios.effortlessbuilding.utilities.BlockEntry;
 import nl.requios.effortlessbuilding.utilities.BlockSet;
@@ -96,7 +96,7 @@ public class BlockPreviewRenderer {
                      }
                   }
 
-                  boolean randomized = held.getItem() instanceof TrowelItem;
+                  boolean randomized = TrowelSystem.isTrowel(held);
                   if (baseState != null || randomized) {
                      try {
                         AlphaMultiBufferSource wrappedSource = new AlphaMultiBufferSource(bufferSource, blockAlpha);
