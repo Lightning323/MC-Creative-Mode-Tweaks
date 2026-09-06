@@ -88,7 +88,6 @@ public class BuildPipelineClient {
                return new BlockHitResult(location, direction, pos, false);
             }
          }
-
          return null;
       } else {
          Vec3 end = start.add(look.scale((double)Config.getBuildingReach(player)));

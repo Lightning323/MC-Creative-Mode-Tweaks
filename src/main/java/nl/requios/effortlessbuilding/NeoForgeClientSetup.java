@@ -13,7 +13,6 @@ import nl.requios.effortlessbuilding.network.UndoPacket;
 import nl.requios.effortlessbuilding.render.RenderHandler;
 import nl.requios.effortlessbuilding.screen.ModifiersScreen;
 import nl.requios.effortlessbuilding.screen.RadialMenu;
-import nl.requios.effortlessbuilding.utilities.KeyBindings;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -21,40 +20,18 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 import org.lightning323.creative_mode_tweaks.Config;
+import org.lightning323.creative_mode_tweaks.client.ClientModEvents;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.EventBusSubscriber.Bus;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
-import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.event.RenderGuiEvent;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent.Stage;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 
 public class NeoForgeClientSetup {
-   @EventBusSubscriber(
-      modid = "creative_mode_tweaks",
-      value = {Dist.CLIENT},
-      bus = Bus.MOD
-   )
-   public static class ModEvents {
-      @SubscribeEvent
-      public static void onRegisterKeyMappings(RegisterKeyMappingsEvent event) {
-         event.register(KeyBindings.openRadialMenu);
-         event.register(KeyBindings.openModifiersScreen);
-         event.register(KeyBindings.undo);
-         event.register(KeyBindings.redo);
-         event.register(KeyBindings.togglePlaneType);
-         event.register(KeyBindings.toggleAngelPlacement);
-
-         for(KeyMapping key : KeyBindings.getBuildModeKeys()) {
-            event.register(key);
-         }
-      }
-
-   }
-
    @EventBusSubscriber(
       modid = "creative_mode_tweaks",
       value = {Dist.CLIENT},
@@ -66,19 +43,19 @@ public class NeoForgeClientSetup {
 
       @SubscribeEvent
       public static void onClientTick(ClientTickEvent.Post event) {
-         if (KeyBindings.openModifiersScreen.consumeClick()) {
+         if (ClientModEvents.KEY_OPEN_MODIFIERS_SCREEN.consumeClick()) {
             Minecraft.getInstance().setScreen(new ModifiersScreen());
          }
 
          Minecraft mc = Minecraft.getInstance();
 
-         while(KeyBindings.undo.consumeClick()) {
+         while(ClientModEvents.KEY_UNDO.consumeClick()) {
             if (InputConstants.isKeyDown(mc.getWindow().getWindow(), 341) || InputConstants.isKeyDown(mc.getWindow().getWindow(), 345)) {
                PacketHandler.sendToServer(new UndoPacket());
             }
          }
 
-         while(KeyBindings.redo.consumeClick()) {
+         while(ClientModEvents.KEY_REDO.consumeClick()) {
             if (InputConstants.isKeyDown(mc.getWindow().getWindow(), 341) || InputConstants.isKeyDown(mc.getWindow().getWindow(), 345)) {
                PacketHandler.sendToServer(new RedoPacket());
             }
@@ -86,7 +63,12 @@ public class NeoForgeClientSetup {
 
          if (mc.screen == null) {
             for(BuildModeEnum mode : BuildModeEnum.values()) {
-               while(KeyBindings.getBuildModeKey(mode).consumeClick()) {
+               KeyMapping key = ClientModEvents.getBuildModeKey(mode);
+               if (key == null) {
+                  continue;
+               }
+
+               while(key.consumeClick()) {
                   BuildModes.CLIENT.setBuildMode(mode);
                   if (mc.player != null) {
                      mc.player.displayClientMessage(Component.translatable(mode.getNameKey()), true);
@@ -94,7 +76,7 @@ public class NeoForgeClientSetup {
                }
             }
 
-            while(KeyBindings.togglePlaneType.consumeClick()) {
+            while(ClientModEvents.KEY_TOGGLE_PLANE_TYPE.consumeClick()) {
                if (BuildModes.CLIENT.getBuildMode() == BuildModeEnum.PLANE) {
                   Plane plane = (Plane)BuildModeEnum.PLANE.instance;
                   plane.togglePlaneType();
@@ -104,7 +86,7 @@ public class NeoForgeClientSetup {
                }
             }
 
-            while(KeyBindings.toggleAngelPlacement.consumeClick()) {
+            while(ClientModEvents.KEY_TOGGLE_ANGEL_PLACEMENT.consumeClick()) {
                if (mc.player != null) {
                   if (Config.isAngelPlacementAllowed(mc.player)) {
                      boolean enabled = BuildSettings.CLIENT.toggleAngelPlacement();
@@ -115,7 +97,7 @@ public class NeoForgeClientSetup {
                }
             }
 
-            if (KeyBindings.isKeyDown(KeyBindings.openRadialMenu)) {
+            if (ClientModEvents.isKeyDown(ClientModEvents.KEY_OPEN_RADIAL_MENU)) {
                mc.setScreen(RadialMenu.instance);
             }
 

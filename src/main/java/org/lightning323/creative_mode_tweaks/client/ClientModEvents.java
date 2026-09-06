@@ -1,5 +1,6 @@
 package org.lightning323.creative_mode_tweaks.client;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.LayeredDraw;
@@ -15,11 +16,17 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.*;
 import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
+import nl.requios.effortlessbuilding.buildmode.BuildModeEnum;
+import nl.requios.effortlessbuilding.mixin.KeyMappingAccessor;
 import org.lightning323.creative_mode_tweaks.Config;
 import org.lightning323.creative_mode_tweaks.client.keys.*;
 import org.lightning323.creative_mode_tweaks.client.utils.ClientSettings;
 import org.lightning323.creative_mode_tweaks.hotbar.HotbarUtil;
 import org.lwjgl.glfw.GLFW;
+
+import java.util.Collection;
+import java.util.EnumMap;
+import java.util.Map;
 
 import static org.lightning323.creative_mode_tweaks.CreativeModeTweaks.LOG;
 import static org.lightning323.creative_mode_tweaks.CreativeModeTweaks.MODID;
@@ -31,6 +38,7 @@ import static org.lightning323.creative_mode_tweaks.hotbar.HotbarUtil.getDistanc
 public class ClientModEvents {
 
     public static final String DEFAULT_CATEGORY = "key." + MODID + ".default";
+    private static final Map<BuildModeEnum, KeyMapping> BUILD_MODE_KEYS = new EnumMap<>(BuildModeEnum.class);
 
     //Dumb keys
     public static final KeyMapping KEY_ROTATE_INV_UP = new KeyBase("key." + MODID + ".rotate_inv_up", GLFW.GLFW_KEY_UP, DEFAULT_CATEGORY) {
@@ -67,6 +75,46 @@ public class ClientModEvents {
     public static final KeyMapping KEY_NIGHTVISION = new NightVisionKey(
             "key." + MODID + ".nightvision",
             GLFW.GLFW_KEY_N, DEFAULT_CATEGORY);
+
+    // Effortless Building controls are registered with the rest of Creative Mode Tweaks.
+    public static final KeyMapping KEY_OPEN_RADIAL_MENU = new KeyMapping(
+            "key." + MODID + ".open_radial_menu", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_LEFT_ALT, DEFAULT_CATEGORY);
+
+    public static final KeyMapping KEY_OPEN_MODIFIERS_SCREEN = new KeyMapping(
+            "key." + MODID + ".open_modifiers_screen", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_KP_ADD, DEFAULT_CATEGORY);
+
+    public static final KeyMapping KEY_UNDO = new KeyMapping(
+            "key." + MODID + ".undo.desc", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_Z, DEFAULT_CATEGORY);
+
+    public static final KeyMapping KEY_REDO = new KeyMapping(
+            "key." + MODID + ".redo.desc", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_Y, DEFAULT_CATEGORY);
+
+    public static final KeyMapping KEY_TOGGLE_PLANE_TYPE = new KeyMapping(
+            "key." + MODID + ".toggle_plane_type", InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(), DEFAULT_CATEGORY);
+
+    public static final KeyMapping KEY_TOGGLE_ANGEL_PLACEMENT = new KeyMapping(
+            "key." + MODID + ".toggle_angel_placement", InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(), DEFAULT_CATEGORY);
+
+    static {
+        for (BuildModeEnum mode : BuildModeEnum.values()) {
+            if (mode != BuildModeEnum.FLOOR && mode != BuildModeEnum.WALL) {
+                BUILD_MODE_KEYS.put(mode, new KeyMapping(mode.getNameKey(), InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(), DEFAULT_CATEGORY));
+            }
+        }
+    }
+
+    public static KeyMapping getBuildModeKey(BuildModeEnum mode) {
+        return BUILD_MODE_KEYS.get(mode);
+    }
+
+    public static Collection<KeyMapping> getBuildModeKeys() {
+        return BUILD_MODE_KEYS.values();
+    }
+
+    public static boolean isKeyDown(KeyMapping keyMapping) {
+        long window = Minecraft.getInstance().getWindow().getWindow();
+        return InputConstants.isKeyDown(window, ((KeyMappingAccessor) keyMapping).effortlessbuilding$getKey().getValue());
+    }
 
     /**
      * https://discord.com/channels/313125603924639766/1249305774987939900/1502692290601160895
@@ -119,6 +167,17 @@ public class ClientModEvents {
     @SubscribeEvent
     public static void registerKeyMappings(RegisterKeyMappingsEvent event) {
         for (KeyMapping key : KeyBase.keys) {
+            event.register(key);
+        }
+
+        event.register(KEY_OPEN_RADIAL_MENU);
+        event.register(KEY_OPEN_MODIFIERS_SCREEN);
+        event.register(KEY_UNDO);
+        event.register(KEY_REDO);
+        event.register(KEY_TOGGLE_PLANE_TYPE);
+        event.register(KEY_TOGGLE_ANGEL_PLACEMENT);
+
+        for (KeyMapping key : getBuildModeKeys()) {
             event.register(key);
         }
     }

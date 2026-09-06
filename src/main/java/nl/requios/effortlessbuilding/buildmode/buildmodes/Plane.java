@@ -53,9 +53,10 @@ public class Plane extends TwoClicksBuildMode {
 
    @Override
    protected BlockPos findSecondPos(Player player, BlockPos firstPos, boolean skipRaytrace) {
-      return switch (this.planeFace()) {
+      Direction.Axis axis = this.updateWallAxisFromLook(player);
+      return switch (axis) {
          case Y -> Floor.findFloor(player, firstPos, skipRaytrace);
-         case X, Z -> findWallOnAxis(player, firstPos, this.planeFace(), skipRaytrace);
+         case X, Z -> findWallOnAxis(player, firstPos, axis, skipRaytrace);
       };
    }
 
@@ -79,6 +80,25 @@ public class Plane extends TwoClicksBuildMode {
       return BuildModes.isCriteriaValid(start, look, reach, player, skipRaytrace, planeBound, planeBound, distanceToPlayerSq)
          ? BlockPos.containing(planeBound)
          : null;
+   }
+
+   /** Keeps wall previews and placements perpendicular to the current horizontal look direction. */
+   private Direction.Axis updateWallAxisFromLook(Player player) {
+      if (this.firstFaceAxis == Direction.Axis.Y) {
+         return Direction.Axis.Y;
+      }
+
+      Vec3 look = BuildPipeline.getPlayerLookVec(player);
+      double horizontalX = Math.abs(look.x);
+      double horizontalZ = Math.abs(look.z);
+      if (horizontalX > horizontalZ) {
+         this.lastWallAxis = Direction.Axis.X;
+      } else if (horizontalZ > horizontalX) {
+         this.lastWallAxis = Direction.Axis.Z;
+      }
+
+      this.firstFaceAxis = this.lastWallAxis;
+      return this.firstFaceAxis;
    }
 
    private static Direction.Axis planeFace(int x1, int y1, int z1, int x2, int y2, int z2) {

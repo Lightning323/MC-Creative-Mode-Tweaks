@@ -17,7 +17,7 @@ import nl.requios.effortlessbuilding.buildmode.BuildModes;
 import nl.requios.effortlessbuilding.buildmode.BuildSettings;
 import nl.requios.effortlessbuilding.buildmode.ModeOptions;
 import nl.requios.effortlessbuilding.network.PacketHandler;
-import nl.requios.effortlessbuilding.utilities.KeyBindings;
+import org.lightning323.creative_mode_tweaks.client.ClientModEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -75,7 +75,7 @@ public class RadialMenu extends Screen {
 
     public void tick() {
         super.tick();
-        if (!KeyBindings.isKeyDown(KeyBindings.openRadialMenu)) {
+        if (!ClientModEvents.isKeyDown(ClientModEvents.KEY_OPEN_RADIAL_MENU)) {
             this.onClose();
         }
 
@@ -429,13 +429,13 @@ public class RadialMenu extends Screen {
             this.name = I18n.get(action.getNameKey(), new Object[0]);
             if (action == ModeOptions.ActionEnum.UNDO) {
                 String var10001 = this.description;
-                this.description = var10001 + "[Ctrl+" + KeyBindings.undo.getTranslatedKeyMessage().getString() + "]";
+                this.description = var10001 + "[Ctrl+" + ClientModEvents.KEY_UNDO.getTranslatedKeyMessage().getString() + "]";
             } else if (action == ModeOptions.ActionEnum.REDO) {
                 String var7 = this.description;
-                this.description = var7 + "[Ctrl+" + KeyBindings.redo.getTranslatedKeyMessage().getString() + "]";
+                this.description = var7 + "[Ctrl+" + ClientModEvents.KEY_REDO.getTranslatedKeyMessage().getString() + "]";
             } else if (action == ModeOptions.ActionEnum.OPEN_MODIFIER_SETTINGS) {
                 String var8 = this.description;
-                this.description = var8 + "[" + KeyBindings.openModifiersScreen.getTranslatedKeyMessage().getString() + "]";
+                this.description = var8 + "[" + ClientModEvents.KEY_OPEN_MODIFIERS_SCREEN.getTranslatedKeyMessage().getString() + "]";
             }
 
             if (I18n.exists(action.getDescriptionKey())) {
