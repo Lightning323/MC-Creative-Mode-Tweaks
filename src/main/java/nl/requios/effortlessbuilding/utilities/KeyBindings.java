@@ -1,0 +1,27 @@
+package nl.requios.effortlessbuilding.utilities;
+
+import com.mojang.blaze3d.platform.InputConstants;
+import com.mojang.blaze3d.platform.InputConstants.Type;
+import nl.requios.effortlessbuilding.mixin.KeyMappingAccessor;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.client.Minecraft;
+
+public class KeyBindings {
+   public static final String CATEGORY = "key.categories.creative_mode_tweaks";
+   public static KeyMapping openRadialMenu;
+   public static KeyMapping openModifiersScreen;
+   public static KeyMapping undo;
+   public static KeyMapping redo;
+
+   public static boolean isKeyDown(KeyMapping keyMapping) {
+      long window = Minecraft.getInstance().getWindow().getWindow();
+      return InputConstants.isKeyDown(window, ((KeyMappingAccessor)keyMapping).effortlessbuilding$getKey().getValue());
+   }
+
+   static {
+      openRadialMenu = new KeyMapping("key.creative_mode_tweaks.open_radial_menu", Type.KEYSYM, 342, "key.categories.creative_mode_tweaks");
+      openModifiersScreen = new KeyMapping("key.creative_mode_tweaks.open_modifiers_screen", Type.KEYSYM, 334, "key.categories.creative_mode_tweaks");
+      undo = new KeyMapping("key.creative_mode_tweaks.undo.desc", Type.KEYSYM, 90, "key.categories.creative_mode_tweaks");
+      redo = new KeyMapping("key.creative_mode_tweaks.redo.desc", Type.KEYSYM, 89, "key.categories.creative_mode_tweaks");
+   }
+}

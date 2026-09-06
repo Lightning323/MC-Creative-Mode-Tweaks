@@ -1,0 +1,52 @@
+package nl.requios.effortlessbuilding.mixin;
+
+import nl.requios.effortlessbuilding.buildmode.BuildModeEnum;
+import nl.requios.effortlessbuilding.buildmode.BuildModes;
+import nl.requios.effortlessbuilding.buildpipeline.BuildPipeline;
+import nl.requios.effortlessbuilding.buildpipeline.BuildPipelineClient;
+import nl.requios.effortlessbuilding.config.ServerConfig;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.level.ClipContext.Block;
+import net.minecraft.world.level.ClipContext.Fluid;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.HitResult.Type;
+import org.spongepowered.asm.mixin.Final;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+@Mixin({GameRenderer.class})
+public class MixinGameRenderer {
+   @Shadow
+   @Final
+   Minecraft minecraft;
+
+   @Inject(
+      method = {"pick(F)V"},
+      at = {@At("TAIL")}
+   )
+   private void onPick(float partialTicks, CallbackInfo ci) {
+      if (this.minecraft.player != null && this.minecraft.level != null) {
+         if (BuildModes.CLIENT.getBuildMode() != BuildModeEnum.DISABLED) {
+            if (this.minecraft.player.getMainHandItem().isEmpty() || BuildPipeline.isBuildTriggerItem(this.minecraft.player.getMainHandItem()) || BuildPipelineClient.getBuildState() != null) {
+               if (this.minecraft.hitResult == null || this.minecraft.hitResult.getType() != Type.BLOCK) {
+                  Vec3 start = this.minecraft.player.getEyePosition(partialTicks);
+                  Vec3 end = start.add(this.minecraft.player.getViewVector(partialTicks).scale((double)ServerConfig.INSTANCE.getReach(this.minecraft.player)));
+                  ClipContext ctx = new ClipContext(start, end, Block.OUTLINE, Fluid.NONE, this.minecraft.player);
+                  BlockHitResult hit = this.minecraft.level.clip(ctx);
+                  if (hit.getType() == Type.BLOCK) {
+                     this.minecraft.hitResult = hit;
+                     this.minecraft.crosshairPickEntity = null;
+                  }
+
+               }
+            }
+         }
+      }
+   }
+}

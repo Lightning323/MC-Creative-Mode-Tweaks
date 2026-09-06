@@ -1,0 +1,20 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "nl.requios.effortlessbuilding.mixin",
+  "refmap": "creative_mode_tweaks.refmap.json",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "BucketItemAccessor",
+    "MixinBlockItem"
+  ],
+  "client": [
+    "KeyMappingAccessor",
+    "MixinGameRenderer",
+    "MixinMinecraft"
+  ],
+  "server": [],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

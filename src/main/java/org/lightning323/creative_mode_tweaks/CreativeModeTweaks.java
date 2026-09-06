@@ -13,6 +13,7 @@ import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.RegisterGameTestsEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
+import nl.requios.effortlessbuilding.EffortlessBuilding;
 import org.lightning323.creative_mode_tweaks.network.packets.ClientboundSyncConfigPayload;
 import org.lightning323.creative_mode_tweaks.network.packets.PacketGameModeChanged;
 import org.lightning323.creative_mode_tweaks.utils.ServerSettings;
@@ -26,6 +27,7 @@ public class CreativeModeTweaks {
 
     public CreativeModeTweaks(IEventBus modEventBus, ModContainer modContainer) {
         modContainer.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
+        EffortlessBuilding.initialize(modEventBus, modContainer);
         NeoForge.EVENT_BUS.addListener(PlayerEvent.PlayerLoggedInEvent.class, CreativeModeTweaks::onPlayerLogin);
         NeoForge.EVENT_BUS.addListener(PlayerEvent.PlayerChangeGameModeEvent.class, CreativeModeTweaks::onGameModeChange);
         modEventBus.addListener(CreativeModeTweaks::onRegisterTests);
