@@ -10,6 +10,7 @@ group = mod_group_id
 
 repositories {
     mavenLocal()
+    maven { url = 'https://www.cursemaven.com' }
 }
 
 base {
@@ -96,6 +97,14 @@ sourceSets.main.resources { srcDir 'src/generated/resources' }
 
 
 dependencies {
+    // Development-only runtime mods for compatibility testing on NeoForge 1.21.1.
+    // Zeta is required by Quark; Create and Sable are required by Create Aeronautics.
+    runtimeOnly 'curse.maven:zeta-968868:7980010'                       // Zeta 1.1-40
+    runtimeOnly 'curse.maven:quark-243121:8420966'                      // Quark 4.1-482
+    runtimeOnly 'curse.maven:create-328085:7963363'                     // Create 6.0.10
+    runtimeOnly 'curse.maven:sable-1312371:8673825'                     // Sable 2.0.5
+    runtimeOnly 'curse.maven:create-aeronautics-676721:8763471'         // Create Aeronautics 1.3.2
+
     // Example mod dependency with JEI
     // The JEI API is declared for compile time use, while the full JEI artifact is used at runtime
     // compileOnly "mezz.jei:jei-${mc_version}-common-api:${jei_version}"

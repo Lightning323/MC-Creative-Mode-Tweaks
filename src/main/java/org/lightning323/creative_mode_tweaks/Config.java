@@ -28,7 +28,7 @@ public class Config {
 
     public static final ModConfigSpec.IntValue CREATIVE_HOTBAR_MAX_SIZE =
             COMMON_BUILDER.comment("Size of enhanced hotbar (valid values: 9,12,15,18)")
-                    .defineInRange("hotbar.client.CREATIVE_HOTBAR_MAX_SIZE", 15, 9, 18);
+                    .defineInRange("hotbar.client.CREATIVE_HOTBAR_MAX_SIZE", 9, 9, 18);
 
     public static final ModConfigSpec.IntValue SURVIVAL_HOTBAR_MAX_SIZE =
             COMMON_BUILDER.comment("Size of enhanced hotbar (valid values: 9,12,15,18)")
