@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/handheld",
+  "textures": {
+    "layer0": "creative_mode_tweaks:item/trowel"
+  }
+}
