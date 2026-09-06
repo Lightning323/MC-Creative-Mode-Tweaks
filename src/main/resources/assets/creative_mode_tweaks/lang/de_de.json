@@ -4,6 +4,7 @@
   "key.creative_mode_tweaks.open_modifiers_screen": "Modifikator-Einstellungen öffnen",
   "key.creative_mode_tweaks.undo.desc": "Rückgängig",
   "key.creative_mode_tweaks.redo.desc": "Wiederholen",
+  "key.creative_mode_tweaks.toggle_plane_type": "Flächentyp wechseln",
 
   "creative_mode_tweaks.screen.radial_menu": "Baumodi",
   "creative_mode_tweaks.screen.modifier_settings": "Modifikator-Einstellungen",
@@ -44,6 +45,8 @@
   "creative_mode_tweaks.modedescription.pyramid": "",
   "creative_mode_tweaks.modedescription.cone": "",
   "creative_mode_tweaks.modedescription.dome": "",
+
+  "creative_mode_tweaks.message.plane_mode": "Ebene: %s",
 
   "creative_mode_tweaks.action.undo": "Rückgängig",
   "creative_mode_tweaks.action.redo": "Wiederholen",

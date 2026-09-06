@@ -1,6 +1,9 @@
 package nl.requios.effortlessbuilding;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import nl.requios.effortlessbuilding.buildmode.BuildModeEnum;
+import nl.requios.effortlessbuilding.buildmode.BuildModes;
+import nl.requios.effortlessbuilding.buildmode.buildmodes.Plane;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipeline;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipelineClient;
 import nl.requios.effortlessbuilding.network.PacketHandler;
@@ -10,8 +13,10 @@ import nl.requios.effortlessbuilding.render.RenderHandler;
 import nl.requios.effortlessbuilding.screen.ModifiersScreen;
 import nl.requios.effortlessbuilding.screen.RadialMenu;
 import nl.requios.effortlessbuilding.utilities.KeyBindings;
+import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
@@ -38,6 +43,11 @@ public class NeoForgeClientSetup {
          event.register(KeyBindings.openModifiersScreen);
          event.register(KeyBindings.undo);
          event.register(KeyBindings.redo);
+         event.register(KeyBindings.togglePlaneType);
+
+         for(KeyMapping key : KeyBindings.getBuildModeKeys()) {
+            event.register(key);
+         }
       }
 
    }
@@ -72,6 +82,25 @@ public class NeoForgeClientSetup {
          }
 
          if (mc.screen == null) {
+            for(BuildModeEnum mode : BuildModeEnum.values()) {
+               while(KeyBindings.getBuildModeKey(mode).consumeClick()) {
+                  BuildModes.CLIENT.setBuildMode(mode);
+                  if (mc.player != null) {
+                     mc.player.displayClientMessage(Component.translatable(mode.getNameKey()), true);
+                  }
+               }
+            }
+
+            while(KeyBindings.togglePlaneType.consumeClick()) {
+               if (BuildModes.CLIENT.getBuildMode() == BuildModeEnum.PLANE) {
+                  Plane plane = (Plane)BuildModeEnum.PLANE.instance;
+                  plane.togglePlaneType();
+                  if (mc.player != null) {
+                     mc.player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.plane_mode", Component.translatable(plane.getPlaneTypeNameKey())), true);
+                  }
+               }
+            }
+
             if (KeyBindings.isKeyDown(KeyBindings.openRadialMenu)) {
                mc.setScreen(RadialMenu.instance);
             }

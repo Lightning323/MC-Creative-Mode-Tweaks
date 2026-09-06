@@ -4,6 +4,7 @@
   "key.creative_mode_tweaks.open_modifiers_screen": "Abrir configuración de modificadores",
   "key.creative_mode_tweaks.undo.desc": "Deshacer",
   "key.creative_mode_tweaks.redo.desc": "Rehacer",
+  "key.creative_mode_tweaks.toggle_plane_type": "Cambiar tipo de plano",
 
   "creative_mode_tweaks.screen.radial_menu": "Modos de construcción",
   "creative_mode_tweaks.screen.modifier_settings": "Configuración de modificadores",
@@ -44,6 +45,8 @@
   "creative_mode_tweaks.modedescription.pyramid": "",
   "creative_mode_tweaks.modedescription.cone": "",
   "creative_mode_tweaks.modedescription.dome": "",
+
+  "creative_mode_tweaks.message.plane_mode": "Plano: %s",
 
   "creative_mode_tweaks.action.undo": "Deshacer",
   "creative_mode_tweaks.action.redo": "Rehacer",

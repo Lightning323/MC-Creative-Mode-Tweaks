@@ -4,6 +4,7 @@
   "key.creative_mode_tweaks.open_modifiers_screen": "打开修饰器设置",
   "key.creative_mode_tweaks.undo.desc": "撤销",
   "key.creative_mode_tweaks.redo.desc": "重做",
+  "key.creative_mode_tweaks.toggle_plane_type": "切换平面类型",
 
   "creative_mode_tweaks.screen.radial_menu": "建造模式",
   "creative_mode_tweaks.screen.modifier_settings": "修饰器设置",
@@ -44,6 +45,8 @@
   "creative_mode_tweaks.modedescription.pyramid": "",
   "creative_mode_tweaks.modedescription.cone": "",
   "creative_mode_tweaks.modedescription.dome": "",
+
+  "creative_mode_tweaks.message.plane_mode": "平面：%s",
 
   "creative_mode_tweaks.action.undo": "撤销",
   "creative_mode_tweaks.action.redo": "重做",

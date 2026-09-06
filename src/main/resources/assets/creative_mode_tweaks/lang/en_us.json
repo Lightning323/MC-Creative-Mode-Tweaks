@@ -11,6 +11,7 @@
   "key.creative_mode_tweaks.open_modifiers_screen": "Open Modifier Settings",
   "key.creative_mode_tweaks.undo.desc": "Undo",
   "key.creative_mode_tweaks.redo.desc": "Redo",
+  "key.creative_mode_tweaks.toggle_plane_type": "Toggle Plane Type",
 
   "creative_mode_tweaks.screen.radial_menu": "Build Modes",
   "creative_mode_tweaks.screen.modifier_settings": "Modifier Settings",
@@ -51,6 +52,8 @@
   "creative_mode_tweaks.modedescription.pyramid": "",
   "creative_mode_tweaks.modedescription.cone": "",
   "creative_mode_tweaks.modedescription.dome": "",
+
+  "creative_mode_tweaks.message.plane_mode": "Plane: %s",
 
   "creative_mode_tweaks.action.undo": "Undo",
   "creative_mode_tweaks.action.redo": "Redo",
