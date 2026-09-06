@@ -250,7 +250,7 @@ public abstract class ThreeClicksBuildMode extends BaseBuildMode {
       criteriaList.add(new HeightCriteria(xBound, secondPos, start));
       Vec3 zBound = BuildModes.findZBound((double)secondPos.getZ(), start, look);
       criteriaList.add(new HeightCriteria(zBound, secondPos, start));
-      int reach = Config.getBuildingReach(player);
+      double reach = Config.getReach(player);
       criteriaList.removeIf((criteriax) -> !criteriax.isValid(start, look, reach, player, skipRaytrace));
       if (criteriaList.isEmpty()) {
          return null;
@@ -299,7 +299,7 @@ public abstract class ThreeClicksBuildMode extends BaseBuildMode {
          return new Vec3((double)secondPos.getX(), (double)bound.getY(), (double)secondPos.getZ());
       }
 
-      public boolean isValid(Vec3 start, Vec3 look, int reach, Player player, boolean skipRaytrace) {
+      public boolean isValid(Vec3 start, Vec3 look, double reach, Player player, boolean skipRaytrace) {
          return BuildModes.isCriteriaValid(start, look, reach, player, skipRaytrace, this.lineBound, this.planeBound, this.distToPlayerSq);
       }
    }

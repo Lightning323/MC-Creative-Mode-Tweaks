@@ -20,7 +20,7 @@ public class Wall extends TwoClicksBuildMode {
       criteriaList.add(new Criteria(xBound, firstPos, start, look));
       Vec3 zBound = BuildModes.findZBound((double)firstPos.getZ(), start, look);
       criteriaList.add(new Criteria(zBound, firstPos, start, look));
-      int reach = Config.getBuildingReach(player);
+      double reach = Config.getReach(player);
       criteriaList.removeIf((criteriax) -> !criteriax.isValid(start, look, reach, player, skipRaytrace));
       if (criteriaList.isEmpty()) {
          return null;
@@ -154,7 +154,7 @@ public class Wall extends TwoClicksBuildMode {
          this.angle = wall.x * look.x + wall.z * look.z;
       }
 
-      public boolean isValid(Vec3 start, Vec3 look, int reach, Player player, boolean skipRaytrace) {
+      public boolean isValid(Vec3 start, Vec3 look, double reach, Player player, boolean skipRaytrace) {
          return BuildModes.isCriteriaValid(start, look, reach, player, skipRaytrace, this.planeBound, this.planeBound, this.distToPlayerSq);
       }
    }

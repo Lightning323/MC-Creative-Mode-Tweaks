@@ -81,7 +81,7 @@ public class BuildModes {
       return new Vec3(x, y, z);
    }
 
-   public static boolean isCriteriaValid(Vec3 start, Vec3 look, int reach, Player player, boolean skipRaytrace, Vec3 lineBound, Vec3 planeBound, double distToPlayerSq) {
+   public static boolean isCriteriaValid(Vec3 start, Vec3 look, double reach, Player player, boolean skipRaytrace, Vec3 lineBound, Vec3 planeBound, double distToPlayerSq) {
       boolean intersects = false;
       if (!skipRaytrace) {
          ClipContext rayTraceContext = new ClipContext(start, lineBound, Block.COLLIDER, Fluid.NONE, player);

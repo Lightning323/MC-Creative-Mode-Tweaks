@@ -18,7 +18,7 @@ public class Floor extends TwoClicksBuildMode {
       List<Criteria> criteriaList = new ArrayList(3);
       Vec3 yBound = BuildModes.findYBound((double)firstPos.getY(), start, look);
       criteriaList.add(new Criteria(yBound, start));
-      int reach = Config.getBuildingReach(player);
+      double reach = Config.getReach(player);
       criteriaList.removeIf((criteria) -> !criteria.isValid(start, look, reach, player, skipRaytrace));
       if (criteriaList.isEmpty()) {
          return null;
@@ -95,7 +95,7 @@ public class Floor extends TwoClicksBuildMode {
          this.distToPlayerSq = this.planeBound.subtract(start).lengthSqr();
       }
 
-      public boolean isValid(Vec3 start, Vec3 look, int reach, Player player, boolean skipRaytrace) {
+      public boolean isValid(Vec3 start, Vec3 look, double reach, Player player, boolean skipRaytrace) {
          return BuildModes.isCriteriaValid(start, look, reach, player, skipRaytrace, this.planeBound, this.planeBound, this.distToPlayerSq);
       }
    }

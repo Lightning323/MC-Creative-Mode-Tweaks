@@ -23,19 +23,19 @@ public class PacketHandler {
                 PacketToggleNoclip::handle
         );
 
-        // Register Replace
-        registrar.playToServer(
-                PacketReplace.TYPE,
-                PacketReplace.CODEC,
-                PacketReplace::handle
-        );
-
-        // Register Adjust Range
-        registrar.playToServer(
-                PacketAdjustRange.TYPE,
-                PacketAdjustRange.CODEC,
-                PacketAdjustRange::handle
-        );
+//        // Register Replace
+//        registrar.playToServer(
+//                PacketReplace.TYPE,
+//                PacketReplace.CODEC,
+//                PacketReplace::handle
+//        );
+//
+//        // Register Adjust Range
+//        registrar.playToServer(
+//                PacketAdjustRange.TYPE,
+//                PacketAdjustRange.CODEC,
+//                PacketAdjustRange::handle
+//        );
 
         registrar.playToClient(
                 PacketGameModeChanged.TYPE,

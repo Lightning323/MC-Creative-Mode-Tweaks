@@ -68,9 +68,9 @@ public class ClientModEvents {
 //            "key." + MODID + ".replace",
 //            GLFW.GLFW_KEY_UNKNOWN, DEFAULT_CATEGORY);
 
-    public static final KeyMapping KEY_ADJUSTRANGE = new AdjustRangeKey(
-            "key." + MODID + ".adjustrange",
-            GLFW.GLFW_KEY_UNKNOWN, DEFAULT_CATEGORY);
+//    public static final KeyMapping KEY_ADJUSTRANGE = new AdjustRangeKey(
+//            "key." + MODID + ".adjustrange",
+//            GLFW.GLFW_KEY_UNKNOWN, DEFAULT_CATEGORY);
 
     public static final KeyMapping KEY_NIGHTVISION = new NightVisionKey(
             "key." + MODID + ".nightvision",

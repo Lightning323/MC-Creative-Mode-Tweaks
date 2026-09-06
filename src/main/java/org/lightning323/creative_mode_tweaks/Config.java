@@ -45,17 +45,29 @@ public class Config {
             COMMON_BUILDER.comment("Maximum number of preview slots on either side when scrolling (setting this to the max value will always keep the selector in the center)")
                     .defineInRange("hotbar.client.HOTBAR_MAX_SCROLL_MARGIN", 4, 0, 100);
 
-    public static final ModConfigSpec.IntValue REACH_MIN_RANGE =
-            COMMON_BUILDER.comment("Minimum reach distance")
-                    .defineInRange("reach.common.REACH_MIN_RANGE", 5, 5, 128);
 
-    public static final ModConfigSpec.IntValue REACH_MAX_RANGE =
-            COMMON_BUILDER.comment("Maximum reach distance")
-                    .defineInRange("reach.common.REACH_MAX_RANGE", 128, 5, 256);
 
-    public static final ModConfigSpec.IntValue REACH_DEFAULT_RANGE =
-            COMMON_BUILDER.comment("Default reach distance when we enter creative mode")
-                    .defineInRange("reach.common.REACH_DEFAULT_RANGE", 32, 5, 256);
+    //Reach
+//    public static final ModConfigSpec.IntValue REACH_MIN_RANGE =
+//            COMMON_BUILDER.comment("Minimum reach distance")
+//                    .defineInRange("reach.common.REACH_MIN_RANGE", 5, 5, 128);
+//
+//    public static final ModConfigSpec.IntValue REACH_MAX_RANGE =
+//            COMMON_BUILDER.comment("Maximum reach distance for creative and survival players")
+//                    .defineInRange("reach.common.REACH_MAX_RANGE", 128, 5, 256);
+
+    public static final ModConfigSpec.IntValue CREATIVE_REACH =
+            COMMON_BUILDER.comment("How far creative players can place and break blocks.")
+                    .defineInRange("reach.common.CREATIVE_REACH", 32, 1, 256);
+
+    public static final ModConfigSpec.IntValue SURVIVAL_REACH =
+            COMMON_BUILDER.comment("How far survival players can place and break blocks with build modes.")
+                    .defineInRange("reach.common.SURVIVAL_REACH", 6, 1, 256);
+
+    public static final ModConfigSpec.IntValue BUILDING_ANGEL_PLACEMENT_DISTANCE =
+            COMMON_BUILDER.comment("Distance at which Angel Placement targets an air block.")
+                    .translation("creative_mode_tweaks.config.angel_placement_distance")
+                    .defineInRange("building.angel_placement.distance", 6, 5, 256);
 
     private static final ModConfigSpec.BooleanValue DISABLE_FLIGHT_INERTIA =
             COMMON_BUILDER.comment("Whether to disable flight inertia")
@@ -91,10 +103,7 @@ public class Config {
                     .defineInRange("building.max_block_previews", 1000, 50, 10000);
 
     // Effortless Building - server
-    public static final ModConfigSpec.IntValue BUILDING_SURVIVAL_REACH =
-            SERVER_BUILDER.comment("How far survival players can place and break blocks with build modes.")
-                    .translation("creative_mode_tweaks.config.reach")
-                    .defineInRange("building.survival.reach", 6, 1, 1000);
+
 
     public static final ModConfigSpec.BooleanValue BUILDING_SURVIVAL_ALLOW_ANGEL_PLACEMENT =
             SERVER_BUILDER.comment("Allow survival players to use Angel Placement to target air blocks at a distance.")
@@ -151,15 +160,7 @@ public class Config {
                     .translation("creative_mode_tweaks.config.use_durability")
                     .define("building.survival.use_durability", false);
 
-    public static final ModConfigSpec.IntValue BUILDING_CREATIVE_REACH =
-            SERVER_BUILDER.comment("How far creative players can place and break blocks with build modes.")
-                    .translation("creative_mode_tweaks.config.reach")
-                    .defineInRange("building.creative.reach", 200, 1, 1000);
 
-    public static final ModConfigSpec.IntValue BUILDING_ANGEL_PLACEMENT_DISTANCE =
-            SERVER_BUILDER.comment("Distance at which Angel Placement targets an air block.")
-                    .translation("creative_mode_tweaks.config.angel_placement_distance")
-                    .defineInRange("building.angel_placement.distance", 8, 5, 1000);
 
     public static final ModConfigSpec.IntValue BUILDING_CREATIVE_MAX_BLOCKS_PLACED =
             SERVER_BUILDER.comment("Maximum number of blocks creative players can place or break in a single action.")
@@ -206,8 +207,8 @@ public class Config {
     private static boolean clientAngelPlacementAllowed;
     private static int clientAngelPlacementDistance = 8;
 
-    public static int getBuildingReach(Player player) {
-        return player.isCreative() ? BUILDING_CREATIVE_REACH.get() : BUILDING_SURVIVAL_REACH.get();
+    public static int getReach(Player player) {
+        return player.isCreative() ? CREATIVE_REACH.get() : SURVIVAL_REACH.get();
     }
 
     public static int getAngelPlacementDistance(Player player) {

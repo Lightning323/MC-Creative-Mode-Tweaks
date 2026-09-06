@@ -21,7 +21,7 @@ public class Line extends TwoClicksBuildMode {
       criteriaList.add(new Criteria(yBound, firstPos, start));
       Vec3 zBound = BuildModes.findZBound((double)firstPos.getZ(), start, look);
       criteriaList.add(new Criteria(zBound, firstPos, start));
-      int reach = Config.getBuildingReach(player);
+      double reach = Config.getReach(player);
       criteriaList.removeIf((criteriax) -> !criteriax.isValid(start, look, reach, player, skipRaytrace));
       if (criteriaList.isEmpty()) {
          return null;
@@ -146,7 +146,7 @@ public class Line extends TwoClicksBuildMode {
          }
       }
 
-      public boolean isValid(Vec3 start, Vec3 look, int reach, Player player, boolean skipRaytrace) {
+      public boolean isValid(Vec3 start, Vec3 look, double reach, Player player, boolean skipRaytrace) {
          return BuildModes.isCriteriaValid(start, look, reach, player, skipRaytrace, this.lineBound, this.planeBound, this.distToPlayerSq);
       }
    }
