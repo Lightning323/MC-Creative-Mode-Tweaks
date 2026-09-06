@@ -6,8 +6,7 @@ import net.neoforged.neoforge.event.server.ServerStoppedEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import nl.requios.effortlessbuilding.config.ServerConfig;
 import nl.requios.effortlessbuilding.config.ServerConfigStorage;
-import nl.requios.effortlessbuilding.item.RandomizerToolItem;
-import nl.requios.effortlessbuilding.menu.ModMenus;
+import nl.requios.effortlessbuilding.item.TrowelItem;
 import nl.requios.effortlessbuilding.modifier.ModifierServerStorage;
 import nl.requios.effortlessbuilding.network.BreakBuildModePacket;
 import nl.requios.effortlessbuilding.network.PacketHandler;
@@ -20,11 +19,9 @@ import nl.requios.effortlessbuilding.network.UpdateModifiersC2SPacket;
 import nl.requios.effortlessbuilding.network.UpdateServerConfigC2SPacket;
 import nl.requios.effortlessbuilding.utilities.PlacedBlockTracker;
 import nl.requios.effortlessbuilding.utilities.UndoManager;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.Item;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
@@ -41,8 +38,7 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 public final class EffortlessBuilding {
     public static final String MODID = "creative_mode_tweaks";
     private static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(MODID);
-    private static final DeferredItem<Item> RANDOMIZER_TOOL;
-    private static final DeferredRegister<MenuType<?>> MENUS;
+    private static final DeferredItem<Item> TROWEL;
 
     public static void sendToServer(CustomPacketPayload payload) {
         PacketDistributor.sendToServer(payload);
@@ -57,7 +53,6 @@ public final class EffortlessBuilding {
 
     public static void initialize(IEventBus eventBus, ModContainer modContainer) {
         ITEMS.register(eventBus);
-        MENUS.register(eventBus);
         if (FMLEnvironment.dist.isClient()) {
             NeoForgeConfigScreenRegistrar.register(modContainer);
         }
@@ -104,8 +99,6 @@ public final class EffortlessBuilding {
     }
 
     static {
-        RANDOMIZER_TOOL = ITEMS.register("randomizer_tool", () -> new RandomizerToolItem((new Item.Properties()).stacksTo(1)));
-        MENUS = DeferredRegister.create(Registries.MENU, MODID);
-        MENUS.register("randomizer", () -> ModMenus.RANDOMIZER);
+        TROWEL = ITEMS.register("trowel", () -> new TrowelItem(new Item.Properties().stacksTo(1)));
     }
 }

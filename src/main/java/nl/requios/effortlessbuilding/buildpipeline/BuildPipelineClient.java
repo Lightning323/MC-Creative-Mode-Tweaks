@@ -8,7 +8,7 @@ import nl.requios.effortlessbuilding.buildmode.BuildSettings;
 import nl.requios.effortlessbuilding.buildmode.ModeOptions;
 import nl.requios.effortlessbuilding.config.ClientConfig;
 import nl.requios.effortlessbuilding.config.ServerConfig;
-import nl.requios.effortlessbuilding.item.RandomizerToolItem;
+import nl.requios.effortlessbuilding.item.TrowelItem;
 import nl.requios.effortlessbuilding.mixin.BucketItemAccessor;
 import nl.requios.effortlessbuilding.modifier.ModifierSystem;
 import nl.requios.effortlessbuilding.network.BreakBuildModePacket;
@@ -52,7 +52,7 @@ public class BuildPipelineClient {
    private static BuildPipeline createClientPipeline() {
       BuildPipeline pipeline = new BuildPipeline();
       pipeline.addSystem(ModifierSystem.CLIENT);
-      pipeline.addSystem(RandomizerSystem.INSTANCE);
+      pipeline.addSystem(TrowelSystem.INSTANCE);
       pipeline.addSystem(ConstraintSystem.INSTANCE);
       return pipeline;
    }
@@ -67,7 +67,7 @@ public class BuildPipelineClient {
 
    public static boolean shouldInterceptPlacing() {
       Minecraft mc = Minecraft.getInstance();
-      return BuildModes.CLIENT.getBuildMode() != BuildModeEnum.DISABLED || mc.player != null && mc.player.getMainHandItem().getItem() instanceof RandomizerToolItem;
+      return BuildModes.CLIENT.getBuildMode() != BuildModeEnum.DISABLED || mc.player != null && mc.player.getMainHandItem().getItem() instanceof TrowelItem;
    }
 
    public static boolean shouldInterceptBreaking() {

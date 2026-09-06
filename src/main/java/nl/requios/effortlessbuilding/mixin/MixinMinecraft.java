@@ -2,7 +2,6 @@ package nl.requios.effortlessbuilding.mixin;
 
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipeline;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipelineClient;
-import nl.requios.effortlessbuilding.item.RandomizerToolItem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.phys.HitResult.Type;
 import org.spongepowered.asm.mixin.Mixin;
@@ -22,12 +21,9 @@ public class MixinMinecraft {
       Minecraft mc = (Minecraft) (Object)this;
       if (mc.player != null && mc.level != null) {
          if (BuildPipelineClient.shouldInterceptPlacing()) {
-            if (!mc.player.isShiftKeyDown() || !(mc.player.getMainHandItem().getItem() instanceof RandomizerToolItem)) {
-               boolean sequenceActive = BuildPipelineClient.getBuildState() != null;
-               if (BuildPipeline.isBuildTriggerItem(mc.player.getMainHandItem()) || sequenceActive) {
-                  ci.cancel();
-               }
-
+            boolean sequenceActive = BuildPipelineClient.getBuildState() != null;
+            if (BuildPipeline.isBuildTriggerItem(mc.player.getMainHandItem()) || sequenceActive) {
+               ci.cancel();
             }
          }
       }

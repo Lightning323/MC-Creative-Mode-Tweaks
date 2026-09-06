@@ -9,15 +9,7 @@
   "creative_mode_tweaks.screen.modifier_settings": "Modificatorinstellingen",
   "creative_mode_tweaks.screen.server_config": "Serverconfiguratie",
   "creative_mode_tweaks.screen.client_config": "Clientconfiguratie",
-  "creative_mode_tweaks.screen.randomizer": "Randomizer-gereedschap",
-  "creative_mode_tweaks.screen.randomizer.ratio.tooltip": "Verhouding: scroll om de kans te wijzigen dat dit vak wordt gekozen.",
-
-  "item.creative_mode_tweaks.randomizer_tool": "Randomizer-gereedschap",
-  "item.creative_mode_tweaks.randomizer_tool.when_in_hand": "In de hand:",
-  "item.creative_mode_tweaks.randomizer_tool.right_click": "Rechtermuisknop",
-  "item.creative_mode_tweaks.randomizer_tool.place_hint": "%s om een willekeurig blok te plaatsen",
-  "item.creative_mode_tweaks.randomizer_tool.shift_right_click": "Shift-rechtermuisknop",
-  "item.creative_mode_tweaks.randomizer_tool.configure_hint": "%s om te configureren",
+  "item.creative_mode_tweaks.trowel": "Troffel",
 
   "creative_mode_tweaks.mode.normal": "Uitgeschakeld",
   "creative_mode_tweaks.mode.normal_plus": "Enkelvoudig",

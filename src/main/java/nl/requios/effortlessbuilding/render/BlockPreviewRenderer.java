@@ -15,7 +15,7 @@ import nl.requios.effortlessbuilding.buildpipeline.BuildPipeline;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipelineClient;
 import nl.requios.effortlessbuilding.config.ClientConfig;
 import nl.requios.effortlessbuilding.config.ServerConfig;
-import nl.requios.effortlessbuilding.item.RandomizerToolItem;
+import nl.requios.effortlessbuilding.item.TrowelItem;
 import nl.requios.effortlessbuilding.mixin.BucketItemAccessor;
 import nl.requios.effortlessbuilding.utilities.BlockEntry;
 import nl.requios.effortlessbuilding.utilities.BlockSet;
@@ -96,7 +96,7 @@ public class BlockPreviewRenderer {
                      }
                   }
 
-                  boolean randomized = held.getItem() instanceof RandomizerToolItem;
+                  boolean randomized = held.getItem() instanceof TrowelItem;
                   if (baseState != null || randomized) {
                      try {
                         AlphaMultiBufferSource wrappedSource = new AlphaMultiBufferSource(bufferSource, blockAlpha);

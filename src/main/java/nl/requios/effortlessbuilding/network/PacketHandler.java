@@ -8,9 +8,10 @@ import nl.requios.effortlessbuilding.Constants;
 import nl.requios.effortlessbuilding.EffortlessBuilding;
 import nl.requios.effortlessbuilding.buildmode.BuildSettings;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipeline;
+import nl.requios.effortlessbuilding.buildpipeline.TrowelSystem;
 import nl.requios.effortlessbuilding.config.ServerConfig;
 import nl.requios.effortlessbuilding.config.ServerConfigStorage;
-import nl.requios.effortlessbuilding.item.RandomizerToolItem;
+import nl.requios.effortlessbuilding.item.TrowelItem;
 import nl.requios.effortlessbuilding.mixin.BucketItemAccessor;
 import nl.requios.effortlessbuilding.modifier.IModifier;
 import nl.requios.effortlessbuilding.modifier.ModifierSerializer;
@@ -93,30 +94,8 @@ public class PacketHandler {
          BuildSettings.ReplaceMode replaceMode = packet.replaceMode();
          Map<BlockPos, UndoManager.BlockChange> undoChanges = new LinkedHashMap();
          int placed = 0;
-         if (held.getItem() instanceof RandomizerToolItem) {
-            Map<Item, Integer> required = new LinkedHashMap();
-
-            for(Map.Entry<BlockPos, BlockEntry> mapEntry : blockSet.validEntries()) {
-               if (BuildSettings.canPlaceAt(level, (BlockPos)mapEntry.getKey(), replaceMode, offHand)) {
-                  Item item = ((BlockEntry)mapEntry.getValue()).item;
-                  if (item instanceof BlockItem) {
-                     required.merge(item, 1, Integer::sum);
-                  }
-               }
-            }
-
-            Map<Item, Integer> available = new HashMap();
-
-            for(Map.Entry<Item, Integer> requirement : required.entrySet()) {
-               if (creative) {
-                  available.put((Item)requirement.getKey(), Integer.MAX_VALUE);
-               } else {
-//                  int inventoryCount = InventoryHelper.findTotalItemsInInventory(player, (Item)requirement.getKey());
-//                  int networkNeeded = Math.max(0, (Integer)requirement.getValue() - inventoryCount);
-//                  int fromNetwork = InventoryHelper.supplementFromNetwork(player, (Item)requirement.getKey(), networkNeeded);
-//                  available.put((Item)requirement.getKey(), inventoryCount + fromNetwork);
-               }
-            }
+         if (held.getItem() instanceof TrowelItem) {
+            Map<Item, Integer> available = creative ? Map.of() : TrowelSystem.getHotbarBlockCounts(player);
 
             Map<Item, Integer> used = new HashMap();
             double yFrac = packet.hitLocation().y - Math.floor(packet.hitLocation().y);
@@ -127,7 +106,7 @@ public class PacketHandler {
                Item var22 = entry.item;
                if (var22 instanceof BlockItem) {
                   BlockItem blockItem = (BlockItem)var22;
-                  if ((creative || (Integer)used.getOrDefault(entry.item, 0) < (Integer)available.getOrDefault(entry.item, 0)) && BuildSettings.canPlaceAt(level, pos, replaceMode, offHand)) {
+                  if ((creative || used.getOrDefault(entry.item, 0) < available.getOrDefault(entry.item, 0)) && BuildSettings.canPlaceAt(level, pos, replaceMode, offHand)) {
                      BlockState oldState = level.getBlockState(pos);
                      if (!creative && !oldState.canBeReplaced()) {
                         ItemStack toolForDrops = ServerConfig.INSTANCE.survivalRequireTools ? InventoryHelper.findCorrectTool(player, oldState) : player.getMainHandItem();
@@ -160,9 +139,7 @@ public class PacketHandler {
             }
 
             if (!creative) {
-               for(Map.Entry<Item, Integer> usage : used.entrySet()) {
-                  InventoryHelper.consumeItems(player, (Item)usage.getKey(), (Integer)usage.getValue());
-               }
+               TrowelSystem.consumeHotbarItems(player, used);
             }
          } else {
             Item heldItem = held.getItem();

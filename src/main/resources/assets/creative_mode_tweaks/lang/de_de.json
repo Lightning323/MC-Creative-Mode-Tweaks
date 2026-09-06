@@ -9,15 +9,7 @@
   "creative_mode_tweaks.screen.modifier_settings": "Modifikator-Einstellungen",
   "creative_mode_tweaks.screen.server_config": "Server-Konfiguration",
   "creative_mode_tweaks.screen.client_config": "Client-Konfiguration",
-  "creative_mode_tweaks.screen.randomizer": "Zufallsgenerator-Werkzeug",
-  "creative_mode_tweaks.screen.randomizer.ratio.tooltip": "Verhältnis: Scrolle, um die Auswahlchance dieses Feldes zu ändern.",
-
-  "item.creative_mode_tweaks.randomizer_tool": "Zufallsgenerator-Werkzeug",
-  "item.creative_mode_tweaks.randomizer_tool.when_in_hand": "In der Hand:",
-  "item.creative_mode_tweaks.randomizer_tool.right_click": "Rechtsklick",
-  "item.creative_mode_tweaks.randomizer_tool.place_hint": "%s, um einen zufälligen Block zu platzieren",
-  "item.creative_mode_tweaks.randomizer_tool.shift_right_click": "Umschalt-Rechtsklick",
-  "item.creative_mode_tweaks.randomizer_tool.configure_hint": "%s zum Konfigurieren",
+  "item.creative_mode_tweaks.trowel": "Kelle",
 
   "creative_mode_tweaks.mode.normal": "Deaktiviert",
   "creative_mode_tweaks.mode.normal_plus": "Einzeln",

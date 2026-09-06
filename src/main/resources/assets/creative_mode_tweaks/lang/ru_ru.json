@@ -9,15 +9,7 @@
   "creative_mode_tweaks.screen.modifier_settings": "Настройки модификаторов",
   "creative_mode_tweaks.screen.server_config": "Настройки сервера",
   "creative_mode_tweaks.screen.client_config": "Настройки клиента",
-  "creative_mode_tweaks.screen.randomizer": "Инструмент случайного выбора",
-  "creative_mode_tweaks.screen.randomizer.ratio.tooltip": "Соотношение: прокрутите, чтобы изменить вероятность выбора этого слота.",
-
-  "item.creative_mode_tweaks.randomizer_tool": "Инструмент случайного выбора",
-  "item.creative_mode_tweaks.randomizer_tool.when_in_hand": "В руке:",
-  "item.creative_mode_tweaks.randomizer_tool.right_click": "Щелчок правой кнопкой",
-  "item.creative_mode_tweaks.randomizer_tool.place_hint": "%s, чтобы поставить случайный блок",
-  "item.creative_mode_tweaks.randomizer_tool.shift_right_click": "Shift + щелчок правой кнопкой",
-  "item.creative_mode_tweaks.randomizer_tool.configure_hint": "%s для настройки",
+  "item.creative_mode_tweaks.trowel": "Кельма",
 
   "creative_mode_tweaks.mode.normal": "Отключено",
   "creative_mode_tweaks.mode.normal_plus": "Одиночный",

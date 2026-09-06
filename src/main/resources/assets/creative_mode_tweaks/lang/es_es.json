@@ -9,15 +9,7 @@
   "creative_mode_tweaks.screen.modifier_settings": "Configuración de modificadores",
   "creative_mode_tweaks.screen.server_config": "Configuración del servidor",
   "creative_mode_tweaks.screen.client_config": "Configuración del cliente",
-  "creative_mode_tweaks.screen.randomizer": "Herramienta aleatorizadora",
-  "creative_mode_tweaks.screen.randomizer.ratio.tooltip": "Proporción: desplázate para cambiar la probabilidad de seleccionar esta ranura.",
-
-  "item.creative_mode_tweaks.randomizer_tool": "Herramienta aleatorizadora",
-  "item.creative_mode_tweaks.randomizer_tool.when_in_hand": "En la mano:",
-  "item.creative_mode_tweaks.randomizer_tool.right_click": "Clic derecho",
-  "item.creative_mode_tweaks.randomizer_tool.place_hint": "%s para colocar un bloque aleatorio",
-  "item.creative_mode_tweaks.randomizer_tool.shift_right_click": "Mayús + clic derecho",
-  "item.creative_mode_tweaks.randomizer_tool.configure_hint": "%s para configurar",
+  "item.creative_mode_tweaks.trowel": "Paleta",
 
   "creative_mode_tweaks.mode.normal": "Desactivado",
   "creative_mode_tweaks.mode.normal_plus": "Individual",

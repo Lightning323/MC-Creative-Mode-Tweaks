@@ -9,15 +9,7 @@
   "creative_mode_tweaks.screen.modifier_settings": "修饰器设置",
   "creative_mode_tweaks.screen.server_config": "服务端配置",
   "creative_mode_tweaks.screen.client_config": "客户端配置",
-  "creative_mode_tweaks.screen.randomizer": "随机工具",
-  "creative_mode_tweaks.screen.randomizer.ratio.tooltip": "权重：滚动鼠标滚轮可更改选中此槽位的概率。",
-
-  "item.creative_mode_tweaks.randomizer_tool": "随机工具",
-  "item.creative_mode_tweaks.randomizer_tool.when_in_hand": "手持时：",
-  "item.creative_mode_tweaks.randomizer_tool.right_click": "右键单击",
-  "item.creative_mode_tweaks.randomizer_tool.place_hint": "%s以放置随机方块",
-  "item.creative_mode_tweaks.randomizer_tool.shift_right_click": "Shift + 右键单击",
-  "item.creative_mode_tweaks.randomizer_tool.configure_hint": "使用 %s 进行配置",
+  "item.creative_mode_tweaks.trowel": "抹刀",
 
   "creative_mode_tweaks.mode.normal": "禁用",
   "creative_mode_tweaks.mode.normal_plus": "单块",

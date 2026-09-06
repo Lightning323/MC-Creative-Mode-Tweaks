@@ -4,17 +4,12 @@ import com.mojang.blaze3d.platform.InputConstants;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipeline;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipelineClient;
 import nl.requios.effortlessbuilding.config.ClientConfig;
-import nl.requios.effortlessbuilding.item.RandomizerToolItem;
-import nl.requios.effortlessbuilding.item.RandomizerTooltipData;
-import nl.requios.effortlessbuilding.menu.ModMenus;
 import nl.requios.effortlessbuilding.network.PacketHandler;
 import nl.requios.effortlessbuilding.network.RedoPacket;
 import nl.requios.effortlessbuilding.network.UndoPacket;
 import nl.requios.effortlessbuilding.render.RenderHandler;
 import nl.requios.effortlessbuilding.screen.ModifiersScreen;
 import nl.requios.effortlessbuilding.screen.RadialMenu;
-import nl.requios.effortlessbuilding.screen.RandomizerScreen;
-import nl.requios.effortlessbuilding.screen.RandomizerTooltipComponent;
 import nl.requios.effortlessbuilding.utilities.KeyBindings;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -25,9 +20,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.EventBusSubscriber.Bus;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
-import net.neoforged.neoforge.client.event.RegisterClientTooltipComponentFactoriesEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
-import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.client.event.RenderGuiEvent;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent.Stage;
@@ -49,15 +42,6 @@ public class NeoForgeClientSetup {
          event.register(KeyBindings.redo);
       }
 
-      @SubscribeEvent
-      public static void onRegisterMenuScreens(RegisterMenuScreensEvent event) {
-         event.register(ModMenus.RANDOMIZER, RandomizerScreen::new);
-      }
-
-      @SubscribeEvent
-      public static void onRegisterTooltipComponents(RegisterClientTooltipComponentFactoriesEvent event) {
-         event.register(RandomizerTooltipData.class, RandomizerTooltipComponent::new);
-      }
    }
 
    @EventBusSubscriber(
@@ -99,7 +83,7 @@ public class NeoForgeClientSetup {
                boolean leftDown = mc.options.keyAttack.isDown();
                boolean rightJustPressed = rightDown && !prevRightDown;
                boolean leftJustPressed = leftDown && !prevLeftDown;
-               if (rightJustPressed && (!mc.player.isShiftKeyDown() || !(mc.player.getMainHandItem().getItem() instanceof RandomizerToolItem))) {
+               if (rightJustPressed) {
                   if (BuildPipelineClient.getBuildState() == BuildPipeline.BuildState.BREAKING) {
                      BuildPipelineClient.cancelCurrentSequence();
                   } else if (BuildPipeline.isBuildTriggerItem(mc.player.getMainHandItem()) || BuildPipelineClient.getBuildState() == BuildPipeline.BuildState.PLACING) {

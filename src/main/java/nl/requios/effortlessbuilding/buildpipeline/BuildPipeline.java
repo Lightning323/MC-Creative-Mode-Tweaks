@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import nl.requios.effortlessbuilding.buildmode.BuildModeEnum;
 import nl.requios.effortlessbuilding.buildmode.ModeOptions;
-import nl.requios.effortlessbuilding.item.RandomizerToolItem;
+import nl.requios.effortlessbuilding.item.TrowelItem;
 import nl.requios.effortlessbuilding.mixin.BucketItemAccessor;
 import nl.requios.effortlessbuilding.utilities.BlockEntry;
 import nl.requios.effortlessbuilding.utilities.BlockSet;
@@ -31,13 +31,13 @@ public class BuildPipeline {
       BuildPipeline pipeline = new BuildPipeline();
       pipeline.addSystem(BuildModeSystem.INSTANCE);
       pipeline.addSystem(ModifierSystemServer.INSTANCE);
-      pipeline.addSystem(RandomizerSystem.INSTANCE);
+      pipeline.addSystem(TrowelSystem.INSTANCE);
       pipeline.addSystem(ConstraintSystem.INSTANCE);
       return pipeline;
    }
 
    public static boolean isBuildTriggerItem(ItemStack stack) {
-      if (stack.getItem() instanceof RandomizerToolItem) {
+      if (stack.getItem() instanceof TrowelItem) {
          return true;
       } else {
          Item var2 = stack.getItem();

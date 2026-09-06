@@ -16,15 +16,7 @@
   "creative_mode_tweaks.screen.modifier_settings": "Modifier Settings",
   "creative_mode_tweaks.screen.server_config": "Functional Settings",
   "creative_mode_tweaks.screen.client_config": "Visual Settings",
-  "creative_mode_tweaks.screen.randomizer": "Randomizer Tool",
-  "creative_mode_tweaks.screen.randomizer.ratio.tooltip": "Ratio. Scroll to change.",
-
-  "item.creative_mode_tweaks.randomizer_tool": "Randomizer Tool",
-  "item.creative_mode_tweaks.randomizer_tool.when_in_hand": "When in Hand:",
-  "item.creative_mode_tweaks.randomizer_tool.right_click": "Rightclick",
-  "item.creative_mode_tweaks.randomizer_tool.place_hint": "%s to place a random block",
-  "item.creative_mode_tweaks.randomizer_tool.shift_right_click": "Shift + rightclick",
-  "item.creative_mode_tweaks.randomizer_tool.configure_hint": "%s to configure",
+  "item.creative_mode_tweaks.trowel": "Trowel",
 
   "creative_mode_tweaks.mode.normal": "Disable",
   "creative_mode_tweaks.mode.normal_plus": "Single",
