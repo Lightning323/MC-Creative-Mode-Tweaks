@@ -9,6 +9,7 @@ import nl.requios.effortlessbuilding.buildmode.buildmodes.DiagonalWall;
 import nl.requios.effortlessbuilding.buildmode.buildmodes.Disabled;
 import nl.requios.effortlessbuilding.buildmode.buildmodes.Floor;
 import nl.requios.effortlessbuilding.buildmode.buildmodes.Line;
+import nl.requios.effortlessbuilding.buildmode.buildmodes.Plane;
 import nl.requios.effortlessbuilding.buildmode.buildmodes.SlopeFloor;
 import nl.requios.effortlessbuilding.buildmode.buildmodes.Sphere;
 import nl.requios.effortlessbuilding.buildmode.buildmodes.Wall;
@@ -16,6 +17,7 @@ import nl.requios.effortlessbuilding.buildmode.buildmodes.Wall;
 public enum BuildModeEnum {
    DISABLED("normal", new Disabled(), BuildModeCategoryEnum.BASIC, AllIcons.I_DISABLE, new ModeOptions.OptionEnum[0]),
    LINE("line", new Line(), BuildModeCategoryEnum.BASIC, AllIcons.I_LINE, new ModeOptions.OptionEnum[0]),
+   PLANE("plane", new Plane(), BuildModeCategoryEnum.BASIC, AllIcons.I_FLOOR, new ModeOptions.OptionEnum[]{ModeOptions.OptionEnum.FILL}),
    WALL("wall", new Wall(), BuildModeCategoryEnum.BASIC, AllIcons.I_WALL, new ModeOptions.OptionEnum[]{ModeOptions.OptionEnum.FILL}),
    FLOOR("floor", new Floor(), BuildModeCategoryEnum.BASIC, AllIcons.I_FLOOR, new ModeOptions.OptionEnum[]{ModeOptions.OptionEnum.FILL}),
    CUBE("cube", new Cube(), BuildModeCategoryEnum.BASIC, AllIcons.I_CUBE, new ModeOptions.OptionEnum[]{ModeOptions.OptionEnum.CUBE_FILL}),
@@ -50,6 +52,6 @@ public enum BuildModeEnum {
 
    // $FF: synthetic method
    private static BuildModeEnum[] $values() {
-      return new BuildModeEnum[]{DISABLED, LINE, WALL, FLOOR, CUBE, DIAGONAL_LINE, DIAGONAL_WALL, SLOPE_FLOOR, CIRCLE, CYLINDER, SPHERE};
+      return new BuildModeEnum[]{DISABLED, LINE, PLANE, WALL, FLOOR, CUBE, DIAGONAL_LINE, DIAGONAL_WALL, SLOPE_FLOOR, CIRCLE, CYLINDER, SPHERE};
    }
 }

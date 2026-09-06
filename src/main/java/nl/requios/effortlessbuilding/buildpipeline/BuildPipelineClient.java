@@ -128,6 +128,7 @@ public class BuildPipelineClient {
             clickedPos = resolveFirstClickPos(hit, action, mc.level);
             buildState = action;
             firstClickHit = hit;
+            mode.instance.setFirstClickFace(hit.getDirection());
             selectionOrigin = clickedPos;
          } else {
             clickedPos = player.blockPosition();
