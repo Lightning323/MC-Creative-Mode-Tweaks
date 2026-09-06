@@ -10,13 +10,17 @@ import org.lightning323.creative_mode_tweaks.Config;
 
 public record ClientboundSyncConfigPayload(
         boolean enhanceCreativeHotbar,
-        boolean enhanceSurvivalHotbar
+        boolean enhanceSurvivalHotbar,
+        boolean angelPlacementAllowed,
+        int angelPlacementDistance
 ) implements CustomPacketPayload {
 
     public ClientboundSyncConfigPayload() {
         this(
                 Config.enhanceCreativeHotbar,
-                Config.enhanceSurvivalHotbar);
+                Config.enhanceSurvivalHotbar,
+                Config.BUILDING_SURVIVAL_ALLOW_ANGEL_PLACEMENT.get(),
+                Config.BUILDING_ANGEL_PLACEMENT_DISTANCE.get());
     }
 
     public static final Type<ClientboundSyncConfigPayload> TYPE =
@@ -26,6 +30,8 @@ public record ClientboundSyncConfigPayload(
     public static final StreamCodec<FriendlyByteBuf, ClientboundSyncConfigPayload> STREAM_CODEC = StreamCodec.composite(
             ByteBufCodecs.BOOL, ClientboundSyncConfigPayload::enhanceCreativeHotbar,
             ByteBufCodecs.BOOL, ClientboundSyncConfigPayload::enhanceSurvivalHotbar,
+            ByteBufCodecs.BOOL, ClientboundSyncConfigPayload::angelPlacementAllowed,
+            ByteBufCodecs.INT, ClientboundSyncConfigPayload::angelPlacementDistance,
             ClientboundSyncConfigPayload::new
     );
 
@@ -40,6 +46,7 @@ public record ClientboundSyncConfigPayload(
             // Forward data to your Client-Side Config
             Config.enhanceCreativeHotbar = payload.enhanceCreativeHotbar();
             Config.enhanceSurvivalHotbar = payload.enhanceSurvivalHotbar();
+            Config.updateClientAngelPlacementSettings(payload.angelPlacementAllowed(), payload.angelPlacementDistance());
         });
     }
 }

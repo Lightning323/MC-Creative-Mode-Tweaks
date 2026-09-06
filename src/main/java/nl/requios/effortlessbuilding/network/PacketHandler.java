@@ -7,6 +7,7 @@ import java.util.Map;
 import nl.requios.effortlessbuilding.Constants;
 import nl.requios.effortlessbuilding.EffortlessBuilding;
 import nl.requios.effortlessbuilding.buildmode.BuildSettings;
+import nl.requios.effortlessbuilding.buildpipeline.AngelPlacement;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipeline;
 import nl.requios.effortlessbuilding.buildpipeline.SableCompat;
 import nl.requios.effortlessbuilding.buildpipeline.TrowelSystem;
@@ -71,9 +72,26 @@ public class PacketHandler {
       EffortlessBuilding.sendToClient(player, packet);
    }
 
-   public static void handlePlaceBuildMode(PlaceBuildModePacket packet, ServerPlayer player) {
-      if (packet.angelPlacement() && !Config.isAngelPlacementAllowed(player)) {
+   private static boolean validateAngelPlacement(boolean angelPlacement, BlockPos firstPos, ServerPlayer player) {
+      if (!angelPlacement) {
+         return true;
+      }
+
+      if (!Config.isAngelPlacementAllowed(player)) {
          player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.angel_placement_disabled"), true);
+         return false;
+      }
+
+//      if (!player.serverLevel().getBlockState(firstPos).isAir() || !AngelPlacement.isWithinTargetDistance(player, firstPos)) {
+//         Constants.LOG.warn("[EffortlessBuilding] Rejected Angel Placement from {} because its target was invalid", player.getGameProfile().getName());
+//         return false;
+//      }
+
+      return true;
+   }
+
+   public static void handlePlaceBuildMode(PlaceBuildModePacket packet, ServerPlayer player) {
+      if (!validateAngelPlacement(packet.angelPlacement(), packet.firstPos(), player)) {
          return;
       }
 
@@ -82,7 +100,7 @@ public class PacketHandler {
 
    private static void handlePlaceBuildModeInSelection(PlaceBuildModePacket packet, ServerPlayer player) {
       ServerLevel level = player.serverLevel();
-      BlockSet blockSet = BuildPipeline.SERVER.runServerPipeline(packet.buildMode(), packet.firstPos(), packet.secondPos(), packet.thirdPos(), player, BuildPipeline.BuildState.PLACING, packet.fill(), packet.cubeFill(), packet.raisedEdge(), packet.circleStart(), packet.protectTileEntities(), packet.angelPlacement());
+      BlockSet blockSet = BuildPipeline.SERVER.runServerPipeline(packet.buildMode(), packet.firstPos(), packet.secondPos(), packet.thirdPos(), player, BuildPipeline.BuildState.PLACING, packet.fill(), packet.cubeFill(), packet.raisedEdge(), packet.circleStart(), packet.protectTileEntities());
       if (blockSet == null) {
          Constants.LOG.warn("[EffortlessBuilding] Received PlaceBuildModePacket but mode {} returned no blocks", packet.buildMode());
       } else {
@@ -307,8 +325,8 @@ public class PacketHandler {
 
    public static void handleBreakBuildMode(BreakBuildModePacket packet, ServerPlayer player) {
       boolean creative = player.isCreative();
-      if (packet.angelPlacement() && !Config.isAngelPlacementAllowed(player)) {
-         player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.angel_placement_disabled"), true);
+      if (!validateAngelPlacement(packet.angelPlacement(), packet.firstPos(), player)) {
+         return;
       } else if (!creative && !Config.BUILDING_SURVIVAL_ALLOW_BREAKING.get()) {
          player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.breaking_disabled"), true);
       } else {
@@ -318,7 +336,7 @@ public class PacketHandler {
 
    private static void handleBreakBuildModeInSelection(BreakBuildModePacket packet, ServerPlayer player, boolean creative) {
          ServerLevel level = player.serverLevel();
-         BlockSet blockSet = BuildPipeline.SERVER.runServerPipeline(packet.buildMode(), packet.firstPos(), packet.secondPos(), packet.thirdPos(), player, BuildPipeline.BuildState.BREAKING, packet.fill(), packet.cubeFill(), packet.raisedEdge(), packet.circleStart(), packet.protectTileEntities(), packet.angelPlacement());
+         BlockSet blockSet = BuildPipeline.SERVER.runServerPipeline(packet.buildMode(), packet.firstPos(), packet.secondPos(), packet.thirdPos(), player, BuildPipeline.BuildState.BREAKING, packet.fill(), packet.cubeFill(), packet.raisedEdge(), packet.circleStart(), packet.protectTileEntities());
          if (blockSet == null) {
             Constants.LOG.warn("[EffortlessBuilding] Received BreakBuildModePacket but mode {} returned no blocks", packet.buildMode());
          } else {

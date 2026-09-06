@@ -117,9 +117,9 @@ public class BuildPipeline {
       this.systems.add(system);
    }
 
-   public @Nullable BlockSet runServerPipeline(BuildModeEnum mode, BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos, Player player, BuildState action, ModeOptions.ActionEnum fill, ModeOptions.ActionEnum cubeFill, ModeOptions.ActionEnum raisedEdge, ModeOptions.ActionEnum circleStart, boolean protectTileEntities, boolean angelPlacement) {
+   public @Nullable BlockSet runServerPipeline(BuildModeEnum mode, BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos, Player player, BuildState action, ModeOptions.ActionEnum fill, ModeOptions.ActionEnum cubeFill, ModeOptions.ActionEnum raisedEdge, ModeOptions.ActionEnum circleStart, boolean protectTileEntities) {
       BuildModeSystem.setContext(new BuildModeSystem.Context(mode, firstPos, secondPos, thirdPos, fill, cubeFill, raisedEdge, circleStart));
-      ConstraintSystem.setPlacementContext(new ConstraintSystem.PlacementContext(protectTileEntities, angelPlacement));
+      ConstraintSystem.setPlacementContext(new ConstraintSystem.PlacementContext(protectTileEntities));
 
       BlockSet var13;
       try {

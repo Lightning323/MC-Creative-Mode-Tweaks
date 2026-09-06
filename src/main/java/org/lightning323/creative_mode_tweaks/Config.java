@@ -207,17 +207,24 @@ public class Config {
     public static boolean allowInventoryRotationInSurvival;
     public static int hotbarMinScrollMargin;
     public static int hotbarMaxScrollMargin;
+    private static boolean clientAngelPlacementAllowed;
+    private static int clientAngelPlacementDistance = 8;
 
     public static int getBuildingReach(Player player) {
         return player.isCreative() ? BUILDING_CREATIVE_REACH.get() : BUILDING_SURVIVAL_REACH.get();
     }
 
     public static int getAngelPlacementDistance(Player player) {
-        return BUILDING_ANGEL_PLACEMENT_DISTANCE.get();
+        return player.level().isClientSide() ? clientAngelPlacementDistance : BUILDING_ANGEL_PLACEMENT_DISTANCE.get();
     }
 
     public static boolean isAngelPlacementAllowed(Player player) {
-        return player.isCreative() || BUILDING_SURVIVAL_ALLOW_ANGEL_PLACEMENT.get();
+        return player.isCreative() || (player.level().isClientSide() ? clientAngelPlacementAllowed : BUILDING_SURVIVAL_ALLOW_ANGEL_PLACEMENT.get());
+    }
+
+    public static void updateClientAngelPlacementSettings(boolean allowed, int distance) {
+        clientAngelPlacementAllowed = allowed;
+        clientAngelPlacementDistance = distance;
     }
 
     public static int getBuildingMaxBlocksPlaced(Player player) {

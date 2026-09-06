@@ -76,16 +76,6 @@ public class NeoForgeClientSetup {
                }
             }
 
-            while(ClientModEvents.KEY_TOGGLE_PLANE_TYPE.consumeClick()) {
-               if (BuildModes.CLIENT.getBuildMode() == BuildModeEnum.PLANE) {
-                  Plane plane = (Plane)BuildModeEnum.PLANE.instance;
-                  plane.togglePlaneType();
-                  if (mc.player != null) {
-                     mc.player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.plane_mode", Component.translatable(plane.getPlaneTypeNameKey())), true);
-                  }
-               }
-            }
-
             while(ClientModEvents.KEY_TOGGLE_ANGEL_PLACEMENT.consumeClick()) {
                if (mc.player != null) {
                   if (Config.isAngelPlacementAllowed(mc.player)) {

@@ -70,31 +70,19 @@ public class BuildPipelineClient {
       return BuildSettings.CLIENT.isAngelPlacementEnabled() && Config.isAngelPlacementAllowed(player);
    }
 
-   public static @Nullable BlockHitResult getCurrentTargetHit(Minecraft mc) {
+   public static boolean shouldRenderAngelPlacementCursor(Player player) {
+      return isAngelPlacementActive(player) && buildState == null;
+   }
+
+   public static @Nullable AngelPlacement.Target getCurrentTarget(Minecraft mc) {
       Player player = mc.player;
       Level level = mc.level;
-      if (player == null || level == null) {
-         return null;
-      }
+      return player != null && level != null ? AngelPlacement.findTarget(level, player, isAngelPlacementActive(player)) : null;
+   }
 
-      Vec3 start = player.getEyePosition();
-      Vec3 look = player.getLookAngle();
-      if (isAngelPlacementActive(player)) {
-         Direction direction = Direction.getNearest((float)-look.x, (float)-look.y, (float)-look.z);
-         for(double distance = (double)Config.getAngelPlacementDistance(player); distance > 4.0D; distance -= 0.25D) {
-            Vec3 location = start.add(look.scale(distance));
-            BlockPos pos = BlockPos.containing(location);
-            if (level.getBlockState(pos).isAir()) {
-               return new BlockHitResult(location, direction, pos, false);
-            }
-         }
-         return null;
-      } else {
-         Vec3 end = start.add(look.scale((double)Config.getBuildingReach(player)));
-         ClipContext ctx = new ClipContext(start, end, Block.OUTLINE, Fluid.NONE, player);
-         BlockHitResult hit = level.clip(ctx);
-         return hit.getType() == Type.BLOCK ? hit : null;
-      }
+   public static @Nullable BlockHitResult getCurrentTargetHit(Minecraft mc) {
+      AngelPlacement.Target target = getCurrentTarget(mc);
+      return target != null ? target.hit() : null;
    }
 
    public static boolean shouldInterceptPlacing() {
@@ -149,16 +137,17 @@ public class BuildPipelineClient {
       if (player != null && mc.level != null) {
          BlockPos clickedPos;
          if (mode.instance.isFirstClick()) {
-            boolean usingAngelPlacement = isAngelPlacementActive(player);
-            BlockHitResult hit = getCurrentTargetHit(mc);
-            if (hit == null) {
+            AngelPlacement.Target target = getCurrentTarget(mc);
+            if (target == null) {
                return;
             }
+
+            BlockHitResult hit = target.hit();
 
             clickedPos = resolveFirstClickPos(hit, action, mc.level);
             buildState = action;
             firstClickHit = hit;
-            angelPlacementSequence = usingAngelPlacement;
+            angelPlacementSequence = target.isAngelTarget();
             mode.instance.setFirstClickFace(hit.getDirection());
             selectionOrigin = clickedPos;
          } else {

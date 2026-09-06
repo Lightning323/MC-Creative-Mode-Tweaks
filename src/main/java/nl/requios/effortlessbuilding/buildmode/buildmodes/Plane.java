@@ -84,16 +84,18 @@ public class Plane extends TwoClicksBuildMode {
 
    /** Keeps wall previews and placements perpendicular to the current horizontal look direction. */
    private Direction.Axis updateWallAxisFromLook(Player player) {
-      if (this.firstFaceAxis == Direction.Axis.Y) {
-         return Direction.Axis.Y;
-      }
-
       Vec3 look = BuildPipeline.getPlayerLookVec(player);
-      double horizontalX = Math.abs(look.x);
-      double horizontalZ = Math.abs(look.z);
-      if (horizontalX > horizontalZ) {
+      double absY = Math.abs(look.y);
+      double absX = Math.abs(look.x);
+      double absZ = Math.abs(look.z);
+//TODO: Come up with a more intelligent way to switch between floor and wall that allows for player look and toggling
+//      if (this.firstFaceAxis == Direction.Axis.Y) {
+         if (absY > Math.max(absX,absZ)) return Direction.Axis.Y;
+//      }
+
+      if (absX > absZ) {
          this.lastWallAxis = Direction.Axis.X;
-      } else if (horizontalZ > horizontalX) {
+      } else if (absZ > absX) {
          this.lastWallAxis = Direction.Axis.Z;
       }
 

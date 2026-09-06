@@ -11,7 +11,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.Vec3;
 
 public class ConstraintSystem implements IBuildSystem {
    public static final ConstraintSystem INSTANCE = new ConstraintSystem();
@@ -34,8 +33,6 @@ public class ConstraintSystem implements IBuildSystem {
          if (entry.isValid()) {
             BlockPos pos = (BlockPos)mapEntry.getKey();
             if (!SableCompat.isWithinActiveSelection(level, pos)) {
-               entry.markRejected(BlockStatus.OUTSIDE_REACH);
-            } else if (!this.isWithinAngelPlacementDistance(player, pos)) {
                entry.markRejected(BlockStatus.OUTSIDE_REACH);
             } else if (!SableCompat.isWithinBuildBounds(level, pos)) {
                entry.markRejected(BlockStatus.WORLD_BORDER);
@@ -120,20 +117,6 @@ public class ConstraintSystem implements IBuildSystem {
       }
    }
 
-   private boolean isWithinAngelPlacementDistance(Player player, BlockPos pos) {
-      PlacementContext ctx = (PlacementContext)PLACEMENT_CTX.get();
-      if (ctx == null || !ctx.angelPlacement()) {
-         return true;
-      }
-
-      Vec3 eyePosition = SableCompat.getPlayerEyePosition(player);
-      double dx = Math.max((double)pos.getX() - eyePosition.x, Math.max(0.0D, eyePosition.x - (double)(pos.getX() + 1)));
-      double dy = Math.max((double)pos.getY() - eyePosition.y, Math.max(0.0D, eyePosition.y - (double)(pos.getY() + 1)));
-      double dz = Math.max((double)pos.getZ() - eyePosition.z, Math.max(0.0D, eyePosition.z - (double)(pos.getZ() + 1)));
-      double maxDistance = (double)Config.getAngelPlacementDistance(player);
-      return dx * dx + dy * dy + dz * dz <= maxDistance * maxDistance;
-   }
-
-   public static record PlacementContext(boolean protectTileEntities, boolean angelPlacement) {
+   public static record PlacementContext(boolean protectTileEntities) {
    }
 }

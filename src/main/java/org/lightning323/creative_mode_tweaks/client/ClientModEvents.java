@@ -89,9 +89,6 @@ public class ClientModEvents {
     public static final KeyMapping KEY_REDO = new KeyMapping(
             "key." + MODID + ".redo.desc", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_Y, DEFAULT_CATEGORY);
 
-    public static final KeyMapping KEY_TOGGLE_PLANE_TYPE = new KeyMapping(
-            "key." + MODID + ".toggle_plane_type", InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(), DEFAULT_CATEGORY);
-
     public static final KeyMapping KEY_TOGGLE_ANGEL_PLACEMENT = new KeyMapping(
             "key." + MODID + ".toggle_angel_placement", InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(), DEFAULT_CATEGORY);
 
@@ -174,7 +171,6 @@ public class ClientModEvents {
         event.register(KEY_OPEN_MODIFIERS_SCREEN);
         event.register(KEY_UNDO);
         event.register(KEY_REDO);
-        event.register(KEY_TOGGLE_PLANE_TYPE);
         event.register(KEY_TOGGLE_ANGEL_PLACEMENT);
 
         for (KeyMapping key : getBuildModeKeys()) {

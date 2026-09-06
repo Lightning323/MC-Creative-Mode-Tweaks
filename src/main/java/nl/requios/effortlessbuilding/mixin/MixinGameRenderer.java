@@ -2,6 +2,7 @@ package nl.requios.effortlessbuilding.mixin;
 
 import nl.requios.effortlessbuilding.buildmode.BuildModeEnum;
 import nl.requios.effortlessbuilding.buildmode.BuildModes;
+import nl.requios.effortlessbuilding.buildpipeline.AngelPlacement;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipeline;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipelineClient;
 import net.minecraft.client.Minecraft;
@@ -35,9 +36,16 @@ public class MixinGameRenderer {
          if (BuildModes.CLIENT.getBuildMode() != BuildModeEnum.DISABLED || BuildPipelineClient.isAngelPlacementActive(this.minecraft.player)) {
             if (this.minecraft.player.getMainHandItem().isEmpty() || BuildPipeline.isBuildTriggerItem(this.minecraft.player.getMainHandItem()) || BuildPipelineClient.getBuildState() != null) {
                if (BuildPipelineClient.isAngelPlacementActive(this.minecraft.player)) {
-                  BlockHitResult hit = BuildPipelineClient.getCurrentTargetHit(this.minecraft);
-                  if (hit != null) {
-                     this.minecraft.hitResult = hit;
+                  if (!BuildPipelineClient.shouldRenderAngelPlacementCursor(this.minecraft.player)) {
+                     this.minecraft.hitResult = null;
+                     this.minecraft.crosshairPickEntity = null;
+                     return;
+                  }
+
+                  AngelPlacement.Target target = BuildPipelineClient.getCurrentTarget(this.minecraft);
+                  if (target != null) {
+                     BlockHitResult hit = target.hit();
+                     this.minecraft.hitResult = target.isAngelTarget() ? BlockHitResult.miss(hit.getLocation(), hit.getDirection(), hit.getBlockPos()) : hit;
                      this.minecraft.crosshairPickEntity = null;
                   }
 
