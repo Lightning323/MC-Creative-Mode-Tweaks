@@ -4,15 +4,12 @@ import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import net.neoforged.neoforge.event.server.ServerStoppedEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
-import nl.requios.effortlessbuilding.config.BuildModeHintStorage;
 import nl.requios.effortlessbuilding.config.ServerConfig;
 import nl.requios.effortlessbuilding.config.ServerConfigStorage;
-import nl.requios.effortlessbuilding.config.WelcomeMessageStorage;
 import nl.requios.effortlessbuilding.item.RandomizerToolItem;
 import nl.requios.effortlessbuilding.menu.ModMenus;
 import nl.requios.effortlessbuilding.modifier.ModifierServerStorage;
 import nl.requios.effortlessbuilding.network.BreakBuildModePacket;
-import nl.requios.effortlessbuilding.network.BuildModeHintC2SPacket;
 import nl.requios.effortlessbuilding.network.PacketHandler;
 import nl.requios.effortlessbuilding.network.PlaceBuildModePacket;
 import nl.requios.effortlessbuilding.network.RedoPacket;
@@ -75,7 +72,7 @@ public final class EffortlessBuilding {
             registrar.playToClient(SyncModifiersS2CPacket.TYPE, SyncModifiersS2CPacket.STREAM_CODEC, (payload, context) -> context.enqueueWork(() -> PacketHandler.handleSyncModifiers(payload)));
             registrar.playToServer(UpdateServerConfigC2SPacket.TYPE, UpdateServerConfigC2SPacket.STREAM_CODEC, (payload, context) -> context.enqueueWork(() -> PacketHandler.handleUpdateServerConfig(payload, (ServerPlayer) context.player())));
             registrar.playToClient(SyncServerConfigS2CPacket.TYPE, SyncServerConfigS2CPacket.STREAM_CODEC, (payload, context) -> context.enqueueWork(() -> PacketHandler.handleSyncServerConfig(payload)));
-            registrar.playToServer(BuildModeHintC2SPacket.TYPE, BuildModeHintC2SPacket.STREAM_CODEC, (payload, context) -> context.enqueueWork(() -> PacketHandler.handleBuildModeHint((ServerPlayer) context.player())));
+
         });
         NeoForge.EVENT_BUS.addListener((PlayerEvent.PlayerLoggedInEvent event) -> {
             Player patt0$temp = event.getEntity();
@@ -83,7 +80,7 @@ public final class EffortlessBuilding {
                 ModifierServerStorage.loadPlayer(serverPlayer.server, serverPlayer.getUUID());
                 PacketHandler.sendToClient(serverPlayer, new SyncModifiersS2CPacket(ModifierServerStorage.serializePlayer(serverPlayer.getUUID())));
                 PacketHandler.sendToClient(serverPlayer, new SyncServerConfigS2CPacket(ServerConfig.INSTANCE.toJson()));
-                WelcomeMessageStorage.showIfNeeded(serverPlayer);
+
             }
 
         });
@@ -100,13 +97,9 @@ public final class EffortlessBuilding {
         NeoForge.EVENT_BUS.addListener((ServerStoppedEvent event) -> {
             ModifierServerStorage.clearAll();
             ServerConfigStorage.clear();
-            WelcomeMessageStorage.clear();
-            BuildModeHintStorage.clear();
         });
         NeoForge.EVENT_BUS.addListener(( ServerStartingEvent event) -> {
             ServerConfigStorage.load(event.getServer());
-            WelcomeMessageStorage.load(event.getServer());
-            BuildModeHintStorage.load(event.getServer());
         });
     }
 

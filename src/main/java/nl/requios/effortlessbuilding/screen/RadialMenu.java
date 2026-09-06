@@ -14,7 +14,6 @@ import nl.requios.effortlessbuilding.buildmode.BuildModeEnum;
 import nl.requios.effortlessbuilding.buildmode.BuildModes;
 import nl.requios.effortlessbuilding.buildmode.BuildSettings;
 import nl.requios.effortlessbuilding.buildmode.ModeOptions;
-import nl.requios.effortlessbuilding.network.BuildModeHintC2SPacket;
 import nl.requios.effortlessbuilding.network.PacketHandler;
 import nl.requios.effortlessbuilding.utilities.KeyBindings;
 import net.minecraft.ChatFormatting;
@@ -373,9 +372,6 @@ public class RadialMenu extends Screen {
       if (this.switchTo != null) {
          playRadialMenuSound();
          BuildModes.CLIENT.setBuildMode(this.switchTo);
-         if (this.switchTo != BuildModeEnum.DISABLED) {
-            PacketHandler.sendToServer(new BuildModeHintC2SPacket());
-         }
 
          if (this.minecraft.player != null) {
             this.minecraft.player.displayClientMessage(Component.translatable(this.switchTo.getNameKey()), true);

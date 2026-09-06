@@ -8,7 +8,6 @@ import nl.requios.effortlessbuilding.Constants;
 import nl.requios.effortlessbuilding.EffortlessBuilding;
 import nl.requios.effortlessbuilding.buildmode.BuildSettings;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipeline;
-import nl.requios.effortlessbuilding.config.BuildModeHintStorage;
 import nl.requios.effortlessbuilding.config.ServerConfig;
 import nl.requios.effortlessbuilding.config.ServerConfigStorage;
 import nl.requios.effortlessbuilding.item.RandomizerToolItem;
@@ -80,14 +79,6 @@ public class PacketHandler {
       EffortlessBuilding.sendToClient(player, packet);
    }
 
-
-   public static void sendToServer(BuildModeHintC2SPacket packet) {
-      EffortlessBuilding.sendToServer(packet);
-   }
-
-   public static void handleBuildModeHint(ServerPlayer player) {
-      BuildModeHintStorage.showIfNeeded(player);
-   }
 
    public static void handlePlaceBuildMode(PlaceBuildModePacket packet, ServerPlayer player) {
       ServerLevel level = player.serverLevel();
