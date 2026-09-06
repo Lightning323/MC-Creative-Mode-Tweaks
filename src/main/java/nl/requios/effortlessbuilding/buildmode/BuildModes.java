@@ -19,7 +19,6 @@ public class BuildModes {
    public BuildModes() {
       this.buildMode = BuildModeEnum.DISABLED;
       this.previousBuildMode = BuildModeEnum.DISABLED;
-      this.beforeDisabledBuildMode = BuildModeEnum.SINGLE;
       this.beforeDisable = () -> {
       };
    }

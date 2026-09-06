@@ -8,7 +8,7 @@ import net.minecraft.world.entity.player.Player;
 public class ServerConfig {
    private static final Gson GSON = (new GsonBuilder()).setPrettyPrinting().create();
    public static final ServerConfig INSTANCE = new ServerConfig();
-   public int survivalReach = 32;
+   public int survivalReach = 6;
    public int survivalMaxBlocksPlaced = 2000;
    public int survivalMaxBlocksPerAxis = 64;
    public int survivalMaxMirrorSize = 256;
