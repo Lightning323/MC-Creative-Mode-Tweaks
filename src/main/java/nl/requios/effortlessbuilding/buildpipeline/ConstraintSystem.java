@@ -11,7 +11,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.border.WorldBorder;
 
 public class ConstraintSystem implements IBuildSystem {
    public static final ConstraintSystem INSTANCE = new ConstraintSystem();
@@ -28,13 +27,14 @@ public class ConstraintSystem implements IBuildSystem {
    public void processBlocks(BlockSet blocks, Player player, BuildPipeline.BuildState action) {
       Level level = player.level();
       boolean isBreaking = action == BuildPipeline.BuildState.BREAKING;
-      WorldBorder worldBorder = level.getWorldBorder();
 
       for(Map.Entry<BlockPos, BlockEntry> mapEntry : blocks.entrySet()) {
          BlockEntry entry = (BlockEntry)mapEntry.getValue();
          if (entry.isValid()) {
             BlockPos pos = (BlockPos)mapEntry.getKey();
-            if (level.isOutsideBuildHeight(pos) || !worldBorder.isWithinBounds(pos)) {
+            if (!SableCompat.isWithinActiveSelection(level, pos)) {
+               entry.markRejected(BlockStatus.OUTSIDE_REACH);
+            } else if (!SableCompat.isWithinBuildBounds(level, pos)) {
                entry.markRejected(BlockStatus.WORLD_BORDER);
             }
          }

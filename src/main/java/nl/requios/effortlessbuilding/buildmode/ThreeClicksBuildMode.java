@@ -244,7 +244,7 @@ public abstract class ThreeClicksBuildMode extends BaseBuildMode {
 
    public static BlockPos findHeight(Player player, BlockPos secondPos, boolean skipRaytrace) {
       Vec3 look = BuildPipeline.getPlayerLookVec(player);
-      Vec3 start = new Vec3(player.getX(), player.getY() + (double)player.getEyeHeight(), player.getZ());
+      Vec3 start = BuildPipeline.getPlayerEyePosition(player);
       List<HeightCriteria> criteriaList = new ArrayList(2);
       Vec3 xBound = BuildModes.findXBound((double)secondPos.getX(), start, look);
       criteriaList.add(new HeightCriteria(xBound, secondPos, start));

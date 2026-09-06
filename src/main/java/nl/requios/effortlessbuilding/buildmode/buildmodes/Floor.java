@@ -14,7 +14,7 @@ import net.minecraft.world.phys.Vec3;
 public class Floor extends TwoClicksBuildMode {
    public static BlockPos findFloor(Player player, BlockPos firstPos, boolean skipRaytrace) {
       Vec3 look = BuildPipeline.getPlayerLookVec(player);
-      Vec3 start = new Vec3(player.getX(), player.getY() + (double)player.getEyeHeight(), player.getZ());
+      Vec3 start = BuildPipeline.getPlayerEyePosition(player);
       List<Criteria> criteriaList = new ArrayList(3);
       Vec3 yBound = BuildModes.findYBound((double)firstPos.getY(), start, look);
       criteriaList.add(new Criteria(yBound, start));

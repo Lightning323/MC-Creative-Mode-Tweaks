@@ -8,6 +8,7 @@ import nl.requios.effortlessbuilding.Constants;
 import nl.requios.effortlessbuilding.EffortlessBuilding;
 import nl.requios.effortlessbuilding.buildmode.BuildSettings;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipeline;
+import nl.requios.effortlessbuilding.buildpipeline.SableCompat;
 import nl.requios.effortlessbuilding.buildpipeline.TrowelSystem;
 import nl.requios.effortlessbuilding.item.TrowelItem;
 import nl.requios.effortlessbuilding.mixin.BucketItemAccessor;
@@ -72,6 +73,10 @@ public class PacketHandler {
    }
 
    public static void handlePlaceBuildMode(PlaceBuildModePacket packet, ServerPlayer player) {
+      SableCompat.withSelection(player.serverLevel(), packet.firstPos(), () -> handlePlaceBuildModeInSelection(packet, player));
+   }
+
+   private static void handlePlaceBuildModeInSelection(PlaceBuildModePacket packet, ServerPlayer player) {
       ServerLevel level = player.serverLevel();
       BlockSet blockSet = BuildPipeline.SERVER.runServerPipeline(packet.buildMode(), packet.firstPos(), packet.secondPos(), packet.thirdPos(), player, BuildPipeline.BuildState.PLACING, packet.fill(), packet.cubeFill(), packet.raisedEdge(), packet.circleStart(), packet.protectTileEntities());
       if (blockSet == null) {
@@ -301,6 +306,11 @@ public class PacketHandler {
       if (!creative && !Config.BUILDING_SURVIVAL_ALLOW_BREAKING.get()) {
          player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.breaking_disabled"), true);
       } else {
+         SableCompat.withSelection(player.serverLevel(), packet.firstPos(), () -> handleBreakBuildModeInSelection(packet, player, creative));
+      }
+   }
+
+   private static void handleBreakBuildModeInSelection(BreakBuildModePacket packet, ServerPlayer player, boolean creative) {
          ServerLevel level = player.serverLevel();
          BlockSet blockSet = BuildPipeline.SERVER.runServerPipeline(packet.buildMode(), packet.firstPos(), packet.secondPos(), packet.thirdPos(), player, BuildPipeline.BuildState.BREAKING, packet.fill(), packet.cubeFill(), packet.raisedEdge(), packet.circleStart(), packet.protectTileEntities());
          if (blockSet == null) {
@@ -340,7 +350,6 @@ public class PacketHandler {
             }
 
          }
-      }
    }
 
    public static void handleUndo(ServerPlayer player) {

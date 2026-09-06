@@ -13,6 +13,7 @@ import nl.requios.effortlessbuilding.buildmode.BuildModeEnum;
 import nl.requios.effortlessbuilding.buildmode.BuildModes;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipeline;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipelineClient;
+import nl.requios.effortlessbuilding.buildpipeline.SableCompat;
 import nl.requios.effortlessbuilding.item.TrowelItem;
 import nl.requios.effortlessbuilding.mixin.BucketItemAccessor;
 import nl.requios.effortlessbuilding.utilities.BlockEntry;
@@ -126,7 +127,7 @@ public class BlockPreviewRenderer {
 
                               boolean isMissing = false;//missingPositions.contains(pos);
                               poseStack.pushPose();
-                              poseStack.translate((double)pos.getX() - camX, (double)pos.getY() - camY, (double)pos.getZ() - camZ);
+                              SableCompat.translateToBlock(poseStack, mc.level, pos, camX, camY, camZ);
                               poseStack.translate((double)0.5F, (double)0.5F, (double)0.5F);
                               poseStack.scale(blockScale, blockScale, blockScale);
                               poseStack.translate((double)-0.5F, (double)-0.5F, (double)-0.5F);
@@ -143,9 +144,9 @@ public class BlockPreviewRenderer {
                }
 
                RenderSystem.depthMask(false);
-               renderBoundingBoxFaces(poseStack, bufferSource, breakablePositions, camX, camY, camZ, isBreaking, false);
+               renderBoundingBoxFaces(poseStack, bufferSource, mc.level, breakablePositions, camX, camY, camZ, isBreaking, false);
                if (!unbreakablePositions.isEmpty()) {
-                  renderBoundingBoxFaces(poseStack, bufferSource, unbreakablePositions, camX, camY, camZ, isBreaking, true);
+                  renderBoundingBoxFaces(poseStack, bufferSource, mc.level, unbreakablePositions, camX, camY, camZ, isBreaking, true);
                }
 
                bufferSource.endBatch(RenderType.entityTranslucentCull(CHECKERBOARD_TEXTURE));
@@ -167,17 +168,17 @@ public class BlockPreviewRenderer {
                }
 
                if (!validPositions.isEmpty()) {
-                  renderEdgeQuads(poseStack, bufferSource, computeBorderEdges(validPositions), camX, camY, camZ, outlineWidth, oR, oG, oB, 255);
+                  renderEdgeQuads(poseStack, bufferSource, mc.level, computeBorderEdges(validPositions), camX, camY, camZ, outlineWidth, oR, oG, oB, 255);
                   bufferSource.endBatch(RenderType.entityTranslucent(OUTLINE_TEXTURE));
                }
 
                if (!missingPositionsList.isEmpty()) {
-                  renderEdgeQuads(poseStack, bufferSource, computeBorderEdges(missingPositionsList), camX, camY, camZ, outlineWidth, 255, 0, 0, 255);
+                  renderEdgeQuads(poseStack, bufferSource, mc.level, computeBorderEdges(missingPositionsList), camX, camY, camZ, outlineWidth, 255, 0, 0, 255);
                   bufferSource.endBatch(RenderType.entityTranslucent(OUTLINE_TEXTURE));
                }
 
                if (!unbreakablePositions.isEmpty()) {
-                  renderEdgeQuads(poseStack, bufferSource, computeBorderEdges(unbreakablePositions), camX, camY, camZ, outlineWidth, 100, 100, 100, 255);
+                  renderEdgeQuads(poseStack, bufferSource, mc.level, computeBorderEdges(unbreakablePositions), camX, camY, camZ, outlineWidth, 100, 100, 100, 255);
                   bufferSource.endBatch(RenderType.entityTranslucent(OUTLINE_TEXTURE));
                }
 
@@ -188,10 +189,9 @@ public class BlockPreviewRenderer {
       }
    }
 
-   private static void renderBoundingBoxFaces(PoseStack poseStack, MultiBufferSource bufferSource, List<BlockPos> positions, double camX, double camY, double camZ, boolean isBreaking, boolean isUnbreakable) {
+   private static void renderBoundingBoxFaces(PoseStack poseStack, MultiBufferSource bufferSource, Level level, List<BlockPos> positions, double camX, double camY, double camZ, boolean isBreaking, boolean isUnbreakable) {
       Set<BlockPos> posSet = new HashSet(positions);
       VertexConsumer consumer = bufferSource.getBuffer(RenderType.entityTranslucentCull(CHECKERBOARD_TEXTURE));
-      PoseStack.Pose pose = poseStack.last();
       int r;
       int g;
       int b;
@@ -209,11 +209,14 @@ public class BlockPreviewRenderer {
       float eps = 0.002F;
 
       for(BlockPos pos : positions) {
-         float x0 = (float)((double)pos.getX() - camX) - 0.002F;
+         poseStack.pushPose();
+         SableCompat.translateToBlock(poseStack, level, pos, camX, camY, camZ);
+         PoseStack.Pose pose = poseStack.last();
+         float x0 = -eps;
          float x1 = x0 + 1.0F + 0.004F;
-         float y0 = (float)((double)pos.getY() - camY) - 0.002F;
+         float y0 = -eps;
          float y1 = y0 + 1.0F + 0.004F;
-         float z0 = (float)((double)pos.getZ() - camZ) - 0.002F;
+         float z0 = -eps;
          float z1 = z0 + 1.0F + 0.004F;
          if (!posSet.contains(pos.below())) {
             addFace(consumer, pose, x0, y0, z0, x1, y0, z0, x1, y0, z1, x0, y0, z1, 0.0F, -1.0F, 0.0F, r, g, b, a);
@@ -238,6 +241,8 @@ public class BlockPreviewRenderer {
          if (!posSet.contains(pos.east())) {
             addFace(consumer, pose, x1, y0, z0, x1, y1, z0, x1, y1, z1, x1, y0, z1, 1.0F, 0.0F, 0.0F, r, g, b, a);
          }
+
+         poseStack.popPose();
       }
 
    }
@@ -249,40 +254,24 @@ public class BlockPreviewRenderer {
       consumer.addVertex(pose, x3, y3, z3).setColor(r, g, b, a).setUv(1.0F, 0.0F).setOverlay(OverlayTexture.NO_OVERLAY).setLight(15728880).setNormal(pose, nx, ny, nz);
    }
 
-   private static void renderEdgeQuads(PoseStack poseStack, MultiBufferSource bufferSource, Set<EdgeKey> edges, double camX, double camY, double camZ, float halfWidth, int r, int g, int b, int a) {
+   private static void renderEdgeQuads(PoseStack poseStack, MultiBufferSource bufferSource, Level level, Set<EdgeKey> edges, double camX, double camY, double camZ, float halfWidth, int r, int g, int b, int a) {
       VertexConsumer consumer = bufferSource.getBuffer(RenderType.entityTranslucent(OUTLINE_TEXTURE));
-      PoseStack.Pose pose = poseStack.last();
 
       for(EdgeKey edge : edges) {
-         float x0 = (float)((double)edge.x() - camX);
-         float y0 = (float)((double)edge.y() - camY);
-         float z0 = (float)((double)edge.z() - camZ);
+         poseStack.pushPose();
+         SableCompat.translateToBlock(poseStack, level, new BlockPos(edge.x(), edge.y(), edge.z()), camX, camY, camZ);
+         PoseStack.Pose pose = poseStack.last();
+         float x0 = 0.0F;
+         float y0 = 0.0F;
+         float z0 = 0.0F;
          float x1 = x0 + (float)(edge.axis() == 0 ? 1 : 0);
          float y1 = y0 + (float)(edge.axis() == 1 ? 1 : 0);
          float z1 = z0 + (float)(edge.axis() == 2 ? 1 : 0);
-         float dx = x1 - x0;
-         float dy = y1 - y0;
-         float dz = z1 - z0;
-         x0 -= dx * halfWidth;
-         y0 -= dy * halfWidth;
-         z0 -= dz * halfWidth;
-         x1 += dx * halfWidth;
-         y1 += dy * halfWidth;
-         z1 += dz * halfWidth;
-         float mx = (x0 + x1) * 0.5F;
-         float my = (y0 + y1) * 0.5F;
-         float mz = (z0 + z1) * 0.5F;
-         float cx = dy * mz - dz * my;
-         float cy = dz * mx - dx * mz;
-         float cz = dx * my - dy * mx;
-         float len = (float)Math.sqrt((double)(cx * cx + cy * cy + cz * cz));
-         if (!(len < 1.0E-6F)) {
-            float s = halfWidth / len;
-            cx *= s;
-            cy *= s;
-            cz *= s;
-            addFace(consumer, pose, x0 - cx, y0 - cy, z0 - cz, x0 + cx, y0 + cy, z0 + cz, x1 + cx, y1 + cy, z1 + cz, x1 - cx, y1 - cy, z1 - cz, 0.0F, 1.0F, 0.0F, r, g, b, a);
-         }
+         float sideX = edge.axis() == 1 ? halfWidth : 0.0F;
+         float sideY = edge.axis() == 1 ? 0.0F : halfWidth;
+         float sideZ = 0.0F;
+         addFace(consumer, pose, x0 - sideX, y0 - sideY, z0 - sideZ, x0 + sideX, y0 + sideY, z0 + sideZ, x1 + sideX, y1 + sideY, z1 + sideZ, x1 - sideX, y1 - sideY, z1 - sideZ, 0.0F, 1.0F, 0.0F, r, g, b, a);
+         poseStack.popPose();
       }
 
    }

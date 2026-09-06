@@ -14,7 +14,7 @@ import net.minecraft.world.phys.Vec3;
 public class Wall extends TwoClicksBuildMode {
    public static BlockPos findWall(Player player, BlockPos firstPos, boolean skipRaytrace) {
       Vec3 look = BuildPipeline.getPlayerLookVec(player);
-      Vec3 start = new Vec3(player.getX(), player.getY() + (double)player.getEyeHeight(), player.getZ());
+      Vec3 start = BuildPipeline.getPlayerEyePosition(player);
       List<Criteria> criteriaList = new ArrayList(3);
       Vec3 xBound = BuildModes.findXBound((double)firstPos.getX(), start, look);
       criteriaList.add(new Criteria(xBound, firstPos, start, look));

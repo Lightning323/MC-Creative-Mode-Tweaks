@@ -67,7 +67,7 @@ public class BuildPipeline {
    }
 
    public static Vec3 getPlayerLookVec(Player player) {
-      Vec3 lookVec = player.getLookAngle();
+      Vec3 lookVec = SableCompat.getPlayerLookVector(player);
       double x = lookVec.x;
       double y = lookVec.y;
       double z = lookVec.z;
@@ -108,6 +108,10 @@ public class BuildPipeline {
       }
 
       return new Vec3(x, y, z);
+   }
+
+   public static Vec3 getPlayerEyePosition(Player player) {
+      return SableCompat.getPlayerEyePosition(player);
    }
 
    public void addSystem(IBuildSystem system) {

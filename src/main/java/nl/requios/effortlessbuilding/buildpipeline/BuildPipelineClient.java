@@ -47,6 +47,7 @@ public class BuildPipelineClient {
    public static final BreakDisplayTracker BREAK_DISPLAY = new BreakDisplayTracker();
    private static BuildPipeline.@Nullable BuildState buildState = null;
    private static @Nullable BlockHitResult firstClickHit = null;
+   private static @Nullable BlockPos selectionOrigin = null;
 
    private static BuildPipeline createClientPipeline() {
       BuildPipeline pipeline = new BuildPipeline();
@@ -127,16 +128,19 @@ public class BuildPipelineClient {
             clickedPos = resolveFirstClickPos(hit, action, mc.level);
             buildState = action;
             firstClickHit = hit;
+            selectionOrigin = clickedPos;
          } else {
             clickedPos = player.blockPosition();
          }
 
-         BlockSet blocks = new BlockSet();
-         boolean shouldPlace = mode.instance.onClick(blocks, clickedPos, player);
-         if (shouldPlace) {
-            mode.instance.findCoordinates(blocks, player);
-            CLIENT.processBlocks(blocks, player, action);
-            if (blocks.firstPos != null && blocks.lastPos != null) {
+         BlockPos selectionAnchor = selectionOrigin != null ? selectionOrigin : clickedPos;
+         try (SableCompat.SelectionScope ignored = SableCompat.pushSelection(mc.level, selectionAnchor)) {
+            BlockSet blocks = new BlockSet();
+            boolean shouldPlace = mode.instance.onClick(blocks, clickedPos, player);
+            if (shouldPlace) {
+               mode.instance.findCoordinates(blocks, player);
+               CLIENT.processBlocks(blocks, player, action);
+               if (blocks.firstPos != null && blocks.lastPos != null) {
                if (action == BuildPipeline.BuildState.PLACING) {
                   ItemStack held = player.getMainHandItem();
                   BlockEntry firstEntry = (BlockEntry)blocks.get(blocks.firstPos);
@@ -205,13 +209,14 @@ public class BuildPipelineClient {
                }
             } else {
                Constants.LOG.warn("[EffortlessBuilding] Build mode {} produced no block positions", mode);
+               }
+
+               mode.instance.initialize();
+               buildState = null;
+               firstClickHit = null;
+               selectionOrigin = null;
             }
-
-            mode.instance.initialize();
-            buildState = null;
-            firstClickHit = null;
          }
-
       }
    }
 
@@ -221,17 +226,20 @@ public class BuildPipelineClient {
          BuildModeEnum mode = BuildModes.CLIENT.getBuildMode();
          BlockSet result;
          if (!mode.instance.isFirstClick()) {
-            BlockSet previewBlocks = new BlockSet();
-            mode.instance.findCoordinates(previewBlocks, player);
-            BuildPipeline.BuildState action = buildState != null ? buildState : BuildPipeline.BuildState.PLACING;
-            CLIENT.processBlocks(previewBlocks, player, action);
-            if (previewBlocks.isEmpty()) {
-               return null;
-            }
+            BlockPos selectionAnchor = selectionOrigin != null ? selectionOrigin : player.blockPosition();
+            try (SableCompat.SelectionScope ignored = SableCompat.pushSelection(mc.level, selectionAnchor)) {
+               BlockSet previewBlocks = new BlockSet();
+               mode.instance.findCoordinates(previewBlocks, player);
+               BuildPipeline.BuildState action = buildState != null ? buildState : BuildPipeline.BuildState.PLACING;
+               CLIENT.processBlocks(previewBlocks, player, action);
+               if (previewBlocks.isEmpty()) {
+                  return null;
+               }
 
-            previewBlocks.sortByDistance();
-            previewBlocks.truncate(Config.getBuildingMaxBlocksPlaced(player));
-            result = previewBlocks;
+               previewBlocks.sortByDistance();
+               previewBlocks.truncate(Config.getBuildingMaxBlocksPlaced(player));
+               result = previewBlocks;
+            }
          } else {
             Vec3 start = player.getEyePosition();
             Vec3 end = start.add(player.getLookAngle().scale((double)Config.getBuildingReach(player)));
@@ -246,7 +254,9 @@ public class BuildPipelineClient {
             blockSet.add(new BlockEntry(targetPos));
             blockSet.firstPos = targetPos;
             blockSet.lastPos = targetPos;
-            CLIENT.processBlocks(blockSet, player, BuildPipeline.BuildState.PLACING);
+            try (SableCompat.SelectionScope ignored = SableCompat.pushSelection(mc.level, targetPos)) {
+               CLIENT.processBlocks(blockSet, player, BuildPipeline.BuildState.PLACING);
+            }
             result = blockSet;
          }
 
@@ -293,6 +303,7 @@ public class BuildPipelineClient {
       BuildModes.CLIENT.getBuildMode().instance.initialize();
       buildState = null;
       firstClickHit = null;
+      selectionOrigin = null;
    }
 
    private static BlockPos resolveFirstClickPos(BlockHitResult hit, BuildPipeline.BuildState action, Level level) {

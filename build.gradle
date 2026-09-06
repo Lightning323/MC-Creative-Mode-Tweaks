@@ -10,6 +10,12 @@ group = mod_group_id
 
 repositories {
     mavenLocal()
+    maven {
+        url = 'https://maven.ryanhcode.dev/releases'
+        content {
+            includeGroup 'dev.ryanhcode.sable-companion'
+        }
+    }
     maven { url = 'https://www.cursemaven.com' }
 }
 
@@ -97,6 +103,14 @@ sourceSets.main.resources { srcDir 'src/generated/resources' }
 
 
 dependencies {
+    // Embedded optional-compat API. It is a no-op without Sable and is replaced by
+    // Sable's implementation when Sable is installed.
+    jarJar(api("dev.ryanhcode.sable-companion:sable-companion-common-${minecraft_version}:${sable_companion_version}")) {
+        version {
+            strictly sable_companion_version
+        }
+    }
+
     // Provides the in-game mod-list config screen for Creative Mode Tweaks.
     runtimeOnly 'curse.maven:configured-457570:7276577'                 // Configured 2.6.3 for NeoForge 1.21.1
 
