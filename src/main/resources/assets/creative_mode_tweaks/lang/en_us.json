@@ -7,7 +7,6 @@
   "key.creative_mode_tweaks.nightvision": "Night Vision",
   "key.creative_mode_tweaks.rotate_inv_up": "Shift Inventory Rows Up",
   "key.creative_mode_tweaks.rotate_inv_down": "Shift Inventory Rows Down",
-  "key.categories.creative_mode_tweaks": "Effortless Building",
   "key.creative_mode_tweaks.open_radial_menu": "Open Radial Menu",
   "key.creative_mode_tweaks.open_modifiers_screen": "Open Modifier Settings",
   "key.creative_mode_tweaks.undo.desc": "Undo",
@@ -112,8 +111,6 @@
   "creative_mode_tweaks.message.protected_tile_entity": "Some blocks were protected (tile entities)",
   "creative_mode_tweaks.message.world_border": "Some blocks are outside the world border or build height",
   "creative_mode_tweaks.message.not_operator": "Only admins can edit functional settings.",
-  "creative_mode_tweaks.message.welcome_message": "Thank you for using Effortless Building! To get started, hold %s to open the build menu.",
-  "creative_mode_tweaks.message.build_mode_hint": "You have activated a build mode! With a block in hand, right-click to pick the starting position. Aim somewhere else, then right-click again to build the shape. To deactivate, hold %s and select Disable.",
 
   "creative_mode_tweaks.config.section_survival": "Survival",
   "creative_mode_tweaks.config.section_creative": "Creative",
