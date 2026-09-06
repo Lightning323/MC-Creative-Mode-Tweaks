@@ -100,6 +100,11 @@ public class Config {
                     .translation("creative_mode_tweaks.config.reach")
                     .defineInRange("building.survival.reach", 6, 1, 1000);
 
+    public static final ModConfigSpec.BooleanValue BUILDING_SURVIVAL_ALLOW_ANGEL_PLACEMENT =
+            SERVER_BUILDER.comment("Allow survival players to use Angel Placement to target air blocks at a distance.")
+                    .translation("creative_mode_tweaks.config.allow_angel_placement")
+                    .define("building.survival.allow_angel_placement", false);
+
     public static final ModConfigSpec.IntValue BUILDING_SURVIVAL_MAX_BLOCKS_PLACED =
             SERVER_BUILDER.comment("Maximum number of blocks survival players can place or break in a single action.")
                     .translation("creative_mode_tweaks.config.max_blocks_placed")
@@ -155,6 +160,11 @@ public class Config {
                     .translation("creative_mode_tweaks.config.reach")
                     .defineInRange("building.creative.reach", 200, 1, 1000);
 
+    public static final ModConfigSpec.IntValue BUILDING_ANGEL_PLACEMENT_DISTANCE =
+            SERVER_BUILDER.comment("Distance at which Angel Placement targets an air block.")
+                    .translation("creative_mode_tweaks.config.angel_placement_distance")
+                    .defineInRange("building.angel_placement.distance", 8, 5, 1000);
+
     public static final ModConfigSpec.IntValue BUILDING_CREATIVE_MAX_BLOCKS_PLACED =
             SERVER_BUILDER.comment("Maximum number of blocks creative players can place or break in a single action.")
                     .translation("creative_mode_tweaks.config.max_blocks_placed")
@@ -200,6 +210,14 @@ public class Config {
 
     public static int getBuildingReach(Player player) {
         return player.isCreative() ? BUILDING_CREATIVE_REACH.get() : BUILDING_SURVIVAL_REACH.get();
+    }
+
+    public static int getAngelPlacementDistance(Player player) {
+        return BUILDING_ANGEL_PLACEMENT_DISTANCE.get();
+    }
+
+    public static boolean isAngelPlacementAllowed(Player player) {
+        return player.isCreative() || BUILDING_SURVIVAL_ALLOW_ANGEL_PLACEMENT.get();
     }
 
     public static int getBuildingMaxBlocksPlaced(Player player) {

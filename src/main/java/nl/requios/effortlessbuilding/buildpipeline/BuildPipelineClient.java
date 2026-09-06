@@ -48,6 +48,7 @@ public class BuildPipelineClient {
    private static BuildPipeline.@Nullable BuildState buildState = null;
    private static @Nullable BlockHitResult firstClickHit = null;
    private static @Nullable BlockPos selectionOrigin = null;
+   private static boolean angelPlacementSequence = false;
 
    private static BuildPipeline createClientPipeline() {
       BuildPipeline pipeline = new BuildPipeline();
@@ -65,9 +66,41 @@ public class BuildPipelineClient {
       return firstClickHit;
    }
 
+   public static boolean isAngelPlacementActive(Player player) {
+      return BuildSettings.CLIENT.isAngelPlacementEnabled() && Config.isAngelPlacementAllowed(player);
+   }
+
+   public static @Nullable BlockHitResult getCurrentTargetHit(Minecraft mc) {
+      Player player = mc.player;
+      Level level = mc.level;
+      if (player == null || level == null) {
+         return null;
+      }
+
+      Vec3 start = player.getEyePosition();
+      Vec3 look = player.getLookAngle();
+      if (isAngelPlacementActive(player)) {
+         Direction direction = Direction.getNearest((float)-look.x, (float)-look.y, (float)-look.z);
+         for(double distance = (double)Config.getAngelPlacementDistance(player); distance > 4.0D; distance -= 0.25D) {
+            Vec3 location = start.add(look.scale(distance));
+            BlockPos pos = BlockPos.containing(location);
+            if (level.getBlockState(pos).isAir()) {
+               return new BlockHitResult(location, direction, pos, false);
+            }
+         }
+
+         return null;
+      } else {
+         Vec3 end = start.add(look.scale((double)Config.getBuildingReach(player)));
+         ClipContext ctx = new ClipContext(start, end, Block.OUTLINE, Fluid.NONE, player);
+         BlockHitResult hit = level.clip(ctx);
+         return hit.getType() == Type.BLOCK ? hit : null;
+      }
+   }
+
    public static boolean shouldInterceptPlacing() {
       Minecraft mc = Minecraft.getInstance();
-      return BuildModes.CLIENT.getBuildMode() != BuildModeEnum.DISABLED || mc.player != null && mc.player.getMainHandItem().getItem() instanceof TrowelItem;
+      return BuildModes.CLIENT.getBuildMode() != BuildModeEnum.DISABLED || mc.player != null && (mc.player.getMainHandItem().getItem() instanceof TrowelItem || isAngelPlacementActive(mc.player));
    }
 
    public static boolean shouldInterceptBreaking() {
@@ -117,17 +150,16 @@ public class BuildPipelineClient {
       if (player != null && mc.level != null) {
          BlockPos clickedPos;
          if (mode.instance.isFirstClick()) {
-            Vec3 start = player.getEyePosition();
-            Vec3 end = start.add(player.getLookAngle().scale((double)Config.getBuildingReach(player)));
-            ClipContext ctx = new ClipContext(start, end, Block.OUTLINE, Fluid.NONE, player);
-            BlockHitResult hit = mc.level.clip(ctx);
-            if (hit.getType() != Type.BLOCK) {
+            boolean usingAngelPlacement = isAngelPlacementActive(player);
+            BlockHitResult hit = getCurrentTargetHit(mc);
+            if (hit == null) {
                return;
             }
 
             clickedPos = resolveFirstClickPos(hit, action, mc.level);
             buildState = action;
             firstClickHit = hit;
+            angelPlacementSequence = usingAngelPlacement;
             mode.instance.setFirstClickFace(hit.getDirection());
             selectionOrigin = clickedPos;
          } else {
@@ -188,7 +220,7 @@ public class BuildPipelineClient {
 
                   Direction hitFace = firstClickHit != null ? firstClickHit.getDirection() : Direction.UP;
                   Vec3 hitLocation = firstClickHit != null ? firstClickHit.getLocation() : Vec3.atCenterOf(blocks.firstPos);
-                  PacketHandler.sendToServer(new PlaceBuildModePacket(mode, blocks.firstPos, secondPos, thirdPos, hitFace, hitLocation, ModeOptions.getFill(), ModeOptions.getCubeFill(), ModeOptions.getRaisedEdge(), ModeOptions.getCircleStart(), BuildSettings.CLIENT.getReplaceMode(), Config.BUILDING_PROTECT_TILE_ENTITIES.get()));
+                  PacketHandler.sendToServer(new PlaceBuildModePacket(mode, blocks.firstPos, secondPos, thirdPos, hitFace, hitLocation, ModeOptions.getFill(), ModeOptions.getCubeFill(), ModeOptions.getRaisedEdge(), ModeOptions.getCircleStart(), BuildSettings.CLIENT.getReplaceMode(), Config.BUILDING_PROTECT_TILE_ENTITIES.get(), angelPlacementSequence));
                   PlacedBlockTracker.clientTrackAll(mc.level.dimension(), blocks.keySet());
                } else {
                   if (!blocks.rejectedEntries().isEmpty()) {
@@ -206,7 +238,7 @@ public class BuildPipelineClient {
                      }
                   }
 
-                  PacketHandler.sendToServer(new BreakBuildModePacket(mode, blocks.firstPos, secondPos, thirdPos, ModeOptions.getFill(), ModeOptions.getCubeFill(), ModeOptions.getRaisedEdge(), ModeOptions.getCircleStart(), Config.BUILDING_PROTECT_TILE_ENTITIES.get()));
+                  PacketHandler.sendToServer(new BreakBuildModePacket(mode, blocks.firstPos, secondPos, thirdPos, ModeOptions.getFill(), ModeOptions.getCubeFill(), ModeOptions.getRaisedEdge(), ModeOptions.getCircleStart(), Config.BUILDING_PROTECT_TILE_ENTITIES.get(), angelPlacementSequence));
                }
             } else {
                Constants.LOG.warn("[EffortlessBuilding] Build mode {} produced no block positions", mode);
@@ -216,6 +248,7 @@ public class BuildPipelineClient {
                buildState = null;
                firstClickHit = null;
                selectionOrigin = null;
+               angelPlacementSequence = false;
             }
          }
       }
@@ -242,11 +275,8 @@ public class BuildPipelineClient {
                result = previewBlocks;
             }
          } else {
-            Vec3 start = player.getEyePosition();
-            Vec3 end = start.add(player.getLookAngle().scale((double)Config.getBuildingReach(player)));
-            ClipContext ctx = new ClipContext(start, end, Block.OUTLINE, Fluid.NONE, player);
-            BlockHitResult hit = mc.level.clip(ctx);
-            if (hit.getType() != Type.BLOCK) {
+            BlockHitResult hit = getCurrentTargetHit(mc);
+            if (hit == null) {
                return null;
             }
 
@@ -305,6 +335,7 @@ public class BuildPipelineClient {
       buildState = null;
       firstClickHit = null;
       selectionOrigin = null;
+      angelPlacementSequence = false;
    }
 
    private static BlockPos resolveFirstClickPos(BlockHitResult hit, BuildPipeline.BuildState action, Level level) {

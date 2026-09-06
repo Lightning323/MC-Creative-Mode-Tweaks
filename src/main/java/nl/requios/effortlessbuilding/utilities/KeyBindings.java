@@ -17,6 +17,7 @@ public class KeyBindings {
    public static KeyMapping undo;
    public static KeyMapping redo;
    public static KeyMapping togglePlaneType;
+   public static KeyMapping toggleAngelPlacement;
    private static final Map<BuildModeEnum, KeyMapping> BUILD_MODE_KEYS = new EnumMap<>(BuildModeEnum.class);
 
    public static boolean isKeyDown(KeyMapping keyMapping) {
@@ -38,6 +39,7 @@ public class KeyBindings {
       undo = new KeyMapping("key.creative_mode_tweaks.undo.desc", Type.KEYSYM, 90, "key.categories.creative_mode_tweaks");
       redo = new KeyMapping("key.creative_mode_tweaks.redo.desc", Type.KEYSYM, 89, "key.categories.creative_mode_tweaks");
       togglePlaneType = new KeyMapping("key.creative_mode_tweaks.toggle_plane_type", Type.KEYSYM, InputConstants.UNKNOWN.getValue(), "key.categories.creative_mode_tweaks");
+      toggleAngelPlacement = new KeyMapping("key.creative_mode_tweaks.toggle_angel_placement", Type.KEYSYM, InputConstants.UNKNOWN.getValue(), "key.categories.creative_mode_tweaks");
 
       for(BuildModeEnum mode : BuildModeEnum.values()) {
          BUILD_MODE_KEYS.put(mode, new KeyMapping(mode.getNameKey(), Type.KEYSYM, InputConstants.UNKNOWN.getValue(), "key.categories.creative_mode_tweaks"));

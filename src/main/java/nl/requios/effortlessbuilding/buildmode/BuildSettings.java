@@ -10,9 +10,11 @@ import net.minecraft.world.level.block.state.BlockState;
 public class BuildSettings {
    public static final BuildSettings CLIENT = new BuildSettings();
    private ReplaceMode replaceMode;
+   private boolean angelPlacement;
 
    public BuildSettings() {
       this.replaceMode = ReplaceMode.ONLY_AIR;
+      this.angelPlacement = false;
    }
 
    public void cycleReplaceMode() {
@@ -26,6 +28,15 @@ public class BuildSettings {
 
    public ReplaceMode getReplaceMode() {
       return !this.canReplace() ? ReplaceMode.ONLY_AIR : this.replaceMode;
+   }
+
+   public boolean toggleAngelPlacement() {
+      this.angelPlacement = !this.angelPlacement;
+      return this.angelPlacement;
+   }
+
+   public boolean isAngelPlacementEnabled() {
+      return this.angelPlacement;
    }
 
    public ModeOptions.ActionEnum getReplaceModeActionEnum() {

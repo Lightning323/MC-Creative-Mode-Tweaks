@@ -5,6 +5,7 @@
   "key.creative_mode_tweaks.undo.desc": "撤销",
   "key.creative_mode_tweaks.redo.desc": "重做",
   "key.creative_mode_tweaks.toggle_plane_type": "切换平面类型",
+  "key.creative_mode_tweaks.toggle_angel_placement": "切换空中放置",
 
   "creative_mode_tweaks.screen.radial_menu": "建造模式",
   "creative_mode_tweaks.screen.modifier_settings": "修饰器设置",
@@ -47,6 +48,7 @@
   "creative_mode_tweaks.modedescription.dome": "",
 
   "creative_mode_tweaks.message.plane_mode": "平面：%s",
+  "creative_mode_tweaks.message.angel_placement": "空中放置：%s",
 
   "creative_mode_tweaks.action.undo": "撤销",
   "creative_mode_tweaks.action.redo": "重做",
@@ -59,6 +61,8 @@
   "creative_mode_tweaks.action.replace_mode": "替换模式",
   "creative_mode_tweaks.action.cycle_replace_mode": "切换替换模式",
   "creative_mode_tweaks.action.cycle_replace_mode.description": "循环切换替换模式。",
+  "creative_mode_tweaks.action.toggle_angel_placement": "空中放置",
+  "creative_mode_tweaks.action.toggle_angel_placement.description": "在设定距离处瞄准最远的可用空气方块。",
   "creative_mode_tweaks.action.replace_only_air": "仅替换空气",
   "creative_mode_tweaks.action.replace_only_air.description": "只在空气位置放置方块，草等可替换方块仍会被替换。",
   "creative_mode_tweaks.action.replace_blocks_and_air": "替换方块与空气",
@@ -95,6 +99,7 @@
   "creative_mode_tweaks.message.only_break_placed": "你只能破坏本次游戏中放置的方块",
   "creative_mode_tweaks.message.only_replace_placed": "你只能替换本次游戏中放置的方块",
   "creative_mode_tweaks.message.breaking_disabled": "在生存模式中，建造模式无法用于破坏方块",
+  "creative_mode_tweaks.message.angel_placement_disabled": "空中放置已在生存模式中禁用。",
   "creative_mode_tweaks.message.too_hard": "部分方块超过了最大硬度限制",
   "creative_mode_tweaks.message.protected_tile_entity": "部分方块受到保护（方块实体）",
   "creative_mode_tweaks.message.world_border": "部分方块超出了世界边界或建造高度",
@@ -106,6 +111,10 @@
   "creative_mode_tweaks.config.section_creative": "创造模式",
   "creative_mode_tweaks.config.reach": "建造距离",
   "creative_mode_tweaks.config.reach.tooltip": "在建造模式下放置和破坏方块的最远距离。",
+  "creative_mode_tweaks.config.angel_placement_distance": "空中放置距离",
+  "creative_mode_tweaks.config.angel_placement_distance.tooltip": "空中放置瞄准空气方块时与玩家的距离。",
+  "creative_mode_tweaks.config.allow_angel_placement": "允许空中放置",
+  "creative_mode_tweaks.config.allow_angel_placement.tooltip": "开启后，生存模式玩家可以使用空中放置。",
   "creative_mode_tweaks.config.max_blocks_placed": "单次最大放置数量",
   "creative_mode_tweaks.config.max_blocks_placed.tooltip": "单次操作中最多可放置的方块数量。",
   "creative_mode_tweaks.config.max_blocks_per_axis": "每轴最大方块数",

@@ -5,6 +5,7 @@
   "key.creative_mode_tweaks.undo.desc": "Annuler",
   "key.creative_mode_tweaks.redo.desc": "Rétablir",
   "key.creative_mode_tweaks.toggle_plane_type": "Changer le type de plan",
+  "key.creative_mode_tweaks.toggle_angel_placement": "Basculer le placement aérien",
 
   "creative_mode_tweaks.screen.radial_menu": "Modes de construction",
   "creative_mode_tweaks.screen.modifier_settings": "Paramètres des modificateurs",
@@ -47,6 +48,7 @@
   "creative_mode_tweaks.modedescription.dome": "",
 
   "creative_mode_tweaks.message.plane_mode": "Plan : %s",
+  "creative_mode_tweaks.message.angel_placement": "Placement aérien : %s",
 
   "creative_mode_tweaks.action.undo": "Annuler",
   "creative_mode_tweaks.action.redo": "Rétablir",
@@ -59,6 +61,8 @@
   "creative_mode_tweaks.action.replace_mode": "Mode de remplacement",
   "creative_mode_tweaks.action.cycle_replace_mode": "Changer le mode de remplacement",
   "creative_mode_tweaks.action.cycle_replace_mode.description": "Faire défiler les modes de remplacement.",
+  "creative_mode_tweaks.action.toggle_angel_placement": "Placement aérien",
+  "creative_mode_tweaks.action.toggle_angel_placement.description": "Cible le bloc d'air disponible le plus éloigné à la distance configurée.",
   "creative_mode_tweaks.action.replace_only_air": "Remplacer uniquement l'air",
   "creative_mode_tweaks.action.replace_only_air.description": "Vous ne pouvez placer des blocs que là où il y avait de l'air. Les blocs remplaçables comme l'herbe peuvent toujours être remplacés.",
   "creative_mode_tweaks.action.replace_blocks_and_air": "Remplacer les blocs et l'air",
@@ -95,6 +99,7 @@
   "creative_mode_tweaks.message.only_break_placed": "Vous ne pouvez casser que les blocs que vous avez placés lors de cette session",
   "creative_mode_tweaks.message.only_replace_placed": "Vous ne pouvez remplacer que les blocs que vous avez placés lors de cette session",
   "creative_mode_tweaks.message.breaking_disabled": "La destruction de blocs avec les modes de construction est désactivée en survie",
+  "creative_mode_tweaks.message.angel_placement_disabled": "Le placement aérien est désactivé en survie.",
   "creative_mode_tweaks.message.too_hard": "Certains blocs ont dépassé la dureté maximale",
   "creative_mode_tweaks.message.protected_tile_entity": "Certains blocs étaient protégés (entités de blocs)",
   "creative_mode_tweaks.message.world_border": "Certains blocs sont en dehors de la limite du monde ou de la hauteur de construction",
@@ -106,6 +111,10 @@
   "creative_mode_tweaks.config.section_creative": "Créatif",
   "creative_mode_tweaks.config.reach": "Portée",
   "creative_mode_tweaks.config.reach.tooltip": "À quelle distance vous pouvez placer et casser des blocs avec les modes de construction.",
+  "creative_mode_tweaks.config.angel_placement_distance": "Distance du placement aérien",
+  "creative_mode_tweaks.config.angel_placement_distance.tooltip": "Distance du joueur à laquelle le placement aérien cible un bloc d'air.",
+  "creative_mode_tweaks.config.allow_angel_placement": "Autoriser le placement aérien",
+  "creative_mode_tweaks.config.allow_angel_placement.tooltip": "Si activé, les joueurs en survie peuvent utiliser le placement aérien.",
   "creative_mode_tweaks.config.max_blocks_placed": "Max. blocs placés à la fois",
   "creative_mode_tweaks.config.max_blocks_placed.tooltip": "Nombre maximum de blocs placés en une seule action.",
   "creative_mode_tweaks.config.max_blocks_per_axis": "Max. blocs par axe",

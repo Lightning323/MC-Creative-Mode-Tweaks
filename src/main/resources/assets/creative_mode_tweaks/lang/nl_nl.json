@@ -5,6 +5,7 @@
   "key.creative_mode_tweaks.undo.desc": "Ongedaan maken",
   "key.creative_mode_tweaks.redo.desc": "Opnieuw uitvoeren",
   "key.creative_mode_tweaks.toggle_plane_type": "Vlaktype wisselen",
+  "key.creative_mode_tweaks.toggle_angel_placement": "Luchtplaatsing wisselen",
 
   "creative_mode_tweaks.screen.radial_menu": "Bouwmodi",
   "creative_mode_tweaks.screen.modifier_settings": "Modificatorinstellingen",
@@ -47,6 +48,7 @@
   "creative_mode_tweaks.modedescription.dome": "",
 
   "creative_mode_tweaks.message.plane_mode": "Vlak: %s",
+  "creative_mode_tweaks.message.angel_placement": "Luchtplaatsing: %s",
 
   "creative_mode_tweaks.action.undo": "Ongedaan maken",
   "creative_mode_tweaks.action.redo": "Opnieuw uitvoeren",
@@ -59,6 +61,8 @@
   "creative_mode_tweaks.action.replace_mode": "Vervangmodus",
   "creative_mode_tweaks.action.cycle_replace_mode": "Vervangmodus wisselen",
   "creative_mode_tweaks.action.cycle_replace_mode.description": "Door de vervangmodi bladeren.",
+  "creative_mode_tweaks.action.toggle_angel_placement": "Luchtplaatsing",
+  "creative_mode_tweaks.action.toggle_angel_placement.description": "Richt op het verst beschikbare luchtblok op de ingestelde afstand.",
   "creative_mode_tweaks.action.replace_only_air": "Alleen lucht vervangen",
   "creative_mode_tweaks.action.replace_only_air.description": "Je kunt alleen blokken plaatsen waar lucht was. Vervangbare blokken zoals gras kunnen nog steeds worden vervangen.",
   "creative_mode_tweaks.action.replace_blocks_and_air": "Blokken en lucht vervangen",
@@ -95,6 +99,7 @@
   "creative_mode_tweaks.message.only_break_placed": "Je kunt alleen blokken breken die je in deze sessie hebt geplaatst",
   "creative_mode_tweaks.message.only_replace_placed": "Je kunt alleen blokken vervangen die je in deze sessie hebt geplaatst",
   "creative_mode_tweaks.message.breaking_disabled": "Blokken breken met bouwmodi is uitgeschakeld in de overlevingsmodus",
+  "creative_mode_tweaks.message.angel_placement_disabled": "Luchtplaatsing is uitgeschakeld in de overlevingsmodus.",
   "creative_mode_tweaks.message.too_hard": "Sommige blokken overschreden de maximale hardheid",
   "creative_mode_tweaks.message.protected_tile_entity": "Sommige blokken waren beschermd (blokentiteiten)",
   "creative_mode_tweaks.message.world_border": "Sommige blokken bevinden zich buiten de wereldgrens of bouwdhoogte",
@@ -106,6 +111,10 @@
   "creative_mode_tweaks.config.section_creative": "Creatief",
   "creative_mode_tweaks.config.reach": "Bereik",
   "creative_mode_tweaks.config.reach.tooltip": "Hoe ver je blokken kunt plaatsen en breken met bouwmodi.",
+  "creative_mode_tweaks.config.angel_placement_distance": "Afstand van luchtplaatsing",
+  "creative_mode_tweaks.config.angel_placement_distance.tooltip": "Afstand vanaf de speler waarop luchtplaatsing een luchtblok richt.",
+  "creative_mode_tweaks.config.allow_angel_placement": "Luchtplaatsing toestaan",
+  "creative_mode_tweaks.config.allow_angel_placement.tooltip": "Indien ingeschakeld, kunnen overlevingsspelers luchtplaatsing gebruiken.",
   "creative_mode_tweaks.config.max_blocks_placed": "Max. blokken tegelijk geplaatst",
   "creative_mode_tweaks.config.max_blocks_placed.tooltip": "Maximum aantal blokken dat in één actie wordt geplaatst.",
   "creative_mode_tweaks.config.max_blocks_per_axis": "Max. blokken per as",

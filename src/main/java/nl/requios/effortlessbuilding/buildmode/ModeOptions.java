@@ -6,6 +6,7 @@ import nl.requios.effortlessbuilding.network.RedoPacket;
 import nl.requios.effortlessbuilding.network.UndoPacket;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
+import org.lightning323.creative_mode_tweaks.Config;
 
 public class ModeOptions {
    private static ActionEnum buildSpeed;
@@ -133,10 +134,23 @@ public class ModeOptions {
                break;
             case 23:
                circleStart = ActionEnum.CIRCLE_START_CENTER;
+               break;
+            case 24:
+               if (Config.isAngelPlacementAllowed(player)) {
+                  BuildSettings.CLIENT.toggleAngelPlacement();
+               }
          }
 
          if (player.level().isClientSide && action != ActionEnum.OPEN_MODIFIER_SETTINGS && action != ActionEnum.PREVIOUS_BUILD_MODE && action != ActionEnum.DISABLE_BUILD_MODE_TOGGLE && action != ActionEnum.UNDO && action != ActionEnum.REDO) {
-            player.displayClientMessage(Component.translatable(action.getNameKey()), true);
+            if (action == ActionEnum.TOGGLE_ANGEL_PLACEMENT) {
+               if (Config.isAngelPlacementAllowed(player)) {
+                  player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.angel_placement", Component.translatable(BuildSettings.CLIENT.isAngelPlacementEnabled() ? "options.on" : "options.off")), true);
+               } else {
+                  player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.angel_placement_disabled"), true);
+               }
+            } else {
+               player.displayClientMessage(Component.translatable(action.getNameKey()), true);
+            }
          }
 
       }
@@ -175,7 +189,8 @@ public class ModeOptions {
       THICKNESS_3("thickness_3", AllIcons.I_THICKNESS_3),
       THICKNESS_5("thickness_5", AllIcons.I_THICKNESS_5),
       CIRCLE_START_CORNER("start_corner", AllIcons.I_CIRCLE_START_CORNER),
-      CIRCLE_START_CENTER("start_center", AllIcons.I_CIRCLE_START_CENTER);
+      CIRCLE_START_CENTER("start_center", AllIcons.I_CIRCLE_START_CENTER),
+      TOGGLE_ANGEL_PLACEMENT("toggle_angel_placement", AllIcons.I_ALTERNATE_OFF);
 
       public String name;
       public AllIcons icon;
@@ -199,7 +214,7 @@ public class ModeOptions {
 
       // $FF: synthetic method
       private static ActionEnum[] $values() {
-         return new ActionEnum[]{UNDO, REDO, OPEN_MODIFIER_SETTINGS, PREVIOUS_BUILD_MODE, DISABLE_BUILD_MODE_TOGGLE, CYCLE_REPLACE_MODE, REPLACE_ONLY_AIR, REPLACE_BLOCKS_AND_AIR, REPLACE_ONLY_BLOCKS, REPLACE_FILTERED_BY_OFFHAND, NORMAL_SPEED, FAST_SPEED, FULL, HOLLOW, CUBE_FULL, CUBE_HOLLOW, CUBE_SKELETON, SHORT_EDGE, LONG_EDGE, THICKNESS_1, THICKNESS_3, THICKNESS_5, CIRCLE_START_CORNER, CIRCLE_START_CENTER};
+         return new ActionEnum[]{UNDO, REDO, OPEN_MODIFIER_SETTINGS, PREVIOUS_BUILD_MODE, DISABLE_BUILD_MODE_TOGGLE, CYCLE_REPLACE_MODE, REPLACE_ONLY_AIR, REPLACE_BLOCKS_AND_AIR, REPLACE_ONLY_BLOCKS, REPLACE_FILTERED_BY_OFFHAND, NORMAL_SPEED, FAST_SPEED, FULL, HOLLOW, CUBE_FULL, CUBE_HOLLOW, CUBE_SKELETON, SHORT_EDGE, LONG_EDGE, THICKNESS_1, THICKNESS_3, THICKNESS_5, CIRCLE_START_CORNER, CIRCLE_START_CENTER, TOGGLE_ANGEL_PLACEMENT};
       }
    }
 

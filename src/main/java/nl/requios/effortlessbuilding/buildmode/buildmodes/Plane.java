@@ -14,15 +14,12 @@ import net.minecraft.world.phys.Vec3;
 public class Plane extends TwoClicksBuildMode {
    private Direction.Axis firstFaceAxis = Direction.Axis.Y;
    private Direction.Axis lastWallAxis = Direction.Axis.Z;
-   private PlaneType planeType = PlaneType.AUTO;
+
 
    @Override
    public void initialize() {
       super.initialize();
-      this.firstFaceAxis = switch (this.planeType) {
-         case AUTO, FLOOR -> Direction.Axis.Y;
-         case WALL -> this.lastWallAxis;
-      };
+      this.firstFaceAxis = Direction.Axis.Y;
    }
 
    @Override
@@ -31,12 +28,7 @@ public class Plane extends TwoClicksBuildMode {
       if (targetedAxis != Direction.Axis.Y) {
          this.lastWallAxis = targetedAxis;
       }
-
-      this.firstFaceAxis = switch (this.planeType) {
-         case AUTO -> targetedAxis;
-         case FLOOR -> Direction.Axis.Y;
-         case WALL -> targetedAxis == Direction.Axis.Y ? this.lastWallAxis : targetedAxis;
-      };
+      this.firstFaceAxis = targetedAxis;
    }
 
    /** Returns the axis of the face targeted when this plane was started. */
@@ -47,10 +39,8 @@ public class Plane extends TwoClicksBuildMode {
    /** Toggles the manually selected plane type between floor and wall. */
    public void togglePlaneType() {
       if (this.planeFace() == Direction.Axis.Y) {
-         this.planeType = PlaneType.WALL;
          this.firstFaceAxis = this.lastWallAxis;
       } else {
-         this.planeType = PlaneType.FLOOR;
          this.firstFaceAxis = Direction.Axis.Y;
       }
    }
@@ -95,13 +85,7 @@ public class Plane extends TwoClicksBuildMode {
       if (y1 == y2) {
          return Direction.Axis.Y;
       }
-
       return x1 == x2 ? Direction.Axis.X : Direction.Axis.Z;
    }
 
-   private enum PlaneType {
-      AUTO,
-      FLOOR,
-      WALL
-   }
 }

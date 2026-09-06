@@ -5,6 +5,7 @@
   "key.creative_mode_tweaks.undo.desc": "Deshacer",
   "key.creative_mode_tweaks.redo.desc": "Rehacer",
   "key.creative_mode_tweaks.toggle_plane_type": "Cambiar tipo de plano",
+  "key.creative_mode_tweaks.toggle_angel_placement": "Alternar colocación aérea",
 
   "creative_mode_tweaks.screen.radial_menu": "Modos de construcción",
   "creative_mode_tweaks.screen.modifier_settings": "Configuración de modificadores",
@@ -47,6 +48,7 @@
   "creative_mode_tweaks.modedescription.dome": "",
 
   "creative_mode_tweaks.message.plane_mode": "Plano: %s",
+  "creative_mode_tweaks.message.angel_placement": "Colocación aérea: %s",
 
   "creative_mode_tweaks.action.undo": "Deshacer",
   "creative_mode_tweaks.action.redo": "Rehacer",
@@ -59,6 +61,8 @@
   "creative_mode_tweaks.action.replace_mode": "Modo de reemplazo",
   "creative_mode_tweaks.action.cycle_replace_mode": "Cambiar modo de reemplazo",
   "creative_mode_tweaks.action.cycle_replace_mode.description": "Ciclar por los modos de reemplazo.",
+  "creative_mode_tweaks.action.toggle_angel_placement": "Colocación aérea",
+  "creative_mode_tweaks.action.toggle_angel_placement.description": "Apunta al bloque de aire disponible más lejano a la distancia configurada.",
   "creative_mode_tweaks.action.replace_only_air": "Reemplazar solo aire",
   "creative_mode_tweaks.action.replace_only_air.description": "Solo puedes colocar bloques donde había aire. Los bloques reemplazables como la hierba aún se pueden reemplazar.",
   "creative_mode_tweaks.action.replace_blocks_and_air": "Reemplazar bloques y aire",
@@ -95,6 +99,7 @@
   "creative_mode_tweaks.message.only_break_placed": "Solo puedes romper bloques que colocaste en esta sesión",
   "creative_mode_tweaks.message.only_replace_placed": "Solo puedes reemplazar bloques que colocaste en esta sesión",
   "creative_mode_tweaks.message.breaking_disabled": "Romper bloques con modos de construcción está desactivado en supervivencia",
+  "creative_mode_tweaks.message.angel_placement_disabled": "La colocación aérea está desactivada en supervivencia.",
   "creative_mode_tweaks.message.too_hard": "Algunos bloques superaron la dureza máxima",
   "creative_mode_tweaks.message.protected_tile_entity": "Algunos bloques estaban protegidos (entidades de bloque)",
   "creative_mode_tweaks.message.world_border": "Algunos bloques están fuera del borde del mundo o de la altura de construcción",
@@ -106,6 +111,10 @@
   "creative_mode_tweaks.config.section_creative": "Creativo",
   "creative_mode_tweaks.config.reach": "Alcance",
   "creative_mode_tweaks.config.reach.tooltip": "Qué tan lejos puedes colocar y romper bloques con los modos de construcción.",
+  "creative_mode_tweaks.config.angel_placement_distance": "Distancia de colocación aérea",
+  "creative_mode_tweaks.config.angel_placement_distance.tooltip": "Distancia desde el jugador a la que la colocación aérea apunta a un bloque de aire.",
+  "creative_mode_tweaks.config.allow_angel_placement": "Permitir colocación aérea",
+  "creative_mode_tweaks.config.allow_angel_placement.tooltip": "Si está activado, los jugadores en supervivencia pueden usar la colocación aérea.",
   "creative_mode_tweaks.config.max_blocks_placed": "Máx. bloques colocados a la vez",
   "creative_mode_tweaks.config.max_blocks_placed.tooltip": "Número máximo de bloques colocados en una sola acción.",
   "creative_mode_tweaks.config.max_blocks_per_axis": "Máx. bloques por eje",

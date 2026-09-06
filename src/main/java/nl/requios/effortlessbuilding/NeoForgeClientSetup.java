@@ -3,6 +3,7 @@ package nl.requios.effortlessbuilding;
 import com.mojang.blaze3d.platform.InputConstants;
 import nl.requios.effortlessbuilding.buildmode.BuildModeEnum;
 import nl.requios.effortlessbuilding.buildmode.BuildModes;
+import nl.requios.effortlessbuilding.buildmode.BuildSettings;
 import nl.requios.effortlessbuilding.buildmode.buildmodes.Plane;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipeline;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipelineClient;
@@ -19,6 +20,7 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
+import org.lightning323.creative_mode_tweaks.Config;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -44,6 +46,7 @@ public class NeoForgeClientSetup {
          event.register(KeyBindings.undo);
          event.register(KeyBindings.redo);
          event.register(KeyBindings.togglePlaneType);
+         event.register(KeyBindings.toggleAngelPlacement);
 
          for(KeyMapping key : KeyBindings.getBuildModeKeys()) {
             event.register(key);
@@ -97,6 +100,17 @@ public class NeoForgeClientSetup {
                   plane.togglePlaneType();
                   if (mc.player != null) {
                      mc.player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.plane_mode", Component.translatable(plane.getPlaneTypeNameKey())), true);
+                  }
+               }
+            }
+
+            while(KeyBindings.toggleAngelPlacement.consumeClick()) {
+               if (mc.player != null) {
+                  if (Config.isAngelPlacementAllowed(mc.player)) {
+                     boolean enabled = BuildSettings.CLIENT.toggleAngelPlacement();
+                     mc.player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.angel_placement", Component.translatable(enabled ? "options.on" : "options.off")), true);
+                  } else {
+                     mc.player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.angel_placement_disabled"), true);
                   }
                }
             }

@@ -11,6 +11,7 @@
   "client": [
     "KeyMappingAccessor",
     "MixinGameRenderer",
+    "MixinLevelRenderer",
     "MixinMinecraft"
   ],
   "server": [],

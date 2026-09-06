@@ -30,6 +30,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FormattedText;
 import net.minecraft.network.chat.Style;
 import net.minecraft.sounds.SoundEvents;
+import org.lightning323.creative_mode_tweaks.Config;
 import org.joml.Vector4f;
 
 public class RadialMenu extends Screen {
@@ -127,6 +128,13 @@ public class RadialMenu extends Screen {
         replaceBtn.subtitle = I18n.get(currentReplaceAction.getNameKey(), new Object[0]);
         replaceBtn.description = I18n.exists(currentReplaceAction.getDescriptionKey()) ? I18n.get(currentReplaceAction.getDescriptionKey(), new Object[0]) : "";
         buttons.add(replaceBtn);
+
+        MenuButton angelPlacementBtn = new MenuButton(ModeOptions.ActionEnum.TOGGLE_ANGEL_PLACEMENT, (double) -131.0F, (double) 13.0F, Direction.DOWN);
+        boolean angelPlacementEnabled = BuildSettings.CLIENT.isAngelPlacementEnabled();
+        angelPlacementBtn.iconOverride = angelPlacementEnabled ? AllIcons.I_ALTERNATE_ON : AllIcons.I_ALTERNATE_OFF;
+        angelPlacementBtn.subtitle = I18n.get(angelPlacementEnabled ? "options.on" : "options.off", new Object[0]);
+        angelPlacementBtn.enabled = this.minecraft.player == null || Config.isAngelPlacementAllowed(this.minecraft.player);
+        buttons.add(angelPlacementBtn);
         ModeOptions.OptionEnum[] options = currentBuildMode.options;
 
         for (int i = 0; i < options.length; ++i) {
@@ -221,7 +229,7 @@ public class RadialMenu extends Screen {
             double by1 = btn.y1 * scale;
             double by2 = btn.y2 * scale;
             boolean isHighlighted = bx1 <= mouseXCenter && bx2 >= mouseXCenter && by1 <= mouseYCenter && by2 >= mouseYCenter;
-            boolean isSelected = btn.enabled && (btn.action == ModeOptions.getBuildSpeed() || btn.action == ModeOptions.getFill() || btn.action == ModeOptions.getCubeFill() || btn.action == ModeOptions.getRaisedEdge() || btn.action == ModeOptions.getLineThickness() || btn.action == ModeOptions.getCircleStart() || btn.action == ModeOptions.ActionEnum.CYCLE_REPLACE_MODE && BuildSettings.CLIENT.getReplaceMode() != BuildSettings.ReplaceMode.ONLY_AIR);
+            boolean isSelected = btn.enabled && (btn.action == ModeOptions.getBuildSpeed() || btn.action == ModeOptions.getFill() || btn.action == ModeOptions.getCubeFill() || btn.action == ModeOptions.getRaisedEdge() || btn.action == ModeOptions.getLineThickness() || btn.action == ModeOptions.getCircleStart() || btn.action == ModeOptions.ActionEnum.CYCLE_REPLACE_MODE && BuildSettings.CLIENT.getReplaceMode() != BuildSettings.ReplaceMode.ONLY_AIR || btn.action == ModeOptions.ActionEnum.TOGGLE_ANGEL_PLACEMENT && BuildSettings.CLIENT.isAngelPlacementEnabled());
             Vector4f color;
             if (!btn.enabled) {
                 color = isHighlighted ? this.disabledHighlightColor : this.disabledSideButtonColor;
@@ -242,7 +250,9 @@ public class RadialMenu extends Screen {
 
             if (isHighlighted) {
                 btn.highlighted = true;
-                this.doAction = btn.action;
+                if (btn.enabled) {
+                    this.doAction = btn.action;
+                }
             }
 
             buffer.addVertex((float) (middleX + bx1), (float) (middleY + by1), (float) this.getBlitOffset()).setColor(color.x(), color.y(), color.z(), color.w());

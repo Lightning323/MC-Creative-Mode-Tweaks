@@ -32,8 +32,18 @@ public class MixinGameRenderer {
    )
    private void onPick(float partialTicks, CallbackInfo ci) {
       if (this.minecraft.player != null && this.minecraft.level != null) {
-         if (BuildModes.CLIENT.getBuildMode() != BuildModeEnum.DISABLED) {
+         if (BuildModes.CLIENT.getBuildMode() != BuildModeEnum.DISABLED || BuildPipelineClient.isAngelPlacementActive(this.minecraft.player)) {
             if (this.minecraft.player.getMainHandItem().isEmpty() || BuildPipeline.isBuildTriggerItem(this.minecraft.player.getMainHandItem()) || BuildPipelineClient.getBuildState() != null) {
+               if (BuildPipelineClient.isAngelPlacementActive(this.minecraft.player)) {
+                  BlockHitResult hit = BuildPipelineClient.getCurrentTargetHit(this.minecraft);
+                  if (hit != null) {
+                     this.minecraft.hitResult = hit;
+                     this.minecraft.crosshairPickEntity = null;
+                  }
+
+                  return;
+               }
+
                if (this.minecraft.hitResult == null || this.minecraft.hitResult.getType() != Type.BLOCK) {
                   Vec3 start = this.minecraft.player.getEyePosition(partialTicks);
                   Vec3 end = start.add(this.minecraft.player.getViewVector(partialTicks).scale((double)Config.getBuildingReach(this.minecraft.player)));

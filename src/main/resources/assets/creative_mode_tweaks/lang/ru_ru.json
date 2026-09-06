@@ -5,6 +5,7 @@
   "key.creative_mode_tweaks.undo.desc": "Отменить",
   "key.creative_mode_tweaks.redo.desc": "Повторить",
   "key.creative_mode_tweaks.toggle_plane_type": "Переключить тип плоскости",
+  "key.creative_mode_tweaks.toggle_angel_placement": "Переключить воздушное размещение",
 
   "creative_mode_tweaks.screen.radial_menu": "Режимы строительства",
   "creative_mode_tweaks.screen.modifier_settings": "Настройки модификаторов",
@@ -47,6 +48,7 @@
   "creative_mode_tweaks.modedescription.dome": "",
 
   "creative_mode_tweaks.message.plane_mode": "Плоскость: %s",
+  "creative_mode_tweaks.message.angel_placement": "Воздушное размещение: %s",
 
   "creative_mode_tweaks.action.undo": "Отменить",
   "creative_mode_tweaks.action.redo": "Повторить",
@@ -59,6 +61,8 @@
   "creative_mode_tweaks.action.replace_mode": "Режим замены",
   "creative_mode_tweaks.action.cycle_replace_mode": "Сменить режим замены",
   "creative_mode_tweaks.action.cycle_replace_mode.description": "Переключение между режимами замены.",
+  "creative_mode_tweaks.action.toggle_angel_placement": "Воздушное размещение",
+  "creative_mode_tweaks.action.toggle_angel_placement.description": "Выбирает самый дальний доступный блок воздуха на настроенном расстоянии.",
   "creative_mode_tweaks.action.replace_only_air": "Заменять только воздух",
   "creative_mode_tweaks.action.replace_only_air.description": "Блоки можно размещать только там, где был воздух. Заменяемые блоки, такие как трава, всё равно можно заменить.",
   "creative_mode_tweaks.action.replace_blocks_and_air": "Заменять блоки и воздух",
@@ -95,6 +99,7 @@
   "creative_mode_tweaks.message.only_break_placed": "Вы можете ломать только блоки, размещённые в этой сессии",
   "creative_mode_tweaks.message.only_replace_placed": "Вы можете заменять только блоки, размещённые в этой сессии",
   "creative_mode_tweaks.message.breaking_disabled": "Ломание блоков с помощью режимов строительства отключено в режиме выживания",
+  "creative_mode_tweaks.message.angel_placement_disabled": "Воздушное размещение отключено в режиме выживания.",
   "creative_mode_tweaks.message.too_hard": "Некоторые блоки превысили максимальную твёрдость",
   "creative_mode_tweaks.message.protected_tile_entity": "Некоторые блоки были защищены (блочные сущности)",
   "creative_mode_tweaks.message.world_border": "Некоторые блоки находятся за пределами границы мира или высоты строительства",
@@ -106,6 +111,10 @@
   "creative_mode_tweaks.config.section_creative": "Творческий режим",
   "creative_mode_tweaks.config.reach": "Дальность",
   "creative_mode_tweaks.config.reach.tooltip": "Как далеко вы можете размещать и ломать блоки с помощью режимов строительства.",
+  "creative_mode_tweaks.config.angel_placement_distance": "Дистанция воздушного размещения",
+  "creative_mode_tweaks.config.angel_placement_distance.tooltip": "Расстояние от игрока, на котором воздушное размещение выбирает блок воздуха.",
+  "creative_mode_tweaks.config.allow_angel_placement": "Разрешить воздушное размещение",
+  "creative_mode_tweaks.config.allow_angel_placement.tooltip": "Если включено, игроки в выживании могут использовать воздушное размещение.",
   "creative_mode_tweaks.config.max_blocks_placed": "Макс. блоков за раз",
   "creative_mode_tweaks.config.max_blocks_placed.tooltip": "Максимальное количество блоков, размещаемых за одно действие.",
   "creative_mode_tweaks.config.max_blocks_per_axis": "Макс. блоков по оси",

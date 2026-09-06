@@ -12,6 +12,7 @@
   "key.creative_mode_tweaks.undo.desc": "Undo",
   "key.creative_mode_tweaks.redo.desc": "Redo",
   "key.creative_mode_tweaks.toggle_plane_type": "Toggle Plane Type",
+  "key.creative_mode_tweaks.toggle_angel_placement": "Toggle Angel Placement",
 
   "creative_mode_tweaks.screen.radial_menu": "Build Modes",
   "creative_mode_tweaks.screen.modifier_settings": "Modifier Settings",
@@ -54,6 +55,7 @@
   "creative_mode_tweaks.modedescription.dome": "",
 
   "creative_mode_tweaks.message.plane_mode": "Plane: %s",
+  "creative_mode_tweaks.message.angel_placement": "Angel Placement: %s",
 
   "creative_mode_tweaks.action.undo": "Undo",
   "creative_mode_tweaks.action.redo": "Redo",
@@ -66,6 +68,8 @@
   "creative_mode_tweaks.action.replace_mode": "Replace Mode",
   "creative_mode_tweaks.action.cycle_replace_mode": "Cycle Replace Mode",
   "creative_mode_tweaks.action.cycle_replace_mode.description": "Cycle through replace modes.",
+  "creative_mode_tweaks.action.toggle_angel_placement": "Angel Placement",
+  "creative_mode_tweaks.action.toggle_angel_placement.description": "Target the furthest available air block at the configured distance.",
   "creative_mode_tweaks.action.replace_only_air": "Replace Only Air",
   "creative_mode_tweaks.action.replace_only_air.description": "You can only place blocks where there was air. Replaceables such as short grass and ferns can still be replaced.",
   "creative_mode_tweaks.action.replace_blocks_and_air": "Replace Blocks And Air",
@@ -102,6 +106,7 @@
   "creative_mode_tweaks.message.only_break_placed": "You can only break blocks that you placed this session",
   "creative_mode_tweaks.message.only_replace_placed": "You can only replace blocks that you placed this session",
   "creative_mode_tweaks.message.breaking_disabled": "Breaking blocks with build modes is disabled in survival",
+  "creative_mode_tweaks.message.angel_placement_disabled": "Angel Placement is disabled in survival.",
   "creative_mode_tweaks.message.too_hard": "Some blocks exceeded the maximum hardness",
   "creative_mode_tweaks.message.protected_tile_entity": "Some blocks were protected (tile entities)",
   "creative_mode_tweaks.message.world_border": "Some blocks are outside the world border or build height",
@@ -113,6 +118,10 @@
   "creative_mode_tweaks.config.section_creative": "Creative",
   "creative_mode_tweaks.config.reach": "Reach",
   "creative_mode_tweaks.config.reach.tooltip": "How far away you can place and break blocks with build modes.",
+  "creative_mode_tweaks.config.angel_placement_distance": "Angel Placement Distance",
+  "creative_mode_tweaks.config.angel_placement_distance.tooltip": "Distance from the player at which Angel Placement targets an air block.",
+  "creative_mode_tweaks.config.allow_angel_placement": "Allow Angel Placement",
+  "creative_mode_tweaks.config.allow_angel_placement.tooltip": "If on, survival players can use Angel Placement.",
   "creative_mode_tweaks.config.max_blocks_placed": "Max Blocks Placed At Once",
   "creative_mode_tweaks.config.max_blocks_placed.tooltip": "Maximum number of blocks placed in a single action.",
   "creative_mode_tweaks.config.max_blocks_per_axis": "Max Blocks Per Axis",

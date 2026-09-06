@@ -72,12 +72,17 @@ public class PacketHandler {
    }
 
    public static void handlePlaceBuildMode(PlaceBuildModePacket packet, ServerPlayer player) {
+      if (packet.angelPlacement() && !Config.isAngelPlacementAllowed(player)) {
+         player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.angel_placement_disabled"), true);
+         return;
+      }
+
       SableCompat.withSelection(player.serverLevel(), packet.firstPos(), () -> handlePlaceBuildModeInSelection(packet, player));
    }
 
    private static void handlePlaceBuildModeInSelection(PlaceBuildModePacket packet, ServerPlayer player) {
       ServerLevel level = player.serverLevel();
-      BlockSet blockSet = BuildPipeline.SERVER.runServerPipeline(packet.buildMode(), packet.firstPos(), packet.secondPos(), packet.thirdPos(), player, BuildPipeline.BuildState.PLACING, packet.fill(), packet.cubeFill(), packet.raisedEdge(), packet.circleStart(), packet.protectTileEntities());
+      BlockSet blockSet = BuildPipeline.SERVER.runServerPipeline(packet.buildMode(), packet.firstPos(), packet.secondPos(), packet.thirdPos(), player, BuildPipeline.BuildState.PLACING, packet.fill(), packet.cubeFill(), packet.raisedEdge(), packet.circleStart(), packet.protectTileEntities(), packet.angelPlacement());
       if (blockSet == null) {
          Constants.LOG.warn("[EffortlessBuilding] Received PlaceBuildModePacket but mode {} returned no blocks", packet.buildMode());
       } else {
@@ -302,7 +307,9 @@ public class PacketHandler {
 
    public static void handleBreakBuildMode(BreakBuildModePacket packet, ServerPlayer player) {
       boolean creative = player.isCreative();
-      if (!creative && !Config.BUILDING_SURVIVAL_ALLOW_BREAKING.get()) {
+      if (packet.angelPlacement() && !Config.isAngelPlacementAllowed(player)) {
+         player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.angel_placement_disabled"), true);
+      } else if (!creative && !Config.BUILDING_SURVIVAL_ALLOW_BREAKING.get()) {
          player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.breaking_disabled"), true);
       } else {
          SableCompat.withSelection(player.serverLevel(), packet.firstPos(), () -> handleBreakBuildModeInSelection(packet, player, creative));
@@ -311,7 +318,7 @@ public class PacketHandler {
 
    private static void handleBreakBuildModeInSelection(BreakBuildModePacket packet, ServerPlayer player, boolean creative) {
          ServerLevel level = player.serverLevel();
-         BlockSet blockSet = BuildPipeline.SERVER.runServerPipeline(packet.buildMode(), packet.firstPos(), packet.secondPos(), packet.thirdPos(), player, BuildPipeline.BuildState.BREAKING, packet.fill(), packet.cubeFill(), packet.raisedEdge(), packet.circleStart(), packet.protectTileEntities());
+         BlockSet blockSet = BuildPipeline.SERVER.runServerPipeline(packet.buildMode(), packet.firstPos(), packet.secondPos(), packet.thirdPos(), player, BuildPipeline.BuildState.BREAKING, packet.fill(), packet.cubeFill(), packet.raisedEdge(), packet.circleStart(), packet.protectTileEntities(), packet.angelPlacement());
          if (blockSet == null) {
             Constants.LOG.warn("[EffortlessBuilding] Received BreakBuildModePacket but mode {} returned no blocks", packet.buildMode());
          } else {

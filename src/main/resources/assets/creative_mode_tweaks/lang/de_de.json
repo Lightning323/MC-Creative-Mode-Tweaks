@@ -5,6 +5,7 @@
   "key.creative_mode_tweaks.undo.desc": "Rückgängig",
   "key.creative_mode_tweaks.redo.desc": "Wiederholen",
   "key.creative_mode_tweaks.toggle_plane_type": "Flächentyp wechseln",
+  "key.creative_mode_tweaks.toggle_angel_placement": "Engelplatzierung umschalten",
 
   "creative_mode_tweaks.screen.radial_menu": "Baumodi",
   "creative_mode_tweaks.screen.modifier_settings": "Modifikator-Einstellungen",
@@ -47,6 +48,7 @@
   "creative_mode_tweaks.modedescription.dome": "",
 
   "creative_mode_tweaks.message.plane_mode": "Ebene: %s",
+  "creative_mode_tweaks.message.angel_placement": "Engelplatzierung: %s",
 
   "creative_mode_tweaks.action.undo": "Rückgängig",
   "creative_mode_tweaks.action.redo": "Wiederholen",
@@ -59,6 +61,8 @@
   "creative_mode_tweaks.action.replace_mode": "Ersetzungsmodus",
   "creative_mode_tweaks.action.cycle_replace_mode": "Ersetzungsmodus wechseln",
   "creative_mode_tweaks.action.cycle_replace_mode.description": "Durch die Ersetzungsmodi wechseln.",
+  "creative_mode_tweaks.action.toggle_angel_placement": "Engelplatzierung",
+  "creative_mode_tweaks.action.toggle_angel_placement.description": "Zielt auf den am weitesten entfernten verfügbaren Luftblock in der konfigurierten Entfernung.",
   "creative_mode_tweaks.action.replace_only_air": "Nur Luft ersetzen",
   "creative_mode_tweaks.action.replace_only_air.description": "Blöcke können nur dort platziert werden, wo Luft war. Ersetzbare Blöcke wie Gras können weiterhin ersetzt werden.",
   "creative_mode_tweaks.action.replace_blocks_and_air": "Blöcke und Luft ersetzen",
@@ -95,6 +99,7 @@
   "creative_mode_tweaks.message.only_break_placed": "Du kannst nur Blöcke abbauen, die du in dieser Sitzung platziert hast",
   "creative_mode_tweaks.message.only_replace_placed": "Du kannst nur Blöcke ersetzen, die du in dieser Sitzung platziert hast",
   "creative_mode_tweaks.message.breaking_disabled": "Das Abbauen von Blöcken mit Baumodi ist im Überlebensmodus deaktiviert",
+  "creative_mode_tweaks.message.angel_placement_disabled": "Engelplatzierung ist im Überlebensmodus deaktiviert.",
   "creative_mode_tweaks.message.too_hard": "Einige Blöcke haben die maximale Härte überschritten",
   "creative_mode_tweaks.message.protected_tile_entity": "Einige Blöcke wurden geschützt (Blockentitäten)",
   "creative_mode_tweaks.message.world_border": "Einige Blöcke befinden sich außerhalb der Weltgrenze oder Bauhöhe",
@@ -106,6 +111,10 @@
   "creative_mode_tweaks.config.section_creative": "Kreativ",
   "creative_mode_tweaks.config.reach": "Reichweite",
   "creative_mode_tweaks.config.reach.tooltip": "Wie weit du mit Baumodi Blöcke platzieren und abbauen kannst.",
+  "creative_mode_tweaks.config.angel_placement_distance": "Entfernung der Engelplatzierung",
+  "creative_mode_tweaks.config.angel_placement_distance.tooltip": "Entfernung vom Spieler, in der die Engelplatzierung einen Luftblock anvisiert.",
+  "creative_mode_tweaks.config.allow_angel_placement": "Engelplatzierung erlauben",
+  "creative_mode_tweaks.config.allow_angel_placement.tooltip": "Wenn aktiviert, können Überlebensspieler die Engelplatzierung verwenden.",
   "creative_mode_tweaks.config.max_blocks_placed": "Max. Blöcke auf einmal",
   "creative_mode_tweaks.config.max_blocks_placed.tooltip": "Maximale Anzahl von Blöcken, die in einer Aktion platziert werden.",
   "creative_mode_tweaks.config.max_blocks_per_axis": "Max. Blöcke pro Achse",

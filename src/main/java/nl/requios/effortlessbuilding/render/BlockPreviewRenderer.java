@@ -284,11 +284,8 @@ public class BlockPreviewRenderer {
       Player player = mc.player;
       BlockHitResult hit = BuildPipelineClient.getFirstClickHit();
       if (hit == null) {
-         Vec3 start = player.getEyePosition();
-         Vec3 end = start.add(player.getLookAngle().scale((double)Config.getBuildingReach(player)));
-         ClipContext clipCtx = new ClipContext(start, end, Block.OUTLINE, net.minecraft.world.level.ClipContext.Fluid.NONE, player);
-         hit = mc.level.clip(clipCtx);
-         if (hit.getType() != Type.BLOCK) {
+         hit = BuildPipelineClient.getCurrentTargetHit(mc);
+         if (hit == null) {
             return blockItem.getBlock().defaultBlockState();
          }
       }
