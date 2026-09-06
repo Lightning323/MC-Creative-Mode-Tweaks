@@ -3,7 +3,7 @@ package nl.requios.effortlessbuilding.modifier;
 import java.util.ArrayList;
 import java.util.List;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipeline;
-import nl.requios.effortlessbuilding.config.ServerConfig;
+import org.lightning323.creative_mode_tweaks.Config;
 import nl.requios.effortlessbuilding.utilities.BlockEntry;
 import nl.requios.effortlessbuilding.utilities.BlockSet;
 import net.minecraft.core.BlockPos;
@@ -22,8 +22,8 @@ public class ArrayModifier extends AbstractModifier {
 
    public void processBlocks(BlockSet blocks, Player player, BuildPipeline.BuildState action) {
       if (this.count > 0) {
-         int maxCount = ServerConfig.INSTANCE.getMaxArrayCount(player);
-         int maxOffset = ServerConfig.INSTANCE.getMaxArrayOffset(player);
+         int maxCount = Config.getBuildingMaxArrayCount(player);
+         int maxOffset = Config.getBuildingMaxArrayOffset(player);
          int effectiveCount = Math.min(this.count, maxCount);
          int effOffsetX = Math.clamp((long)this.offsetX, -maxOffset, maxOffset);
          int effOffsetY = Math.clamp((long)this.offsetY, -maxOffset, maxOffset);

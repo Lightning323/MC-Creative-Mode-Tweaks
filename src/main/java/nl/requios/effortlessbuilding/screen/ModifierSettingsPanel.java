@@ -1,6 +1,6 @@
 package nl.requios.effortlessbuilding.screen;
 
-import nl.requios.effortlessbuilding.config.ServerConfig;
+import org.lightning323.creative_mode_tweaks.Config;
 import nl.requios.effortlessbuilding.modifier.ArrayModifier;
 import nl.requios.effortlessbuilding.modifier.IModifier;
 import nl.requios.effortlessbuilding.modifier.MirrorModifier;
@@ -21,9 +21,9 @@ public class ModifierSettingsPanel {
 
    public void buildWidgets(IModifier modifier, int sx, int sy) {
       LocalPlayer player = Minecraft.getInstance().player;
-      int maxMirrorSize = player != null ? ServerConfig.INSTANCE.getMaxMirrorSize(player) : 256;
-      int maxArrayCount = player != null ? ServerConfig.INSTANCE.getMaxArrayCount(player) : 64;
-      int maxArrayOffset = player != null ? ServerConfig.INSTANCE.getMaxArrayOffset(player) : 64;
+      int maxMirrorSize = player != null ? Config.getBuildingMaxMirrorSize(player) : 256;
+      int maxArrayCount = player != null ? Config.getBuildingMaxArrayCount(player) : 64;
+      int maxArrayOffset = player != null ? Config.getBuildingMaxArrayOffset(player) : 64;
       if (modifier instanceof MirrorModifier mirror) {
          this.buildMirrorWidgets(mirror, sx, sy, maxMirrorSize);
       } else if (modifier instanceof ArrayModifier array) {

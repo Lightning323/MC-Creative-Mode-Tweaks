@@ -1,7 +1,7 @@
 package nl.requios.effortlessbuilding.buildmode;
 
 import java.util.List;
-import nl.requios.effortlessbuilding.config.ServerConfig;
+import org.lightning323.creative_mode_tweaks.Config;
 import nl.requios.effortlessbuilding.utilities.BlockEntry;
 import nl.requios.effortlessbuilding.utilities.BlockSet;
 import net.minecraft.core.BlockPos;
@@ -31,7 +31,7 @@ public abstract class TwoClicksBuildMode extends BaseBuildMode {
          BlockPos firstPos = this.firstBlockEntry.blockPos;
          BlockPos secondPos = this.findSecondPos(player, this.firstBlockEntry.blockPos, true);
          if (secondPos != null) {
-            int axisLimit = ServerConfig.INSTANCE.getMaxBlocksPerAxis(player);
+            int axisLimit = Config.getBuildingMaxBlocksPerAxis(player);
             int x1 = firstPos.getX();
             int x2 = secondPos.getX();
             int y1 = firstPos.getY();
@@ -77,7 +77,7 @@ public abstract class TwoClicksBuildMode extends BaseBuildMode {
    }
 
    public List<BlockPos> getServerBlocks(Player player, BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos) {
-      int axisLimit = ServerConfig.INSTANCE.getMaxBlocksPerAxis(player);
+      int axisLimit = Config.getBuildingMaxBlocksPerAxis(player);
       int x1 = firstPos.getX();
       int x2 = secondPos.getX();
       int y1 = firstPos.getY();

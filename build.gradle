@@ -97,6 +97,9 @@ sourceSets.main.resources { srcDir 'src/generated/resources' }
 
 
 dependencies {
+    // Provides the in-game mod-list config screen for Creative Mode Tweaks.
+    runtimeOnly 'curse.maven:configured-457570:7276577'                 // Configured 2.6.3 for NeoForge 1.21.1
+
     // Development-only runtime mods for compatibility testing on NeoForge 1.21.1.
     // Zeta is required by Quark; Create and Sable are required by Create Aeronautics.
     runtimeOnly 'curse.maven:zeta-968868:7980010'                       // Zeta 1.1-40

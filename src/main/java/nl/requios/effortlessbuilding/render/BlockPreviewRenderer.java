@@ -13,12 +13,11 @@ import nl.requios.effortlessbuilding.buildmode.BuildModeEnum;
 import nl.requios.effortlessbuilding.buildmode.BuildModes;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipeline;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipelineClient;
-import nl.requios.effortlessbuilding.config.ClientConfig;
-import nl.requios.effortlessbuilding.config.ServerConfig;
 import nl.requios.effortlessbuilding.item.TrowelItem;
 import nl.requios.effortlessbuilding.mixin.BucketItemAccessor;
 import nl.requios.effortlessbuilding.utilities.BlockEntry;
 import nl.requios.effortlessbuilding.utilities.BlockSet;
+import org.lightning323.creative_mode_tweaks.Config;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
@@ -75,10 +74,10 @@ public class BlockPreviewRenderer {
                }
 
                positions = breakablePositions;
-               int maxPreviews = ClientConfig.INSTANCE.getMaxBlockPreviews();
+               int maxPreviews = Config.BUILDING_MAX_BLOCK_PREVIEWS.get();
                if (!isBreaking) {
-                  float blockScale = ClientConfig.INSTANCE.getPreviewBlockSize();
-                  int blockAlpha = (int)(ClientConfig.INSTANCE.getPreviewBlockTransparency() * 255.0F);
+                  float blockScale = Config.getBuildingPreviewBlockSize();
+                  int blockAlpha = (int)(Config.getBuildingPreviewBlockTransparency() * 255.0F);
                   ItemStack held = mc.player.getMainHandItem();
                   BlockState baseState = null;
                   Item var25 = held.getItem();
@@ -297,7 +296,7 @@ public class BlockPreviewRenderer {
       BlockHitResult hit = BuildPipelineClient.getFirstClickHit();
       if (hit == null) {
          Vec3 start = player.getEyePosition();
-         Vec3 end = start.add(player.getLookAngle().scale((double)ServerConfig.INSTANCE.getReach(player)));
+         Vec3 end = start.add(player.getLookAngle().scale((double)Config.getBuildingReach(player)));
          ClipContext clipCtx = new ClipContext(start, end, Block.OUTLINE, net.minecraft.world.level.ClipContext.Fluid.NONE, player);
          hit = mc.level.clip(clipCtx);
          if (hit.getType() != Type.BLOCK) {

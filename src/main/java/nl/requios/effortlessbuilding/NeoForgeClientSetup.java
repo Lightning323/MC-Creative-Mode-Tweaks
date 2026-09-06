@@ -3,7 +3,6 @@ package nl.requios.effortlessbuilding;
 import com.mojang.blaze3d.platform.InputConstants;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipeline;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipelineClient;
-import nl.requios.effortlessbuilding.config.ClientConfig;
 import nl.requios.effortlessbuilding.network.PacketHandler;
 import nl.requios.effortlessbuilding.network.RedoPacket;
 import nl.requios.effortlessbuilding.network.UndoPacket;
@@ -35,7 +34,6 @@ public class NeoForgeClientSetup {
    public static class ModEvents {
       @SubscribeEvent
       public static void onRegisterKeyMappings(RegisterKeyMappingsEvent event) {
-         ClientConfig.INSTANCE.load();
          event.register(KeyBindings.openRadialMenu);
          event.register(KeyBindings.openModifiersScreen);
          event.register(KeyBindings.undo);

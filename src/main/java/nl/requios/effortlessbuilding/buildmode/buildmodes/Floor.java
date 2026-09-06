@@ -6,7 +6,7 @@ import nl.requios.effortlessbuilding.buildmode.BuildModes;
 import nl.requios.effortlessbuilding.buildmode.ModeOptions;
 import nl.requios.effortlessbuilding.buildmode.TwoClicksBuildMode;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipeline;
-import nl.requios.effortlessbuilding.config.ServerConfig;
+import org.lightning323.creative_mode_tweaks.Config;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
@@ -18,7 +18,7 @@ public class Floor extends TwoClicksBuildMode {
       List<Criteria> criteriaList = new ArrayList(3);
       Vec3 yBound = BuildModes.findYBound((double)firstPos.getY(), start, look);
       criteriaList.add(new Criteria(yBound, start));
-      int reach = ServerConfig.INSTANCE.getReach(player);
+      int reach = Config.getBuildingReach(player);
       criteriaList.removeIf((criteria) -> !criteria.isValid(start, look, reach, player, skipRaytrace));
       if (criteriaList.isEmpty()) {
          return null;

@@ -6,8 +6,7 @@ import nl.requios.effortlessbuilding.buildmode.BuildModeEnum;
 import nl.requios.effortlessbuilding.buildmode.BuildModes;
 import nl.requios.effortlessbuilding.buildmode.BuildSettings;
 import nl.requios.effortlessbuilding.buildmode.ModeOptions;
-import nl.requios.effortlessbuilding.config.ClientConfig;
-import nl.requios.effortlessbuilding.config.ServerConfig;
+import org.lightning323.creative_mode_tweaks.Config;
 import nl.requios.effortlessbuilding.item.TrowelItem;
 import nl.requios.effortlessbuilding.mixin.BucketItemAccessor;
 import nl.requios.effortlessbuilding.modifier.ModifierSystem;
@@ -78,7 +77,7 @@ public class BuildPipelineClient {
          Player player = mc.player;
          if (player == null) {
             return false;
-         } else if (!player.getAbilities().instabuild && !ServerConfig.INSTANCE.survivalAllowBreaking) {
+         } else if (!player.getAbilities().instabuild && !Config.BUILDING_SURVIVAL_ALLOW_BREAKING.get()) {
             return false;
          } else if (buildState == null && !player.getAbilities().instabuild) {
             if (mc.level != null) {
@@ -118,7 +117,7 @@ public class BuildPipelineClient {
          BlockPos clickedPos;
          if (mode.instance.isFirstClick()) {
             Vec3 start = player.getEyePosition();
-            Vec3 end = start.add(player.getLookAngle().scale((double)ServerConfig.INSTANCE.getReach(player)));
+            Vec3 end = start.add(player.getLookAngle().scale((double)Config.getBuildingReach(player)));
             ClipContext ctx = new ClipContext(start, end, Block.OUTLINE, Fluid.NONE, player);
             BlockHitResult hit = mc.level.clip(ctx);
             if (hit.getType() != Type.BLOCK) {
@@ -184,7 +183,7 @@ public class BuildPipelineClient {
 
                   Direction hitFace = firstClickHit != null ? firstClickHit.getDirection() : Direction.UP;
                   Vec3 hitLocation = firstClickHit != null ? firstClickHit.getLocation() : Vec3.atCenterOf(blocks.firstPos);
-                  PacketHandler.sendToServer(new PlaceBuildModePacket(mode, blocks.firstPos, secondPos, thirdPos, hitFace, hitLocation, ModeOptions.getFill(), ModeOptions.getCubeFill(), ModeOptions.getRaisedEdge(), ModeOptions.getCircleStart(), BuildSettings.CLIENT.getReplaceMode(), ClientConfig.INSTANCE.shouldProtectTileEntities()));
+                  PacketHandler.sendToServer(new PlaceBuildModePacket(mode, blocks.firstPos, secondPos, thirdPos, hitFace, hitLocation, ModeOptions.getFill(), ModeOptions.getCubeFill(), ModeOptions.getRaisedEdge(), ModeOptions.getCircleStart(), BuildSettings.CLIENT.getReplaceMode(), Config.BUILDING_PROTECT_TILE_ENTITIES.get()));
                   PlacedBlockTracker.clientTrackAll(mc.level.dimension(), blocks.keySet());
                } else {
                   if (!blocks.rejectedEntries().isEmpty()) {
@@ -202,7 +201,7 @@ public class BuildPipelineClient {
                      }
                   }
 
-                  PacketHandler.sendToServer(new BreakBuildModePacket(mode, blocks.firstPos, secondPos, thirdPos, ModeOptions.getFill(), ModeOptions.getCubeFill(), ModeOptions.getRaisedEdge(), ModeOptions.getCircleStart(), ClientConfig.INSTANCE.shouldProtectTileEntities()));
+                  PacketHandler.sendToServer(new BreakBuildModePacket(mode, blocks.firstPos, secondPos, thirdPos, ModeOptions.getFill(), ModeOptions.getCubeFill(), ModeOptions.getRaisedEdge(), ModeOptions.getCircleStart(), Config.BUILDING_PROTECT_TILE_ENTITIES.get()));
                }
             } else {
                Constants.LOG.warn("[EffortlessBuilding] Build mode {} produced no block positions", mode);
@@ -231,11 +230,11 @@ public class BuildPipelineClient {
             }
 
             previewBlocks.sortByDistance();
-            previewBlocks.truncate(ServerConfig.INSTANCE.getMaxBlocksPlaced(player));
+            previewBlocks.truncate(Config.getBuildingMaxBlocksPlaced(player));
             result = previewBlocks;
          } else {
             Vec3 start = player.getEyePosition();
-            Vec3 end = start.add(player.getLookAngle().scale((double)ServerConfig.INSTANCE.getReach(player)));
+            Vec3 end = start.add(player.getLookAngle().scale((double)Config.getBuildingReach(player)));
             ClipContext ctx = new ClipContext(start, end, Block.OUTLINE, Fluid.NONE, player);
             BlockHitResult hit = mc.level.clip(ctx);
             if (hit.getType() != Type.BLOCK) {

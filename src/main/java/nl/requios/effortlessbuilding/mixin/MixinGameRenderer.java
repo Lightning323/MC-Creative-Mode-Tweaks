@@ -4,7 +4,6 @@ import nl.requios.effortlessbuilding.buildmode.BuildModeEnum;
 import nl.requios.effortlessbuilding.buildmode.BuildModes;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipeline;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipelineClient;
-import nl.requios.effortlessbuilding.config.ServerConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.world.level.ClipContext;
@@ -19,6 +18,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.lightning323.creative_mode_tweaks.Config;
 
 @Mixin({GameRenderer.class})
 public class MixinGameRenderer {
@@ -36,7 +36,7 @@ public class MixinGameRenderer {
             if (this.minecraft.player.getMainHandItem().isEmpty() || BuildPipeline.isBuildTriggerItem(this.minecraft.player.getMainHandItem()) || BuildPipelineClient.getBuildState() != null) {
                if (this.minecraft.hitResult == null || this.minecraft.hitResult.getType() != Type.BLOCK) {
                   Vec3 start = this.minecraft.player.getEyePosition(partialTicks);
-                  Vec3 end = start.add(this.minecraft.player.getViewVector(partialTicks).scale((double)ServerConfig.INSTANCE.getReach(this.minecraft.player)));
+                  Vec3 end = start.add(this.minecraft.player.getViewVector(partialTicks).scale((double)Config.getBuildingReach(this.minecraft.player)));
                   ClipContext ctx = new ClipContext(start, end, Block.OUTLINE, Fluid.NONE, this.minecraft.player);
                   BlockHitResult hit = this.minecraft.level.clip(ctx);
                   if (hit.getType() == Type.BLOCK) {

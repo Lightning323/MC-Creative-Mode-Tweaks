@@ -2,7 +2,7 @@ package nl.requios.effortlessbuilding.modifier;
 
 import java.util.ArrayList;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipeline;
-import nl.requios.effortlessbuilding.config.ServerConfig;
+import org.lightning323.creative_mode_tweaks.Config;
 import nl.requios.effortlessbuilding.utilities.BlockEntry;
 import nl.requios.effortlessbuilding.utilities.BlockSet;
 import net.minecraft.core.BlockPos;
@@ -23,7 +23,7 @@ public class MirrorModifier extends AbstractModifier {
    }
 
    public void processBlocks(BlockSet blocks, Player player, BuildPipeline.BuildState action) {
-      int effectiveSize = Math.min(this.size, ServerConfig.INSTANCE.getMaxMirrorSize(player));
+      int effectiveSize = Math.min(this.size, Config.getBuildingMaxMirrorSize(player));
       if (this.mirrorX) {
          this.applyAxisMirror(blocks, 0, effectiveSize);
       }

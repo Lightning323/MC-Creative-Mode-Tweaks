@@ -5,7 +5,7 @@ import java.util.List;
 import nl.requios.effortlessbuilding.buildmode.BuildModes;
 import nl.requios.effortlessbuilding.buildmode.TwoClicksBuildMode;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipeline;
-import nl.requios.effortlessbuilding.config.ServerConfig;
+import org.lightning323.creative_mode_tweaks.Config;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
@@ -21,7 +21,7 @@ public class Line extends TwoClicksBuildMode {
       criteriaList.add(new Criteria(yBound, firstPos, start));
       Vec3 zBound = BuildModes.findZBound((double)firstPos.getZ(), start, look);
       criteriaList.add(new Criteria(zBound, firstPos, start));
-      int reach = ServerConfig.INSTANCE.getReach(player);
+      int reach = Config.getBuildingReach(player);
       criteriaList.removeIf((criteriax) -> !criteriax.isValid(start, look, reach, player, skipRaytrace));
       if (criteriaList.isEmpty()) {
          return null;

@@ -3,7 +3,7 @@ package nl.requios.effortlessbuilding.modifier;
 import java.util.ArrayList;
 import java.util.List;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipeline;
-import nl.requios.effortlessbuilding.config.ServerConfig;
+import org.lightning323.creative_mode_tweaks.Config;
 import nl.requios.effortlessbuilding.utilities.BlockEntry;
 import nl.requios.effortlessbuilding.utilities.BlockSet;
 import net.minecraft.core.BlockPos;
@@ -25,7 +25,7 @@ public class RadialMirrorModifier extends AbstractModifier {
 
    public void processBlocks(BlockSet blocks, Player player, BuildPipeline.BuildState action) {
       if (this.slices > 1) {
-         int effectiveSize = Math.min(this.size, ServerConfig.INSTANCE.getMaxMirrorSize(player));
+         int effectiveSize = Math.min(this.size, Config.getBuildingMaxMirrorSize(player));
          List<BlockPos> snapshot = new ArrayList(blocks.keySet());
 
          for(int i = 1; i < this.slices; ++i) {

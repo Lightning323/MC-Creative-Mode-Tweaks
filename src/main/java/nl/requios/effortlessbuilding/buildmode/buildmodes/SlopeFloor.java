@@ -4,14 +4,14 @@ import java.util.ArrayList;
 import java.util.List;
 import nl.requios.effortlessbuilding.buildmode.ModeOptions;
 import nl.requios.effortlessbuilding.buildmode.ThreeClicksBuildMode;
-import nl.requios.effortlessbuilding.config.ServerConfig;
+import org.lightning323.creative_mode_tweaks.Config;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
 
 public class SlopeFloor extends ThreeClicksBuildMode {
    public static List<BlockPos> getSlopeFloorBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2, int x3, int y3, int z3) {
       List<BlockPos> list = new ArrayList();
-      int axisLimit = ServerConfig.INSTANCE.getMaxBlocksPerAxis(player);
+      int axisLimit = Config.getBuildingMaxBlocksPerAxis(player);
       boolean onXAxis = true;
       int xLength = Math.abs(x2 - x1);
       int zLength = Math.abs(z2 - z1);

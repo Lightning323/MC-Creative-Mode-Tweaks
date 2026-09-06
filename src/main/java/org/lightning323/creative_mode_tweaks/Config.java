@@ -4,10 +4,13 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.event.config.ModConfigEvent;
 import net.neoforged.neoforge.common.ModConfigSpec;
+import net.minecraft.world.entity.player.Player;
 
 @EventBusSubscriber(modid = CreativeModeTweaks.MODID, bus = EventBusSubscriber.Bus.MOD)
 public class Config {
     private static final ModConfigSpec.Builder COMMON_BUILDER = new ModConfigSpec.Builder();
+    private static final ModConfigSpec.Builder CLIENT_BUILDER = new ModConfigSpec.Builder();
+    private static final ModConfigSpec.Builder SERVER_BUILDER = new ModConfigSpec.Builder();
 
     // Common
     public static final ModConfigSpec.BooleanValue ENHANCE_CREATIVE_HOTBAR =
@@ -70,8 +73,117 @@ public class Config {
             COMMON_BUILDER.comment("If No-Clip should be enabled or disabled by default when logging in")
                     .define("noclip.client.NOCLIP_ON_LOGIN", true);
 
+    // Effortless Building - client
+    public static final ModConfigSpec.DoubleValue BUILDING_PREVIEW_BLOCK_SIZE =
+            CLIENT_BUILDER.comment("Size of block previews as a percentage of a full block.")
+                    .translation("creative_mode_tweaks.config.preview_block_size")
+                    .defineInRange("building.preview_block_size", 1.0D, 0.1D, 1.0D);
+
+    public static final ModConfigSpec.DoubleValue BUILDING_PREVIEW_BLOCK_TRANSPARENCY =
+            CLIENT_BUILDER.comment("Transparency of block previews. 0% = invisible, 100% = solid.")
+                    .translation("creative_mode_tweaks.config.preview_block_transparency")
+                    .defineInRange("building.preview_block_transparency", 0.8D, 0.0D, 1.0D);
+
+    public static final ModConfigSpec.BooleanValue BUILDING_PROTECT_TILE_ENTITIES =
+            CLIENT_BUILDER.comment("Prevent build modes from replacing or breaking blocks with block entities.")
+                    .translation("creative_mode_tweaks.config.protect_tile_entities")
+                    .define("building.protect_tile_entities", true);
+
+    public static final ModConfigSpec.IntValue BUILDING_MAX_BLOCK_PREVIEWS =
+            CLIENT_BUILDER.comment("Maximum number of block models rendered in the preview. Lower values improve performance with large shapes.")
+                    .translation("creative_mode_tweaks.config.max_block_previews")
+                    .defineInRange("building.max_block_previews", 1000, 50, 10000);
+
+    // Effortless Building - server
+    public static final ModConfigSpec.IntValue BUILDING_SURVIVAL_REACH =
+            SERVER_BUILDER.comment("How far survival players can place and break blocks with build modes.")
+                    .translation("creative_mode_tweaks.config.reach")
+                    .defineInRange("building.survival.reach", 6, 1, 1000);
+
+    public static final ModConfigSpec.IntValue BUILDING_SURVIVAL_MAX_BLOCKS_PLACED =
+            SERVER_BUILDER.comment("Maximum number of blocks survival players can place or break in a single action.")
+                    .translation("creative_mode_tweaks.config.max_blocks_placed")
+                    .defineInRange("building.survival.max_blocks_placed", 2000, 1, 100000);
+
+    public static final ModConfigSpec.IntValue BUILDING_SURVIVAL_MAX_BLOCKS_PER_AXIS =
+            SERVER_BUILDER.comment("Maximum size of a survival build-mode shape along any axis.")
+                    .translation("creative_mode_tweaks.config.max_blocks_per_axis")
+                    .defineInRange("building.survival.max_blocks_per_axis", 64, 1, 1000);
+
+    public static final ModConfigSpec.IntValue BUILDING_SURVIVAL_MAX_MIRROR_SIZE =
+            SERVER_BUILDER.comment("Maximum diameter for survival mirror and radial mirror modifiers.")
+                    .translation("creative_mode_tweaks.config.max_mirror_size")
+                    .defineInRange("building.survival.max_mirror_size", 256, 1, 1000);
+
+    public static final ModConfigSpec.IntValue BUILDING_SURVIVAL_MAX_ARRAY_COUNT =
+            SERVER_BUILDER.comment("Maximum number of copies a survival array modifier can produce.")
+                    .translation("creative_mode_tweaks.config.max_array_count")
+                    .defineInRange("building.survival.max_array_count", 64, 1, 1000);
+
+    public static final ModConfigSpec.IntValue BUILDING_SURVIVAL_MAX_ARRAY_OFFSET =
+            SERVER_BUILDER.comment("Maximum offset distance for each survival array modifier axis.")
+                    .translation("creative_mode_tweaks.config.max_array_offset")
+                    .defineInRange("building.survival.max_array_offset", 64, 1, 1000);
+
+    public static final ModConfigSpec.BooleanValue BUILDING_SURVIVAL_ALLOW_BREAKING =
+            SERVER_BUILDER.comment("Allow survival players to use build modes to break blocks.")
+                    .translation("creative_mode_tweaks.config.allow_breaking")
+                    .define("building.survival.allow_breaking", true);
+
+    public static final ModConfigSpec.BooleanValue BUILDING_SURVIVAL_ONLY_PLACED_BLOCKS =
+            SERVER_BUILDER.comment("Allow survival players to break only blocks they placed during the current session.")
+                    .translation("creative_mode_tweaks.config.only_placed_blocks")
+                    .define("building.survival.only_placed_blocks", true);
+
+    public static final ModConfigSpec.DoubleValue BUILDING_SURVIVAL_MAX_HARDNESS =
+            SERVER_BUILDER.comment("Maximum block hardness survival players can break. -1 disables the limit.")
+                    .translation("creative_mode_tweaks.config.max_hardness")
+                    .defineInRange("building.survival.max_hardness", -1.0D, -1.0D, Double.MAX_VALUE);
+
+    public static final ModConfigSpec.BooleanValue BUILDING_SURVIVAL_REQUIRE_TOOLS =
+            SERVER_BUILDER.comment("Require survival players to have the correct tools to break blocks with build modes.")
+                    .translation("creative_mode_tweaks.config.require_tools")
+                    .define("building.survival.require_tools", false);
+
+    public static final ModConfigSpec.BooleanValue BUILDING_SURVIVAL_USE_DURABILITY =
+            SERVER_BUILDER.comment("Consume tool durability when survival players break blocks with build modes.")
+                    .translation("creative_mode_tweaks.config.use_durability")
+                    .define("building.survival.use_durability", false);
+
+    public static final ModConfigSpec.IntValue BUILDING_CREATIVE_REACH =
+            SERVER_BUILDER.comment("How far creative players can place and break blocks with build modes.")
+                    .translation("creative_mode_tweaks.config.reach")
+                    .defineInRange("building.creative.reach", 200, 1, 1000);
+
+    public static final ModConfigSpec.IntValue BUILDING_CREATIVE_MAX_BLOCKS_PLACED =
+            SERVER_BUILDER.comment("Maximum number of blocks creative players can place or break in a single action.")
+                    .translation("creative_mode_tweaks.config.max_blocks_placed")
+                    .defineInRange("building.creative.max_blocks_placed", 50000, 1, 100000);
+
+    public static final ModConfigSpec.IntValue BUILDING_CREATIVE_MAX_BLOCKS_PER_AXIS =
+            SERVER_BUILDER.comment("Maximum size of a creative build-mode shape along any axis.")
+                    .translation("creative_mode_tweaks.config.max_blocks_per_axis")
+                    .defineInRange("building.creative.max_blocks_per_axis", 1000, 1, 1000);
+
+    public static final ModConfigSpec.IntValue BUILDING_CREATIVE_MAX_MIRROR_SIZE =
+            SERVER_BUILDER.comment("Maximum diameter for creative mirror and radial mirror modifiers.")
+                    .translation("creative_mode_tweaks.config.max_mirror_size")
+                    .defineInRange("building.creative.max_mirror_size", 256, 1, 1000);
+
+    public static final ModConfigSpec.IntValue BUILDING_CREATIVE_MAX_ARRAY_COUNT =
+            SERVER_BUILDER.comment("Maximum number of copies a creative array modifier can produce.")
+                    .translation("creative_mode_tweaks.config.max_array_count")
+                    .defineInRange("building.creative.max_array_count", 256, 1, 1000);
+
+    public static final ModConfigSpec.IntValue BUILDING_CREATIVE_MAX_ARRAY_OFFSET =
+            SERVER_BUILDER.comment("Maximum offset distance for each creative array modifier axis.")
+                    .translation("creative_mode_tweaks.config.max_array_offset")
+                    .defineInRange("building.creative.max_array_offset", 256, 1, 1000);
+
     // --- 2. Build the SPEC LAST ---
     static final ModConfigSpec SPEC = COMMON_BUILDER.build();
+    static final ModConfigSpec CLIENT_SPEC = CLIENT_BUILDER.build();
+    static final ModConfigSpec SERVER_SPEC = SERVER_BUILDER.build();
 
     // Variables for cached access
     public static boolean disableFlightInertia ;
@@ -85,6 +197,38 @@ public class Config {
     public static boolean allowInventoryRotationInSurvival;
     public static int hotbarMinScrollMargin;
     public static int hotbarMaxScrollMargin;
+
+    public static int getBuildingReach(Player player) {
+        return player.isCreative() ? BUILDING_CREATIVE_REACH.get() : BUILDING_SURVIVAL_REACH.get();
+    }
+
+    public static int getBuildingMaxBlocksPlaced(Player player) {
+        return player.isCreative() ? BUILDING_CREATIVE_MAX_BLOCKS_PLACED.get() : BUILDING_SURVIVAL_MAX_BLOCKS_PLACED.get();
+    }
+
+    public static int getBuildingMaxBlocksPerAxis(Player player) {
+        return player.isCreative() ? BUILDING_CREATIVE_MAX_BLOCKS_PER_AXIS.get() : BUILDING_SURVIVAL_MAX_BLOCKS_PER_AXIS.get();
+    }
+
+    public static int getBuildingMaxMirrorSize(Player player) {
+        return player.isCreative() ? BUILDING_CREATIVE_MAX_MIRROR_SIZE.get() : BUILDING_SURVIVAL_MAX_MIRROR_SIZE.get();
+    }
+
+    public static int getBuildingMaxArrayCount(Player player) {
+        return player.isCreative() ? BUILDING_CREATIVE_MAX_ARRAY_COUNT.get() : BUILDING_SURVIVAL_MAX_ARRAY_COUNT.get();
+    }
+
+    public static int getBuildingMaxArrayOffset(Player player) {
+        return player.isCreative() ? BUILDING_CREATIVE_MAX_ARRAY_OFFSET.get() : BUILDING_SURVIVAL_MAX_ARRAY_OFFSET.get();
+    }
+
+    public static float getBuildingPreviewBlockSize() {
+        return BUILDING_PREVIEW_BLOCK_SIZE.get().floatValue();
+    }
+
+    public static float getBuildingPreviewBlockTransparency() {
+        return BUILDING_PREVIEW_BLOCK_TRANSPARENCY.get().floatValue();
+    }
 
 
     @SubscribeEvent

@@ -1,11 +1,8 @@
 package nl.requios.effortlessbuilding;
 
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
-import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import net.neoforged.neoforge.event.server.ServerStoppedEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
-import nl.requios.effortlessbuilding.config.ServerConfig;
-import nl.requios.effortlessbuilding.config.ServerConfigStorage;
 import nl.requios.effortlessbuilding.item.TrowelItem;
 import nl.requios.effortlessbuilding.modifier.ModifierServerStorage;
 import nl.requios.effortlessbuilding.network.BreakBuildModePacket;
@@ -13,10 +10,8 @@ import nl.requios.effortlessbuilding.network.PacketHandler;
 import nl.requios.effortlessbuilding.network.PlaceBuildModePacket;
 import nl.requios.effortlessbuilding.network.RedoPacket;
 import nl.requios.effortlessbuilding.network.SyncModifiersS2CPacket;
-import nl.requios.effortlessbuilding.network.SyncServerConfigS2CPacket;
 import nl.requios.effortlessbuilding.network.UndoPacket;
 import nl.requios.effortlessbuilding.network.UpdateModifiersC2SPacket;
-import nl.requios.effortlessbuilding.network.UpdateServerConfigC2SPacket;
 import nl.requios.effortlessbuilding.utilities.PlacedBlockTracker;
 import nl.requios.effortlessbuilding.utilities.UndoManager;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -24,8 +19,6 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.neoforged.bus.api.IEventBus;
-import net.neoforged.fml.ModContainer;
-import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import net.neoforged.neoforge.network.PacketDistributor;
@@ -51,11 +44,8 @@ public final class EffortlessBuilding {
     private EffortlessBuilding() {
     }
 
-    public static void initialize(IEventBus eventBus, ModContainer modContainer) {
+    public static void initialize(IEventBus eventBus) {
         ITEMS.register(eventBus);
-        if (FMLEnvironment.dist.isClient()) {
-            NeoForgeConfigScreenRegistrar.register(modContainer);
-        }
 
         eventBus.addListener((RegisterPayloadHandlersEvent event) -> {
             PayloadRegistrar registrar = event.registrar(MODID);
@@ -65,17 +55,12 @@ public final class EffortlessBuilding {
             registrar.playToServer(RedoPacket.TYPE, RedoPacket.STREAM_CODEC, (payload, context) -> context.enqueueWork(() -> PacketHandler.handleRedo((ServerPlayer) context.player())));
             registrar.playToServer(UpdateModifiersC2SPacket.TYPE, UpdateModifiersC2SPacket.STREAM_CODEC, (payload, context) -> context.enqueueWork(() -> PacketHandler.handleUpdateModifiers(payload, (ServerPlayer) context.player())));
             registrar.playToClient(SyncModifiersS2CPacket.TYPE, SyncModifiersS2CPacket.STREAM_CODEC, (payload, context) -> context.enqueueWork(() -> PacketHandler.handleSyncModifiers(payload)));
-            registrar.playToServer(UpdateServerConfigC2SPacket.TYPE, UpdateServerConfigC2SPacket.STREAM_CODEC, (payload, context) -> context.enqueueWork(() -> PacketHandler.handleUpdateServerConfig(payload, (ServerPlayer) context.player())));
-            registrar.playToClient(SyncServerConfigS2CPacket.TYPE, SyncServerConfigS2CPacket.STREAM_CODEC, (payload, context) -> context.enqueueWork(() -> PacketHandler.handleSyncServerConfig(payload)));
-
         });
         NeoForge.EVENT_BUS.addListener((PlayerEvent.PlayerLoggedInEvent event) -> {
             Player patt0$temp = event.getEntity();
             if (patt0$temp instanceof ServerPlayer serverPlayer) {
                 ModifierServerStorage.loadPlayer(serverPlayer.server, serverPlayer.getUUID());
                 PacketHandler.sendToClient(serverPlayer, new SyncModifiersS2CPacket(ModifierServerStorage.serializePlayer(serverPlayer.getUUID())));
-                PacketHandler.sendToClient(serverPlayer, new SyncServerConfigS2CPacket(ServerConfig.INSTANCE.toJson()));
-
             }
 
         });
@@ -91,10 +76,6 @@ public final class EffortlessBuilding {
         });
         NeoForge.EVENT_BUS.addListener((ServerStoppedEvent event) -> {
             ModifierServerStorage.clearAll();
-            ServerConfigStorage.clear();
-        });
-        NeoForge.EVENT_BUS.addListener(( ServerStartingEvent event) -> {
-            ServerConfigStorage.load(event.getServer());
         });
     }
 

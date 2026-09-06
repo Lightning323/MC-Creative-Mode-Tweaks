@@ -9,8 +9,6 @@ import nl.requios.effortlessbuilding.EffortlessBuilding;
 import nl.requios.effortlessbuilding.buildmode.BuildSettings;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipeline;
 import nl.requios.effortlessbuilding.buildpipeline.TrowelSystem;
-import nl.requios.effortlessbuilding.config.ServerConfig;
-import nl.requios.effortlessbuilding.config.ServerConfigStorage;
 import nl.requios.effortlessbuilding.item.TrowelItem;
 import nl.requios.effortlessbuilding.mixin.BucketItemAccessor;
 import nl.requios.effortlessbuilding.modifier.IModifier;
@@ -46,6 +44,7 @@ import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
+import org.lightning323.creative_mode_tweaks.Config;
 
 public class PacketHandler {
    public static void sendToServer(PlaceBuildModePacket packet) {
@@ -71,15 +70,6 @@ public class PacketHandler {
    public static void sendToClient(ServerPlayer player, SyncModifiersS2CPacket packet) {
       EffortlessBuilding.sendToClient(player, packet);
    }
-
-   public static void sendToServer(UpdateServerConfigC2SPacket packet) {
-      EffortlessBuilding.sendToServer(packet);
-   }
-
-   public static void sendToClient(ServerPlayer player, SyncServerConfigS2CPacket packet) {
-      EffortlessBuilding.sendToClient(player, packet);
-   }
-
 
    public static void handlePlaceBuildMode(PlaceBuildModePacket packet, ServerPlayer player) {
       ServerLevel level = player.serverLevel();
@@ -109,13 +99,13 @@ public class PacketHandler {
                   if ((creative || used.getOrDefault(entry.item, 0) < available.getOrDefault(entry.item, 0)) && BuildSettings.canPlaceAt(level, pos, replaceMode, offHand)) {
                      BlockState oldState = level.getBlockState(pos);
                      if (!creative && !oldState.canBeReplaced()) {
-                        ItemStack toolForDrops = ServerConfig.INSTANCE.survivalRequireTools ? InventoryHelper.findCorrectTool(player, oldState) : player.getMainHandItem();
+                        ItemStack toolForDrops = Config.BUILDING_SURVIVAL_REQUIRE_TOOLS.get() ? InventoryHelper.findCorrectTool(player, oldState) : player.getMainHandItem();
 
                         for(ItemStack drop : Block.getDrops(oldState, level, pos, level.getBlockEntity(pos), player, toolForDrops)) {
                            InventoryHelper.giveOrDropItems(player, drop.getItem(), drop.getCount());
                         }
 
-                        if (ServerConfig.INSTANCE.survivalUseDurability) {
+                        if (Config.BUILDING_SURVIVAL_USE_DURABILITY.get()) {
                            InventoryHelper.damageCorrectTool(player, oldState);
                         }
                      }
@@ -173,13 +163,13 @@ public class PacketHandler {
                   if (BuildSettings.canPlaceAt(level, pos, replaceMode, offHand)) {
                      BlockState oldState = level.getBlockState(pos);
                      if (!creative && !oldState.canBeReplaced()) {
-                        ItemStack toolForDrops = ServerConfig.INSTANCE.survivalRequireTools ? InventoryHelper.findCorrectTool(player, oldState) : player.getMainHandItem();
+                        ItemStack toolForDrops = Config.BUILDING_SURVIVAL_REQUIRE_TOOLS.get() ? InventoryHelper.findCorrectTool(player, oldState) : player.getMainHandItem();
 
                         for(ItemStack drop : Block.getDrops(oldState, level, pos, level.getBlockEntity(pos), player, toolForDrops)) {
                            InventoryHelper.giveOrDropItems(player, drop.getItem(), drop.getCount());
                         }
 
-                        if (ServerConfig.INSTANCE.survivalUseDurability) {
+                        if (Config.BUILDING_SURVIVAL_USE_DURABILITY.get()) {
                            InventoryHelper.damageCorrectTool(player, oldState);
                         }
                      }
@@ -230,13 +220,13 @@ public class PacketHandler {
                         if (BuildSettings.canPlaceAt(level, pos, replaceMode, offHand)) {
                            BlockState oldState = level.getBlockState(pos);
                            if (!creative && !oldState.canBeReplaced()) {
-                              ItemStack toolForDrops = ServerConfig.INSTANCE.survivalRequireTools ? InventoryHelper.findCorrectTool(player, oldState) : player.getMainHandItem();
+                              ItemStack toolForDrops = Config.BUILDING_SURVIVAL_REQUIRE_TOOLS.get() ? InventoryHelper.findCorrectTool(player, oldState) : player.getMainHandItem();
 
                               for(ItemStack drop : Block.getDrops(oldState, level, pos, level.getBlockEntity(pos), player, toolForDrops)) {
                                  InventoryHelper.giveOrDropItems(player, drop.getItem(), drop.getCount());
                               }
 
-                              if (ServerConfig.INSTANCE.survivalUseDurability) {
+                              if (Config.BUILDING_SURVIVAL_USE_DURABILITY.get()) {
                                  InventoryHelper.damageCorrectTool(player, oldState);
                               }
                            }
@@ -308,7 +298,7 @@ public class PacketHandler {
 
    public static void handleBreakBuildMode(BreakBuildModePacket packet, ServerPlayer player) {
       boolean creative = player.isCreative();
-      if (!creative && !ServerConfig.INSTANCE.survivalAllowBreaking) {
+      if (!creative && !Config.BUILDING_SURVIVAL_ALLOW_BREAKING.get()) {
          player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.breaking_disabled"), true);
       } else {
          ServerLevel level = player.serverLevel();
@@ -327,13 +317,13 @@ public class PacketHandler {
                   if (creative) {
                      level.destroyBlock(pos, false, player);
                   } else {
-                     ItemStack toolForDrops = ServerConfig.INSTANCE.survivalRequireTools ? InventoryHelper.findCorrectTool(player, oldState) : player.getMainHandItem();
+                     ItemStack toolForDrops = Config.BUILDING_SURVIVAL_REQUIRE_TOOLS.get() ? InventoryHelper.findCorrectTool(player, oldState) : player.getMainHandItem();
 
                      for(ItemStack drop : Block.getDrops(oldState, level, pos, level.getBlockEntity(pos), player, toolForDrops)) {
                         InventoryHelper.giveOrDropItems(player, drop.getItem(), drop.getCount());
                      }
 
-                     if (ServerConfig.INSTANCE.survivalUseDurability) {
+                     if (Config.BUILDING_SURVIVAL_USE_DURABILITY.get()) {
                         InventoryHelper.damageCorrectTool(player, oldState);
                      }
 
@@ -388,27 +378,6 @@ public class PacketHandler {
          ModifierSystem.CLIENT.addModifier(m);
       }
 
-   }
-
-   public static void handleUpdateServerConfig(UpdateServerConfigC2SPacket packet, ServerPlayer player) {
-      if (!player.hasPermissions(2)) {
-         player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.not_operator"), false);
-      } else {
-         ServerConfig incoming = ServerConfig.fromJson(packet.json());
-         ServerConfig.INSTANCE.copyFrom(incoming);
-         ServerConfigStorage.save(player.server);
-         String json = ServerConfig.INSTANCE.toJson();
-
-         for(ServerPlayer p : player.server.getPlayerList().getPlayers()) {
-            sendToClient(p, new SyncServerConfigS2CPacket(json));
-         }
-
-      }
-   }
-
-   public static void handleSyncServerConfig(SyncServerConfigS2CPacket packet) {
-      ServerConfig incoming = ServerConfig.fromJson(packet.json());
-      ServerConfig.INSTANCE.copyFrom(incoming);
    }
 
    private static final class OpenBlockPlaceContext extends BlockPlaceContext {

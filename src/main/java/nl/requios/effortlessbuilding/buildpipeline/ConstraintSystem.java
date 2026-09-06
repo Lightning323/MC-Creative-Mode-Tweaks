@@ -1,8 +1,7 @@
 package nl.requios.effortlessbuilding.buildpipeline;
 
 import java.util.Map;
-import nl.requios.effortlessbuilding.config.ClientConfig;
-import nl.requios.effortlessbuilding.config.ServerConfig;
+import org.lightning323.creative_mode_tweaks.Config;
 import nl.requios.effortlessbuilding.utilities.BlockEntry;
 import nl.requios.effortlessbuilding.utilities.BlockSet;
 import nl.requios.effortlessbuilding.utilities.BlockStatus;
@@ -41,7 +40,7 @@ public class ConstraintSystem implements IBuildSystem {
          }
       }
 
-      int maxBlocks = ServerConfig.INSTANCE.getMaxBlocksPlaced(player);
+      int maxBlocks = Config.getBuildingMaxBlocksPlaced(player);
       int validCount = 0;
 
       for(BlockEntry entry : blocks.values()) {
@@ -64,7 +63,7 @@ public class ConstraintSystem implements IBuildSystem {
       }
 
       if (!player.getAbilities().instabuild) {
-         if (isBreaking && !ServerConfig.INSTANCE.survivalAllowBreaking) {
+         if (isBreaking && !Config.BUILDING_SURVIVAL_ALLOW_BREAKING.get()) {
             for(BlockEntry entry : blocks.values()) {
                entry.markRejected(BlockStatus.BREAKING_DISABLED);
             }
@@ -83,18 +82,18 @@ public class ConstraintSystem implements IBuildSystem {
                      continue;
                   }
 
-                  if (ServerConfig.INSTANCE.survivalOnlyPlacedBlocks && !PlacedBlockTracker.isTrackedAnySide(player, level, pos)) {
+                  if (Config.BUILDING_SURVIVAL_ONLY_PLACED_BLOCKS.get() && !PlacedBlockTracker.isTrackedAnySide(player, level, pos)) {
                      entry.markRejected(BlockStatus.NOT_PLACED_BY_PLAYER);
                   } else {
-                     if (ServerConfig.INSTANCE.survivalMaxHardness >= 0.0F) {
+                     if (Config.BUILDING_SURVIVAL_MAX_HARDNESS.get() >= 0.0D) {
                         float hardness = state.getDestroySpeed(level, pos);
-                        if (hardness > ServerConfig.INSTANCE.survivalMaxHardness) {
+                        if (hardness > Config.BUILDING_SURVIVAL_MAX_HARDNESS.get()) {
                            entry.markRejected(BlockStatus.TOO_HARD);
                            continue;
                         }
                      }
 
-                     if (ServerConfig.INSTANCE.survivalRequireTools && state.requiresCorrectToolForDrops() && !InventoryHelper.hasCorrectToolForBlock(player, state)) {
+                     if (Config.BUILDING_SURVIVAL_REQUIRE_TOOLS.get() && state.requiresCorrectToolForDrops() && !InventoryHelper.hasCorrectToolForBlock(player, state)) {
                         entry.markRejected(BlockStatus.MISSING_TOOL);
                      }
                   }
@@ -111,7 +110,7 @@ public class ConstraintSystem implements IBuildSystem {
          return ctx.protectTileEntities();
       } else {
          try {
-            return ClientConfig.INSTANCE.shouldProtectTileEntities();
+            return Config.BUILDING_PROTECT_TILE_ENTITIES.get();
          } catch (Exception var3) {
             return false;
          }

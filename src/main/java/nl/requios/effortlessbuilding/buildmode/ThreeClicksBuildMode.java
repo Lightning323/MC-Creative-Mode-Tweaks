@@ -3,7 +3,7 @@ package nl.requios.effortlessbuilding.buildmode;
 import java.util.ArrayList;
 import java.util.List;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipeline;
-import nl.requios.effortlessbuilding.config.ServerConfig;
+import org.lightning323.creative_mode_tweaks.Config;
 import nl.requios.effortlessbuilding.utilities.BlockEntry;
 import nl.requios.effortlessbuilding.utilities.BlockSet;
 import net.minecraft.core.BlockPos;
@@ -44,7 +44,7 @@ public abstract class ThreeClicksBuildMode extends BaseBuildMode {
 
    public void findCoordinates(BlockSet blocks, Player player) {
       if (this.clicks != 0) {
-         int axisLimit = ServerConfig.INSTANCE.getMaxBlocksPerAxis(player);
+         int axisLimit = Config.getBuildingMaxBlocksPerAxis(player);
          if (this.clicks == 1) {
             BlockPos firstPos = this.firstBlockEntry.blockPos;
             BlockPos secondPos = this.findSecondPos(player, this.firstBlockEntry.blockPos, true);
@@ -180,7 +180,7 @@ public abstract class ThreeClicksBuildMode extends BaseBuildMode {
       if (thirdPos == null) {
          return List.of();
       } else {
-         int axisLimit = ServerConfig.INSTANCE.getMaxBlocksPerAxis(player);
+         int axisLimit = Config.getBuildingMaxBlocksPerAxis(player);
          int x1 = firstPos.getX();
          int x2 = secondPos.getX();
          int x3 = thirdPos.getX();
@@ -250,7 +250,7 @@ public abstract class ThreeClicksBuildMode extends BaseBuildMode {
       criteriaList.add(new HeightCriteria(xBound, secondPos, start));
       Vec3 zBound = BuildModes.findZBound((double)secondPos.getZ(), start, look);
       criteriaList.add(new HeightCriteria(zBound, secondPos, start));
-      int reach = ServerConfig.INSTANCE.getReach(player);
+      int reach = Config.getBuildingReach(player);
       criteriaList.removeIf((criteriax) -> !criteriax.isValid(start, look, reach, player, skipRaytrace));
       if (criteriaList.isEmpty()) {
          return null;

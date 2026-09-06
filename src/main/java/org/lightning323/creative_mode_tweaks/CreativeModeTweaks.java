@@ -27,7 +27,9 @@ public class CreativeModeTweaks {
 
     public CreativeModeTweaks(IEventBus modEventBus, ModContainer modContainer) {
         modContainer.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
-        EffortlessBuilding.initialize(modEventBus, modContainer);
+        modContainer.registerConfig(ModConfig.Type.CLIENT, Config.CLIENT_SPEC);
+        modContainer.registerConfig(ModConfig.Type.SERVER, Config.SERVER_SPEC);
+        EffortlessBuilding.initialize(modEventBus);
         NeoForge.EVENT_BUS.addListener(PlayerEvent.PlayerLoggedInEvent.class, CreativeModeTweaks::onPlayerLogin);
         NeoForge.EVENT_BUS.addListener(PlayerEvent.PlayerChangeGameModeEvent.class, CreativeModeTweaks::onGameModeChange);
         modEventBus.addListener(CreativeModeTweaks::onRegisterTests);
