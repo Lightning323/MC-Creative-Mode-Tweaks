@@ -38,6 +38,7 @@ import static org.lightning323.creative_mode_tweaks.hotbar.HotbarUtil.getDistanc
 public class ClientModEvents {
 
     public static final String DEFAULT_CATEGORY = "key." + MODID + ".default";
+    public static final String BUILD_MODES_CATEGORY = "key." + MODID + ".build_modes";
     private static final Map<BuildModeEnum, KeyMapping> BUILD_MODE_KEYS = new EnumMap<>(BuildModeEnum.class);
 
     //Dumb keys
@@ -95,7 +96,7 @@ public class ClientModEvents {
     static {
         for (BuildModeEnum mode : BuildModeEnum.values()) {
             if (mode != BuildModeEnum.FLOOR && mode != BuildModeEnum.WALL) {
-                BUILD_MODE_KEYS.put(mode, new KeyMapping(mode.getNameKey(), InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(), DEFAULT_CATEGORY));
+                BUILD_MODE_KEYS.put(mode, new KeyMapping(mode.getNameKey(), InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(), BUILD_MODES_CATEGORY));
             }
         }
     }
