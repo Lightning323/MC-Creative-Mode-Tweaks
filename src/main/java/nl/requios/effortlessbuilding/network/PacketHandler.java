@@ -47,6 +47,7 @@ import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import org.lightning323.creative_mode_tweaks.Config;
+import org.jetbrains.annotations.Nullable;
 
 public class PacketHandler {
    public static void sendToServer(PlaceBuildModePacket packet) {
@@ -92,7 +93,8 @@ public class PacketHandler {
    }
 
    public static void handlePlaceBuildMode(PlaceBuildModePacket packet, ServerPlayer player) {
-      if (!validateAngelPlacement(packet.angelPlacement(), packet.firstPos(), player)) {
+      if (!validateSelection(packet.firstPos(), packet.secondPos(), packet.thirdPos(), packet.fourthPos(), player)
+            || !validateAngelPlacement(packet.angelPlacement(), packet.firstPos(), player)) {
          return;
       }
 
@@ -107,9 +109,7 @@ public class PacketHandler {
       } else {
          if (blockSet.hasEntriesWithStatus(BlockStatus.OUTSIDE_REACH)) {
             player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.sublevel_out_of_bounds"), true);
-            if (Config.shouldCancelOutOfSublevelSelections(player)) {
-               return;
-            }
+            return;
          }
 
          blockSet.sortByDistance();
@@ -333,7 +333,8 @@ public class PacketHandler {
 
    public static void handleBreakBuildMode(BreakBuildModePacket packet, ServerPlayer player) {
       boolean creative = player.isCreative();
-      if (!validateAngelPlacement(packet.angelPlacement(), packet.firstPos(), player)) {
+      if (!validateSelection(packet.firstPos(), packet.secondPos(), packet.thirdPos(), packet.fourthPos(), player)
+            || !validateAngelPlacement(packet.angelPlacement(), packet.firstPos(), player)) {
          return;
       } else if (!creative && !Config.BUILDING_SURVIVAL_ALLOW_BREAKING.get()) {
          player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.breaking_disabled"), true);
@@ -350,9 +351,7 @@ public class PacketHandler {
          } else {
             if (blockSet.hasEntriesWithStatus(BlockStatus.OUTSIDE_REACH)) {
                player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.sublevel_out_of_bounds"), true);
-               if (Config.shouldCancelOutOfSublevelSelections(player)) {
-                  return;
-               }
+               return;
             }
 
             Map<BlockPos, UndoManager.BlockChange> undoChanges = new LinkedHashMap();
@@ -389,6 +388,15 @@ public class PacketHandler {
             }
 
          }
+   }
+
+   private static boolean validateSelection(BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos, @Nullable BlockPos fourthPos, ServerPlayer player) {
+      if (SableCompat.areInSameSelection(player.serverLevel(), firstPos, secondPos, thirdPos, fourthPos)) {
+         return true;
+      }
+
+      player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.sublevel_out_of_bounds"), true);
+      return false;
    }
 
    public static void handleUndo(ServerPlayer player) {

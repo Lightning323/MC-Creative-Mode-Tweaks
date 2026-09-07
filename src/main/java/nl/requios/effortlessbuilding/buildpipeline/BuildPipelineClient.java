@@ -159,6 +159,10 @@ public class BuildPipelineClient {
             BlockHitResult hit = target.hit();
             BlockPos markerPos = mode.instance.getSelectionMarker(hit.getBlockPos());
             clickedPos = markerPos != null ? markerPos : resolveFirstClickPos(hit, action, mc.level);
+            if (selectionOrigin != null && !SableCompat.isInSameSelection(mc.level, selectionOrigin, clickedPos)) {
+               rejectMixedSelection(player);
+               return;
+            }
          } else {
             clickedPos = player.blockPosition();
          }
@@ -171,9 +175,8 @@ public class BuildPipelineClient {
                mode.instance.findCoordinates(blocks, player);
                CLIENT.processBlocks(blocks, player, action);
                if (blocks.firstPos != null && blocks.lastPos != null) {
-               if (blocks.hasEntriesWithStatus(BlockStatus.OUTSIDE_REACH) && Config.shouldCancelOutOfSublevelSelections(player)) {
-                  player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.sublevel_out_of_bounds"), true);
-                  cancelCurrentSequence();
+               if (blocks.hasEntriesWithStatus(BlockStatus.OUTSIDE_REACH)) {
+                  rejectMixedSelection(player);
                   return;
                }
 
@@ -273,7 +276,13 @@ public class BuildPipelineClient {
                if (mode.instance.usesDirectSecondPoint()) {
                   BlockHitResult hit = getCurrentTargetHit(mc);
                   BuildPipeline.BuildState action = buildState != null ? buildState : BuildPipeline.BuildState.PLACING;
-                  mode.instance.setPreviewSecondPoint(hit != null ? resolveFirstClickPos(hit, action, mc.level) : null);
+                  BlockPos previewPoint = hit != null ? resolveFirstClickPos(hit, action, mc.level) : null;
+                  if (previewPoint != null && !SableCompat.isInSameSelection(mc.level, selectionAnchor, previewPoint)) {
+                     mode.instance.setPreviewSecondPoint(null);
+                     return null;
+                  }
+
+                  mode.instance.setPreviewSecondPoint(previewPoint);
                }
 
                mode.instance.findCoordinates(previewBlocks, player);
@@ -349,6 +358,11 @@ public class BuildPipelineClient {
       firstClickHit = null;
       selectionOrigin = null;
       angelPlacementSequence = false;
+   }
+
+   private static void rejectMixedSelection(Player player) {
+      player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.sublevel_out_of_bounds"), true);
+      cancelCurrentSequence();
    }
 
    private static BlockPos resolveFirstClickPos(BlockHitResult hit, BuildPipeline.BuildState action, Level level) {

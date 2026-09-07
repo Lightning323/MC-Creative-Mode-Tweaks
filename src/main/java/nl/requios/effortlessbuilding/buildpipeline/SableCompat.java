@@ -74,9 +74,30 @@ public final class SableCompat {
          return true;
       }
 
-      SubLevelAccess targetSubLevel = SableCompanion.INSTANCE.getContaining(level, pos);
-      UUID targetId = targetSubLevel != null ? targetSubLevel.getUniqueId() : null;
-      return Objects.equals(context.subLevelId, targetId);
+      return isInSameSelection(level, context.subLevelId, pos);
+   }
+
+   /**
+    * Returns whether {@code pos} belongs to the same simulated contraption as
+    * {@code origin}; the ordinary world is treated as its own selection space.
+    *
+    * <p>This is deliberately independent of the active selection scope so it
+    * can validate selection vertices before a build-mode state is mutated and
+    * validate packets received from a client.</p>
+    */
+   public static boolean isInSameSelection(Level level, BlockPos origin, @Nullable BlockPos pos) {
+      return pos == null || isInSameSelection(level, getSubLevelId(level, origin), pos);
+   }
+
+   /**
+    * Checks every supplied selection vertex against {@code origin}. A vertex
+    * from a different contraption, or from the world when the origin is in a
+    * contraption (and vice versa), invalidates the complete selection.
+    */
+   public static boolean areInSameSelection(Level level, BlockPos origin, BlockPos secondPos, @Nullable BlockPos thirdPos, @Nullable BlockPos fourthPos) {
+      return isInSameSelection(level, origin, secondPos)
+            && isInSameSelection(level, origin, thirdPos)
+            && isInSameSelection(level, origin, fourthPos);
    }
 
    public static boolean isWithinBuildBounds(Level level, BlockPos pos) {
@@ -111,6 +132,15 @@ public final class SableCompat {
 
       Vector3d local = context.subLevel.logicalPose().transformPositionInverse(new Vector3d(globalPosition.x, globalPosition.y, globalPosition.z), new Vector3d());
       return new Vec3(local.x, local.y, local.z);
+   }
+
+   private static boolean isInSameSelection(Level level, @Nullable UUID originSubLevelId, BlockPos pos) {
+      return Objects.equals(originSubLevelId, getSubLevelId(level, pos));
+   }
+
+   private static @Nullable UUID getSubLevelId(Level level, BlockPos pos) {
+      SubLevelAccess subLevel = SableCompanion.INSTANCE.getContaining(level, pos);
+      return subLevel != null ? subLevel.getUniqueId() : null;
    }
 
    private static final class SelectionContext {

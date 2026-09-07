@@ -13,8 +13,7 @@ public class PacketHandler {
 
     @SubscribeEvent
     public static void register(final RegisterPayloadHandlersEvent event) {
-        // Bumped because ClientboundSyncConfigPayload gained a field.
-        final PayloadRegistrar registrar = event.registrar("2");
+        final PayloadRegistrar registrar = event.registrar("3");
 
         // Register ToggleNoClip (Assumed simple payload)
         registrar.playToServer(

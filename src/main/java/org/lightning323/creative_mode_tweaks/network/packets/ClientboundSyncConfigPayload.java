@@ -12,8 +12,7 @@ public record ClientboundSyncConfigPayload(
         boolean enhanceCreativeHotbar,
         boolean enhanceSurvivalHotbar,
         boolean angelPlacementAllowed,
-        int angelPlacementDistance,
-        boolean cancelOutOfSublevelSelections
+        int angelPlacementDistance
 ) implements CustomPacketPayload {
 
     public ClientboundSyncConfigPayload() {
@@ -21,8 +20,7 @@ public record ClientboundSyncConfigPayload(
                 Config.enhanceCreativeHotbar,
                 Config.enhanceSurvivalHotbar,
                 Config.BUILDING_SURVIVAL_ALLOW_ANGEL_PLACEMENT.get(),
-                Config.BUILDING_ANGEL_PLACEMENT_DISTANCE.get(),
-                Config.BUILDING_CANCEL_OUT_OF_SUBLEVEL_SELECTIONS.get());
+                Config.BUILDING_ANGEL_PLACEMENT_DISTANCE.get());
     }
 
     public static final Type<ClientboundSyncConfigPayload> TYPE =
@@ -34,7 +32,6 @@ public record ClientboundSyncConfigPayload(
             ByteBufCodecs.BOOL, ClientboundSyncConfigPayload::enhanceSurvivalHotbar,
             ByteBufCodecs.BOOL, ClientboundSyncConfigPayload::angelPlacementAllowed,
             ByteBufCodecs.INT, ClientboundSyncConfigPayload::angelPlacementDistance,
-            ByteBufCodecs.BOOL, ClientboundSyncConfigPayload::cancelOutOfSublevelSelections,
             ClientboundSyncConfigPayload::new
     );
 
@@ -50,7 +47,6 @@ public record ClientboundSyncConfigPayload(
             Config.enhanceCreativeHotbar = payload.enhanceCreativeHotbar();
             Config.enhanceSurvivalHotbar = payload.enhanceSurvivalHotbar();
             Config.updateClientAngelPlacementSettings(payload.angelPlacementAllowed(), payload.angelPlacementDistance());
-            Config.updateClientOutOfSublevelSelectionSettings(payload.cancelOutOfSublevelSelections());
         });
     }
 }
