@@ -43,7 +43,7 @@ public class Config {
 
     public static final ModConfigSpec.IntValue CREATIVE_REACH =
             COMMON_BUILDER.comment("How far creative players can place and break blocks.")
-                    .defineInRange("reach.creative_reach", 32, 1, 256);
+                    .defineInRange("reach.creative_reach", 64, 1, 256);
 
     public static final ModConfigSpec.IntValue SURVIVAL_REACH =
             COMMON_BUILDER.comment("How far survival players can place and break blocks with build modes.")
