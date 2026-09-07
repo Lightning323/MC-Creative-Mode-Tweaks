@@ -76,11 +76,6 @@ public class Config {
                     .translation("creative_mode_tweaks.config.protect_tile_entities")
                     .define("building.protect_tile_entities", true);
 
-    public static final ModConfigSpec.IntValue BUILDING_MAX_BLOCK_PREVIEWS =
-            CLIENT_BUILDER.comment("Maximum number of block models rendered in the preview. Lower values improve performance with large shapes.")
-                    .translation("creative_mode_tweaks.config.max_block_previews")
-                    .defineInRange("building.max_block_previews", 1000, 50, 10000);
-
     public static final ModConfigSpec.BooleanValue BUILDING_SURVIVAL_ALLOW_ANGEL_PLACEMENT =
             COMMON_BUILDER.comment("Allow survival players to use Angel Placement to target air blocks at a distance.")
                     .translation("creative_mode_tweaks.config.allow_angel_placement")

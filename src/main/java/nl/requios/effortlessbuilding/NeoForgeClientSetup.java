@@ -41,7 +41,7 @@ public class NeoForgeClientSetup {
    public static class ModEvents {
       @SubscribeEvent
       public static void onModelsBaked(ModelEvent.BakingCompleted event) {
-         BlockPreviewRenderer.clearCachedModels();
+         BlockPreviewRenderer.clearPreviewMesh();
       }
    }
 

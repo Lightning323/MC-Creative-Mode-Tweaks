@@ -1,8 +1,15 @@
 package nl.requios.effortlessbuilding.render;
 
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.ByteBufferBuilder;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.MeshData;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.blaze3d.vertex.VertexBuffer;
+import com.mojang.blaze3d.vertex.VertexFormat;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -26,9 +33,17 @@ import org.lightning323.creative_mode_tweaks.Config;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.ShaderInstance;
+import net.minecraft.client.renderer.block.BlockRenderDispatcher;
+import net.minecraft.client.renderer.block.ModelBlockRenderer;
+import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.SectionPos;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
@@ -37,23 +52,25 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.BlockAndTintGetter;
+import net.minecraft.world.level.ColorResolver;
 import net.minecraft.world.level.block.RenderShape;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.lighting.LevelLightEngine;
 import net.minecraft.world.level.material.Fluid;
+import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.phys.BlockHitResult;
+import net.neoforged.neoforge.client.model.data.ModelData;
 
 public class BlockPreviewRenderer {
    private static final ResourceLocation CHECKERBOARD_TEXTURE = ResourceLocation.fromNamespaceAndPath("creative_mode_tweaks", "textures/special/checkerboard.png");
    private static final ResourceLocation SELECTION_TEXTURE = ResourceLocation.fromNamespaceAndPath("creative_mode_tweaks", "textures/special/selection.png");
    private static final RenderType MESH_VERTEX_RENDER_TYPE = RenderType.eyes(SELECTION_TEXTURE);
    private static final ResourceLocation OUTLINE_TEXTURE = ResourceLocation.fromNamespaceAndPath("creative_mode_tweaks", "textures/special/blank.png");
-   private static final int MAX_CACHED_BLOCK_MODELS = 256;
-   private static final Map<BlockState, CachedBlockModel> CACHED_BLOCK_MODELS = new LinkedHashMap<>(MAX_CACHED_BLOCK_MODELS, 0.75F, true) {
-      protected boolean removeEldestEntry(Map.Entry<BlockState, CachedBlockModel> eldest) {
-         return this.size() > MAX_CACHED_BLOCK_MODELS;
-      }
-   };
+   private static final PreviewBlockMesh PREVIEW_BLOCK_MESH = new PreviewBlockMesh();
 
    public static void render(PoseStack poseStack, MultiBufferSource.BufferSource bufferSource, double camX, double camY, double camZ) {
       Minecraft mc = Minecraft.getInstance();
@@ -65,6 +82,7 @@ public class BlockPreviewRenderer {
 
          if (blockSet != null && !blockSet.isEmpty()) {
             if (blockSet.size() <= 1 && !sequenceActive) {
+               PREVIEW_BLOCK_MESH.clear();
                RenderHandler.resetPreviewSize();
             } else {
                List<BlockPos> positions = new ArrayList(blockSet.keySet());
@@ -86,7 +104,6 @@ public class BlockPreviewRenderer {
                }
 
                positions = breakablePositions;
-               int maxPreviews = Config.BUILDING_MAX_BLOCK_PREVIEWS.get();
                boolean renderPlacementBlocks = !isBreaking
                        && BuildSettings.CLIENT.getReplaceMode() != BuildSettings.ReplaceMode.ONLY_BLOCKS;
                if (renderPlacementBlocks) {
@@ -114,19 +131,14 @@ public class BlockPreviewRenderer {
                   if (baseState != null || randomized) {
                      try {
                         AlphaMultiBufferSource wrappedSource = new AlphaMultiBufferSource(bufferSource, blockAlpha);
-//                        TintedMultiBufferSource missingSource = new TintedMultiBufferSource(bufferSource, 255, 80, 80, 200);
-
                         Map<Item, BlockState> randomStates = new HashMap();
-                        int rendered = 0;
+                        List<PreviewBlock> previewBlocks = new ArrayList<>(positions.size());
+                        List<PreviewBlock> animatedBlocks = new ArrayList<>();
 
                         for(BlockPos pos : positions) {
-                           if (rendered >= maxPreviews) {
-                              break;
-                           }
-
                            BlockState state = baseState;
                            BlockEntry entry = (BlockEntry)blockSet.get(pos);
-                           if (randomized && entry != null) { //If we have a trowel, set the block to a random block
+                           if (randomized && entry != null) {
                               Item var34 = entry.item;
                               if (var34 instanceof BlockItem) {
                                  BlockItem randomBlock = (BlockItem)var34;
@@ -139,23 +151,36 @@ public class BlockPreviewRenderer {
                                  state = entry.applyTransforms(state);
                               }
 
-                              poseStack.pushPose();
-                              SableCompat.translateToBlock(poseStack, mc.level, pos, camX, camY, camZ);
-//                              poseStack.translate((double)0.5F, (double)0.5F, (double)0.5F);
-//                              poseStack.scale(blockScale, blockScale, blockScale);
-//                              poseStack.translate((double)-0.5F, (double)-0.5F, (double)-0.5F);
-
-                              renderCachedBlock(mc, state, poseStack, wrappedSource);
-
-                              poseStack.popPose();
-                              ++rendered;
+                              PreviewBlock previewBlock = new PreviewBlock(pos, state);
+                              previewBlocks.add(previewBlock);
+                              if (state.getRenderShape() == RenderShape.ENTITYBLOCK_ANIMATED) {
+                                 animatedBlocks.add(previewBlock);
+                              }
                            }
                         }
 
-                        bufferSource.endBatch();
+                        PREVIEW_BLOCK_MESH.update(mc, mc.level, previewBlocks, blockAlpha);
+                        PREVIEW_BLOCK_MESH.render(poseStack, mc.level, camX, camY, camZ);
+
+                        for (PreviewBlock previewBlock : animatedBlocks) {
+                           poseStack.pushPose();
+                           try {
+                              SableCompat.translateToBlock(poseStack, mc.level, previewBlock.pos(), camX, camY, camZ);
+                              mc.getBlockRenderer().renderSingleBlock(previewBlock.state(), poseStack, wrappedSource, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
+                           } finally {
+                              poseStack.popPose();
+                           }
+                        }
+                        if (!animatedBlocks.isEmpty()) {
+                           bufferSource.endBatch();
+                        }
                      } catch (Exception var35) {
                      }
+                  } else {
+                     PREVIEW_BLOCK_MESH.clear();
                   }
+               } else {
+                  PREVIEW_BLOCK_MESH.clear();
                }
 
                RenderSystem.depthMask(false);
@@ -182,10 +207,13 @@ public class BlockPreviewRenderer {
 
             }
          } else {
+            PREVIEW_BLOCK_MESH.clear();
             RenderHandler.resetPreviewSize();
          }
 
          renderSelectionMarkers(poseStack, bufferSource, mc.level, camX, camY, camZ);
+      } else {
+         PREVIEW_BLOCK_MESH.clear();
       }
    }
 
@@ -234,30 +262,9 @@ public class BlockPreviewRenderer {
       poseStack.popPose();
    }
 
-   /**
-    * The preview renderer always invokes vanilla's item-style block rendering: it has no
-    * position-dependent model data and uses a fixed random seed.  Cache its emitted local
-    * vertices so identical preview states do not re-tessellate their baked model every frame.
-    */
-   private static void renderCachedBlock(Minecraft mc, BlockState state, PoseStack poseStack, MultiBufferSource bufferSource) {
-      if (state.getRenderShape() != RenderShape.MODEL) {
-         // Animated block-entity renderers can change between frames, so they must stay live.
-         mc.getBlockRenderer().renderSingleBlock(state, poseStack, bufferSource, 15728880, OverlayTexture.NO_OVERLAY);
-         return;
-      }
-
-      CachedBlockModel cachedModel = CACHED_BLOCK_MODELS.get(state);
-      if (cachedModel == null) {
-         cachedModel = CachedBlockModel.capture(mc, state);
-         CACHED_BLOCK_MODELS.put(state, cachedModel);
-      }
-
-      cachedModel.render(poseStack.last(), bufferSource);
-   }
-
-   /** Called after block models are rebaked so stale vertex data is never reused. */
-   public static void clearCachedModels() {
-      CACHED_BLOCK_MODELS.clear();
+   /** Called after models are rebaked so preview vertex buffers never retain stale geometry. */
+   public static void clearPreviewMesh() {
+      PREVIEW_BLOCK_MESH.clear();
    }
 
    private static void renderBoundingBoxAround(PoseStack poseStack, MultiBufferSource bufferSource, Level level, List<BlockPos> positions,
@@ -404,161 +411,252 @@ public class BlockPreviewRenderer {
    private static record EdgeKey(int axis, int x, int y, int z) {
    }
 
-   /** A state-specific copy of the vertices emitted by BlockRenderDispatcher.renderSingleBlock. */
-   private static final class CachedBlockModel {
-      private final List<CachedRenderLayer> layers;
+   private static record PreviewBlock(BlockPos pos, BlockState state) {
+   }
 
-      private CachedBlockModel(List<CachedRenderLayer> layers) {
-         this.layers = layers;
-      }
+   /**
+    * A chunk-style preview mesh. It is rebuilt only when the selected positions, resolved states,
+    * or preview opacity change; frames in between issue only static vertex-buffer draws.
+    */
+   private static final class PreviewBlockMesh {
+      private static final int INITIAL_SECTION_BUFFER_SIZE = 262144;
+      private final List<SectionMesh> sections = new ArrayList<>();
+      private Level level;
+      private long fingerprint = Long.MIN_VALUE;
+      private int blockCount;
 
-      static CachedBlockModel capture(Minecraft mc, BlockState state) {
-         CapturingMultiBufferSource capture = new CapturingMultiBufferSource();
-         mc.getBlockRenderer().renderSingleBlock(state, new PoseStack(), capture, 15728880, OverlayTexture.NO_OVERLAY);
-         return capture.finish();
-      }
+      void update(Minecraft mc, Level level, List<PreviewBlock> blocks, int alpha) {
+         long fingerprint = this.fingerprint(blocks, alpha);
+         if (this.level == level && this.fingerprint == fingerprint && this.blockCount == blocks.size()) {
+            return;
+         }
 
-      void render(PoseStack.Pose pose, MultiBufferSource bufferSource) {
-         for(CachedRenderLayer layer : this.layers) {
-            VertexConsumer consumer = bufferSource.getBuffer(layer.renderType());
+         this.clearBuffers();
+         this.level = level;
+         this.fingerprint = fingerprint;
+         this.blockCount = blocks.size();
+         if (blocks.isEmpty() || alpha == 0) {
+            return;
+         }
 
-            for(CachedVertex vertex : layer.vertices()) {
-               vertex.write(consumer, pose);
+         Long2ObjectOpenHashMap<BlockState> states = new Long2ObjectOpenHashMap<>(blocks.size());
+         Map<Long, List<PreviewBlock>> blocksBySection = new LinkedHashMap<>();
+         for (PreviewBlock block : blocks) {
+            states.put(block.pos().asLong(), block.state());
+            blocksBySection.computeIfAbsent(SectionPos.asLong(block.pos()), unused -> new ArrayList<>()).add(block);
+         }
+
+         PreviewBlockView previewLevel = new PreviewBlockView(level, states);
+         BlockRenderDispatcher blockRenderer = mc.getBlockRenderer();
+         RandomSource random = RandomSource.create();
+         ModelBlockRenderer.enableCaching();
+
+         try {
+            for (Map.Entry<Long, List<PreviewBlock>> entry : blocksBySection.entrySet()) {
+               SectionMesh section = this.buildSection(blockRenderer, previewLevel, random, entry.getKey(), entry.getValue(), alpha);
+               if (section != null) {
+                  this.sections.add(section);
+               }
             }
+         } catch (RuntimeException exception) {
+            this.clear();
+            throw exception;
+         } finally {
+            ModelBlockRenderer.clearCache();
          }
       }
-   }
 
-   private static record CachedRenderLayer(RenderType renderType, List<CachedVertex> vertices) {
-   }
+      private SectionMesh buildSection(BlockRenderDispatcher blockRenderer, PreviewBlockView previewLevel, RandomSource random,
+                                       long sectionKey, List<PreviewBlock> blocks, int alpha) {
+         try (ByteBufferBuilder backingBuffer = new ByteBufferBuilder(INITIAL_SECTION_BUFFER_SIZE)) {
+            BufferBuilder builder = new BufferBuilder(backingBuffer, VertexFormat.Mode.QUADS, DefaultVertexFormat.BLOCK);
+            VertexConsumer consumer = new AlphaFullBrightVertexConsumer(builder, alpha);
+            PoseStack sectionPose = new PoseStack();
 
-   private static record CachedVertex(float x, float y, float z, int red, int green, int blue, int alpha, float u, float v, int overlayU, int overlayV, int lightU, int lightV, float normalX, float normalY, float normalZ) {
-      void write(VertexConsumer consumer, PoseStack.Pose pose) {
-         consumer.addVertex(pose, this.x, this.y, this.z)
-                 .setColor(this.red, this.green, this.blue, this.alpha)
-                 .setUv(this.u, this.v)
-                 .setUv1(this.overlayU, this.overlayV)
-                 .setUv2(this.lightU, this.lightV)
-                 .setNormal(pose, this.normalX, this.normalY, this.normalZ);
+            for (PreviewBlock block : blocks) {
+               BlockPos pos = block.pos();
+               BlockState state = block.state();
+               FluidState fluidState = state.getFluidState();
+               if (!fluidState.isEmpty()) {
+                  blockRenderer.renderLiquid(pos, previewLevel, consumer, state, fluidState);
+               }
+
+               if (state.getRenderShape() == RenderShape.MODEL) {
+                  BakedModel model = blockRenderer.getBlockModel(state);
+                  ModelData modelData = model.getModelData(previewLevel, pos, state, ModelData.EMPTY);
+                  random.setSeed(state.getSeed(pos));
+                  sectionPose.pushPose();
+                  sectionPose.translate(SectionPos.sectionRelative(pos.getX()), SectionPos.sectionRelative(pos.getY()), SectionPos.sectionRelative(pos.getZ()));
+                  for (RenderType renderType : model.getRenderTypes(state, random, modelData)) {
+                     blockRenderer.renderBatched(state, pos, previewLevel, sectionPose, consumer, true, random, modelData, renderType);
+                  }
+                  sectionPose.popPose();
+               }
+            }
+
+            MeshData mesh = builder.build();
+            if (mesh == null) {
+               return null;
+            }
+
+            VertexBuffer vertexBuffer = new VertexBuffer(VertexBuffer.Usage.STATIC);
+            vertexBuffer.bind();
+            try {
+               vertexBuffer.upload(mesh);
+            } catch (RuntimeException exception) {
+               vertexBuffer.close();
+               throw exception;
+            } finally {
+               VertexBuffer.unbind();
+            }
+
+            BlockPos origin = new BlockPos(SectionPos.sectionToBlockCoord(SectionPos.x(sectionKey)), SectionPos.sectionToBlockCoord(SectionPos.y(sectionKey)), SectionPos.sectionToBlockCoord(SectionPos.z(sectionKey)));
+            return new SectionMesh(origin, vertexBuffer);
+         }
       }
-   }
 
-   /** Captures dispatcher output once, before it is transformed to a preview block's position. */
-   private static final class CapturingMultiBufferSource implements MultiBufferSource {
-      private final Map<RenderType, CapturingVertexConsumer> consumers = new LinkedHashMap<>();
-
-      public VertexConsumer getBuffer(RenderType renderType) {
-         return this.consumers.computeIfAbsent(renderType, (unused) -> new CapturingVertexConsumer());
-      }
-
-      CachedBlockModel finish() {
-         List<CachedRenderLayer> layers = new ArrayList<>(this.consumers.size());
-
-         for(Map.Entry<RenderType, CapturingVertexConsumer> entry : this.consumers.entrySet()) {
-            layers.add(new CachedRenderLayer(entry.getKey(), entry.getValue().finish()));
+      void render(PoseStack poseStack, Level level, double camX, double camY, double camZ) {
+         if (this.sections.isEmpty() || this.level != level) {
+            return;
          }
 
-         return new CachedBlockModel(layers);
+         RenderType renderType = RenderType.translucent();
+         renderType.setupRenderState();
+         ShaderInstance shader = RenderSystem.getShader();
+         try {
+            for (SectionMesh section : this.sections) {
+               poseStack.pushPose();
+               try {
+                  SableCompat.translateToBlock(poseStack, level, section.origin(), camX, camY, camZ);
+                  section.buffer().bind();
+                  section.buffer().drawWithShader(poseStack.last().pose(), RenderSystem.getProjectionMatrix(), shader);
+               } finally {
+                  poseStack.popPose();
+               }
+            }
+         } finally {
+            VertexBuffer.unbind();
+            renderType.clearRenderState();
+         }
+      }
+
+      void clear() {
+         this.clearBuffers();
+         this.level = null;
+         this.fingerprint = Long.MIN_VALUE;
+         this.blockCount = 0;
+      }
+
+      private void clearBuffers() {
+         for (SectionMesh section : this.sections) {
+            section.buffer().close();
+         }
+         this.sections.clear();
+      }
+
+      private long fingerprint(List<PreviewBlock> blocks, int alpha) {
+         long sum = 0L;
+         long xor = 0L;
+         for (PreviewBlock block : blocks) {
+            long entryHash = block.pos().asLong() ^ (long)block.state().hashCode() * -7046029254386353131L;
+            entryHash ^= entryHash >>> 33;
+            entryHash *= -49064778989728563L;
+            entryHash ^= entryHash >>> 33;
+            sum += entryHash;
+            xor ^= Long.rotateLeft(entryHash, (int)entryHash & 63);
+         }
+         long hash = 7640891576956012809L ^ (long)alpha << 32 ^ blocks.size();
+         hash ^= sum;
+         hash = Long.rotateLeft(hash, 27) * -4658895280553007687L;
+         return hash ^ xor;
       }
    }
 
-   private static final class CapturingVertexConsumer implements VertexConsumer {
-      private final List<CachedVertex> vertices = new ArrayList<>();
-      private PendingVertex current;
+   private static record SectionMesh(BlockPos origin, VertexBuffer buffer) {
+   }
+
+   /** Presents just the selected blocks to vanilla's chunk tessellator, with air around them. */
+   private static final class PreviewBlockView implements BlockAndTintGetter {
+      private final Level delegate;
+      private final Long2ObjectOpenHashMap<BlockState> previewStates;
+
+      private PreviewBlockView(Level delegate, Long2ObjectOpenHashMap<BlockState> previewStates) {
+         this.delegate = delegate;
+         this.previewStates = previewStates;
+      }
+
+      public BlockEntity getBlockEntity(BlockPos pos) {
+         return null;
+      }
+
+      public BlockState getBlockState(BlockPos pos) {
+         BlockState state = this.previewStates.get(pos.asLong());
+         return state != null ? state : Blocks.AIR.defaultBlockState();
+      }
+
+      public FluidState getFluidState(BlockPos pos) {
+         return this.getBlockState(pos).getFluidState();
+      }
+
+      public int getHeight() {
+         return this.delegate.getHeight();
+      }
+
+      public int getMinBuildHeight() {
+         return this.delegate.getMinBuildHeight();
+      }
+
+      public float getShade(Direction direction, boolean shade) {
+         return this.delegate.getShade(direction, shade);
+      }
+
+      public LevelLightEngine getLightEngine() {
+         return this.delegate.getLightEngine();
+      }
+
+      public int getBlockTint(BlockPos pos, ColorResolver resolver) {
+         return this.delegate.getBlockTint(pos, resolver);
+      }
+   }
+
+   /** Preserves the existing ghost-preview alpha and full-bright lighting in chunk-format vertices. */
+   private static final class AlphaFullBrightVertexConsumer implements VertexConsumer {
+      private final VertexConsumer delegate;
+      private final int alpha;
+
+      private AlphaFullBrightVertexConsumer(VertexConsumer delegate, int alpha) {
+         this.delegate = delegate;
+         this.alpha = alpha;
+      }
 
       public VertexConsumer addVertex(float x, float y, float z) {
-         this.completeCurrentVertex();
-         this.current = new PendingVertex(x, y, z);
+         this.delegate.addVertex(x, y, z);
          return this;
       }
 
-      public VertexConsumer setColor(int red, int green, int blue, int alpha) {
-         if (this.current != null) {
-            this.current.red = red;
-            this.current.green = green;
-            this.current.blue = blue;
-            this.current.alpha = alpha;
-         }
-
+      public VertexConsumer setColor(int red, int green, int blue, int ignoredAlpha) {
+         this.delegate.setColor(red, green, blue, this.alpha);
          return this;
       }
 
       public VertexConsumer setUv(float u, float v) {
-         if (this.current != null) {
-            this.current.u = u;
-            this.current.v = v;
-         }
-
+         this.delegate.setUv(u, v);
          return this;
       }
 
       public VertexConsumer setUv1(int u, int v) {
-         if (this.current != null) {
-            this.current.overlayU = u;
-            this.current.overlayV = v;
-         }
-
+         this.delegate.setUv1(u, v);
          return this;
       }
 
-      public VertexConsumer setUv2(int u, int v) {
-         if (this.current != null) {
-            this.current.lightU = u;
-            this.current.lightV = v;
-         }
-
+      public VertexConsumer setUv2(int ignoredU, int ignoredV) {
+         this.delegate.setUv2(LightTexture.FULL_BRIGHT & 65535, LightTexture.FULL_BRIGHT >>> 16);
          return this;
       }
 
       public VertexConsumer setNormal(float x, float y, float z) {
-         if (this.current != null) {
-            this.current.normalX = x;
-            this.current.normalY = y;
-            this.current.normalZ = z;
-         }
-
+         this.delegate.setNormal(x, y, z);
          return this;
-      }
-
-      List<CachedVertex> finish() {
-         this.completeCurrentVertex();
-         return this.vertices;
-      }
-
-      private void completeCurrentVertex() {
-         if (this.current != null) {
-            this.vertices.add(this.current.toCachedVertex());
-            this.current = null;
-         }
-      }
-   }
-
-   private static final class PendingVertex {
-      private final float x;
-      private final float y;
-      private final float z;
-      private int red = 255;
-      private int green = 255;
-      private int blue = 255;
-      private int alpha = 255;
-      private float u;
-      private float v;
-      private int overlayU;
-      private int overlayV;
-      private int lightU;
-      private int lightV;
-      private float normalX;
-      private float normalY;
-      private float normalZ;
-
-      PendingVertex(float x, float y, float z) {
-         this.x = x;
-         this.y = y;
-         this.z = z;
-      }
-
-      CachedVertex toCachedVertex() {
-         return new CachedVertex(this.x, this.y, this.z, this.red, this.green, this.blue, this.alpha, this.u, this.v, this.overlayU, this.overlayV, this.lightU, this.lightV, this.normalX, this.normalY, this.normalZ);
       }
    }
 
