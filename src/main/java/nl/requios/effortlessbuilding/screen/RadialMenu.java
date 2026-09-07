@@ -131,7 +131,7 @@ public class RadialMenu extends Screen {
 
         MenuButton angelPlacementBtn = new MenuButton(ModeOptions.ActionEnum.TOGGLE_ANGEL_PLACEMENT, (double) -131.0F, (double) 13.0F, Direction.DOWN);
         boolean angelPlacementEnabled = BuildSettings.CLIENT.isAngelPlacementEnabled();
-        angelPlacementBtn.iconOverride = angelPlacementEnabled ? AllIcons.I_ALTERNATE_ON : AllIcons.I_ALTERNATE_OFF;
+        angelPlacementBtn.iconOverride = angelPlacementEnabled ? AllIcons.ANGEL_PLACEMENT_ON : AllIcons.ANGEL_PLACEMENT_OFF;
         angelPlacementBtn.subtitle = I18n.get(angelPlacementEnabled ? "options.on" : "options.off", new Object[0]);
         angelPlacementBtn.enabled = this.minecraft.player == null || Config.isAngelPlacementAllowed(this.minecraft.player);
         buttons.add(angelPlacementBtn);
