@@ -42,18 +42,7 @@ public class RadialMenu extends Screen {
     private final Vector4f highlightColor = new Vector4f(0.6F, 0.8F, 1.0F, 0.6F);
     private final Vector4f selectedColor = new Vector4f(0.0F, 0.5F, 1.0F, 0.5F);
     private final Vector4f highlightSelectedColor = new Vector4f(0.2F, 0.7F, 1.0F, 0.7F);
-    private final int whiteTextColor = -1;
-    private final int watermarkTextColor = -2004318072;
-    private final int descriptionTextColor = -578254712;
-    private final int optionTextColor = -286331137;
-    private final double ringInnerEdge = (double) 30.0F;
-    private final double ringOuterEdge = (double) 65.0F;
-    private final double categoryLineWidth = (double) 2.0F;
-    private final double textDistance = (double) 75.0F;
-    private final double buttonDistance = (double) 105.0F;
-    private final float fadeSpeed = 0.4F;
-    private final int buildModeDescriptionHeight = 100;
-    private final int actionDescriptionWidth = 200;
+    private final float OPTION_BUTTONS_Y_START = -8.0F;
     public BuildModeEnum switchTo = null;
     public ModeOptions.ActionEnum doAction = null;
     public boolean performedActionUsingMouse;
@@ -117,9 +106,9 @@ public class RadialMenu extends Screen {
             modes.add(new MenuRegion(mode));
         }
 
-        buttons.add(new MenuButton(ModeOptions.ActionEnum.OPEN_MODIFIER_SETTINGS, (double) -157.0F, (double) -13.0F, Direction.UP));
-        buttons.add(new MenuButton(ModeOptions.ActionEnum.UNDO, (double) -131.0F, (double) -13.0F, Direction.UP));
-        buttons.add(new MenuButton(ModeOptions.ActionEnum.REDO, (double) -105.0F, (double) -13.0F, Direction.UP));
+        buttons.add(new MenuButton(ModeOptions.ActionEnum.OPEN_MODIFIER_SETTINGS, (double) -157.0F, (double) OPTION_BUTTONS_Y_START, Direction.UP));
+        buttons.add(new MenuButton(ModeOptions.ActionEnum.UNDO, (double) -131.0F, (double) OPTION_BUTTONS_Y_START, Direction.UP));
+        buttons.add(new MenuButton(ModeOptions.ActionEnum.REDO, (double) -105.0F, (double) OPTION_BUTTONS_Y_START, Direction.UP));
 
         MenuButton replaceBtn = new MenuButton(ModeOptions.ActionEnum.CYCLE_REPLACE_MODE, (double) -157.0F, (double) 13.0F, Direction.DOWN);
         ModeOptions.ActionEnum currentReplaceAction = BuildSettings.CLIENT.getReplaceModeActionEnum();
@@ -140,7 +129,9 @@ public class RadialMenu extends Screen {
         for (int i = 0; i < options.length; ++i) {
             for (int j = 0; j < options[i].actions.length; ++j) {
                 ModeOptions.ActionEnum action = options[i].actions[j];
-                buttons.add(new MenuButton(action, (double) 105.0F + (double) (j * 26), (double) (-13 + i * 39), Direction.DOWN));
+                buttons.add(new MenuButton(action,
+                        (double) 105.0F + (double) (j * 26),
+                        (double) (OPTION_BUTTONS_Y_START + i * 39), Direction.DOWN));
             }
         }
 
