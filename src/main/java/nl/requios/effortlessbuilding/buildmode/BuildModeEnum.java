@@ -1,21 +1,10 @@
 package nl.requios.effortlessbuilding.buildmode;
 
 import nl.requios.effortlessbuilding.AllIcons;
-import nl.requios.effortlessbuilding.buildmode.buildmodes.Circle;
-import nl.requios.effortlessbuilding.buildmode.buildmodes.Cube;
-import nl.requios.effortlessbuilding.buildmode.buildmodes.Cylinder;
-import nl.requios.effortlessbuilding.buildmode.buildmodes.DiagonalLine;
-import nl.requios.effortlessbuilding.buildmode.buildmodes.DiagonalWall;
-import nl.requios.effortlessbuilding.buildmode.buildmodes.Disabled;
-import nl.requios.effortlessbuilding.buildmode.buildmodes.Floor;
-import nl.requios.effortlessbuilding.buildmode.buildmodes.Line;
-import nl.requios.effortlessbuilding.buildmode.buildmodes.Plane;
-import nl.requios.effortlessbuilding.buildmode.buildmodes.SlopeFloor;
-import nl.requios.effortlessbuilding.buildmode.buildmodes.Sphere;
-import nl.requios.effortlessbuilding.buildmode.buildmodes.Wall;
+import nl.requios.effortlessbuilding.buildmode.buildmodes.*;
 
 public enum BuildModeEnum {
-   DISABLED("normal", new Disabled(), BuildModeCategoryEnum.BASIC, AllIcons.I_DISABLE, new ModeOptions.OptionEnum[0]),
+   DISABLED("normal", new Single(), BuildModeCategoryEnum.BASIC, AllIcons.I_SINGLE, new ModeOptions.OptionEnum[0]),
    LINE("line", new Line(), BuildModeCategoryEnum.BASIC, AllIcons.I_LINE, new ModeOptions.OptionEnum[0]),
    PLANE("plane", new Plane(), BuildModeCategoryEnum.BASIC, AllIcons.I_FLOOR, new ModeOptions.OptionEnum[]{ModeOptions.OptionEnum.FILL}),
    WALL("wall", new Wall(), BuildModeCategoryEnum.BASIC, AllIcons.I_WALL, new ModeOptions.OptionEnum[]{ModeOptions.OptionEnum.FILL}),
@@ -26,7 +15,8 @@ public enum BuildModeEnum {
    SLOPE_FLOOR("slope_floor", new SlopeFloor(), BuildModeCategoryEnum.DIAGONAL, AllIcons.I_SLOPED_FLOOR, new ModeOptions.OptionEnum[]{ModeOptions.OptionEnum.RAISED_EDGE}),
    CIRCLE("circle", new Circle(), BuildModeCategoryEnum.CIRCULAR, AllIcons.I_CIRCLE, new ModeOptions.OptionEnum[]{ModeOptions.OptionEnum.CIRCLE_START, ModeOptions.OptionEnum.FILL}),
    CYLINDER("cylinder", new Cylinder(), BuildModeCategoryEnum.CIRCULAR, AllIcons.I_CYLINDER, new ModeOptions.OptionEnum[]{ModeOptions.OptionEnum.CIRCLE_START, ModeOptions.OptionEnum.FILL}),
-   SPHERE("sphere", new Sphere(), BuildModeCategoryEnum.CIRCULAR, AllIcons.I_SPHERE, new ModeOptions.OptionEnum[]{ModeOptions.OptionEnum.CIRCLE_START, ModeOptions.OptionEnum.FILL});
+   SPHERE("sphere", new Sphere(), BuildModeCategoryEnum.CIRCULAR, AllIcons.I_SPHERE, new ModeOptions.OptionEnum[]{ModeOptions.OptionEnum.CIRCLE_START, ModeOptions.OptionEnum.FILL}),
+   DOME("dome", new Dome(), BuildModeCategoryEnum.CIRCULAR, AllIcons.I_DOME, new ModeOptions.OptionEnum[]{ModeOptions.OptionEnum.CIRCLE_START, ModeOptions.OptionEnum.FILL});
 
    private final String name;
    public final IBuildMode instance;
@@ -52,6 +42,6 @@ public enum BuildModeEnum {
 
    // $FF: synthetic method
    private static BuildModeEnum[] $values() {
-      return new BuildModeEnum[]{DISABLED, LINE, PLANE, WALL, FLOOR, CUBE, DIAGONAL_LINE, DIAGONAL_WALL, SLOPE_FLOOR, CIRCLE, CYLINDER, SPHERE};
+      return new BuildModeEnum[]{DISABLED, LINE, PLANE, WALL, FLOOR, CUBE, DIAGONAL_LINE, DIAGONAL_WALL, SLOPE_FLOOR, CIRCLE, CYLINDER, SPHERE, DOME};
    }
 }

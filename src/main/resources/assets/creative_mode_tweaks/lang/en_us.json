@@ -20,8 +20,7 @@
   "creative_mode_tweaks.screen.client_config": "Visual Settings",
   "item.creative_mode_tweaks.trowel": "Trowel",
 
-  "creative_mode_tweaks.mode.normal": "Disable",
-  "creative_mode_tweaks.mode.normal_plus": "Single",
+  "creative_mode_tweaks.mode.normal": "Single",
   "creative_mode_tweaks.mode.line": "Line",
   "creative_mode_tweaks.mode.plane": "Plane",
   "creative_mode_tweaks.mode.wall": "Wall",
@@ -37,8 +36,7 @@
   "creative_mode_tweaks.mode.cone": "Cone",
   "creative_mode_tweaks.mode.dome": "Dome",
 
-  "creative_mode_tweaks.modedescription.normal": "Disable mod and use vanilla placement rules",
-  "creative_mode_tweaks.modedescription.normal_plus": "Like vanilla, but with increased reach",
+  "creative_mode_tweaks.modedescription.normal": "Single block placement",
   "creative_mode_tweaks.modedescription.line": "",
   "creative_mode_tweaks.modedescription.plane": "Builds a floor or wall based on the targeted face",
   "creative_mode_tweaks.modedescription.wall": "",
@@ -52,7 +50,7 @@
   "creative_mode_tweaks.modedescription.sphere": "",
   "creative_mode_tweaks.modedescription.pyramid": "",
   "creative_mode_tweaks.modedescription.cone": "",
-  "creative_mode_tweaks.modedescription.dome": "",
+  "creative_mode_tweaks.modedescription.dome": "Builds a hemisphere outward from the face clicked first",
 
   "creative_mode_tweaks.message.plane_mode": "Plane: %s",
   "creative_mode_tweaks.message.angel_placement": "Angel Placement: %s",

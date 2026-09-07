@@ -8,6 +8,7 @@ import nl.requios.effortlessbuilding.mixin.BucketItemAccessor;
 import nl.requios.effortlessbuilding.utilities.BlockEntry;
 import nl.requios.effortlessbuilding.utilities.BlockSet;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.BucketItem;
@@ -117,8 +118,8 @@ public class BuildPipeline {
       this.systems.add(system);
    }
 
-   public @Nullable BlockSet runServerPipeline(BuildModeEnum mode, BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos, Player player, BuildState action, ModeOptions.ActionEnum fill, ModeOptions.ActionEnum cubeFill, ModeOptions.ActionEnum raisedEdge, ModeOptions.ActionEnum circleStart, boolean protectTileEntities) {
-      BuildModeSystem.setContext(new BuildModeSystem.Context(mode, firstPos, secondPos, thirdPos, fill, cubeFill, raisedEdge, circleStart));
+   public @Nullable BlockSet runServerPipeline(BuildModeEnum mode, BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos, Direction firstClickFace, Player player, BuildState action, ModeOptions.ActionEnum fill, ModeOptions.ActionEnum cubeFill, ModeOptions.ActionEnum raisedEdge, ModeOptions.ActionEnum circleStart, boolean protectTileEntities) {
+      BuildModeSystem.setContext(new BuildModeSystem.Context(mode, firstPos, secondPos, thirdPos, firstClickFace, fill, cubeFill, raisedEdge, circleStart));
       ConstraintSystem.setPlacementContext(new ConstraintSystem.PlacementContext(protectTileEntities));
 
       BlockSet var13;

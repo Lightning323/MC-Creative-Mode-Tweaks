@@ -226,7 +226,8 @@ public class BuildPipelineClient {
                      }
                   }
 
-                  PacketHandler.sendToServer(new BreakBuildModePacket(mode, blocks.firstPos, secondPos, thirdPos, ModeOptions.getFill(), ModeOptions.getCubeFill(), ModeOptions.getRaisedEdge(), ModeOptions.getCircleStart(), Config.BUILDING_PROTECT_TILE_ENTITIES.get(), angelPlacementSequence));
+                  Direction hitFace = firstClickHit != null ? firstClickHit.getDirection() : Direction.UP;
+                  PacketHandler.sendToServer(new BreakBuildModePacket(mode, blocks.firstPos, secondPos, thirdPos, hitFace, ModeOptions.getFill(), ModeOptions.getCubeFill(), ModeOptions.getRaisedEdge(), ModeOptions.getCircleStart(), Config.BUILDING_PROTECT_TILE_ENTITIES.get(), angelPlacementSequence));
                }
             } else {
                Constants.LOG.warn("[EffortlessBuilding] Build mode {} produced no block positions", mode);

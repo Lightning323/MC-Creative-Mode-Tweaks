@@ -8,7 +8,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
 import org.jetbrains.annotations.Nullable;
 
-public class Disabled extends BaseBuildMode {
+public class Single extends BaseBuildMode {
    private BlockPos pos;
 
    public void initialize() {
