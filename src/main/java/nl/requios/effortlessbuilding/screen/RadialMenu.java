@@ -31,6 +31,7 @@ import net.minecraft.network.chat.FormattedText;
 import net.minecraft.network.chat.Style;
 import net.minecraft.sounds.SoundEvents;
 import org.lightning323.creative_mode_tweaks.Config;
+import org.lightning323.creative_mode_tweaks.client.utils.ClientSettings;
 import org.joml.Vector4f;
 
 public class RadialMenu extends Screen {
@@ -125,6 +126,20 @@ public class RadialMenu extends Screen {
         angelPlacementBtn.subtitle = I18n.get(angelPlacementEnabled ? "options.on" : "options.off", new Object[0]);
         angelPlacementBtn.enabled = this.minecraft.player == null || Config.isAngelPlacementAllowed(this.minecraft.player);
         buttons.add(angelPlacementBtn);
+
+        MenuButton nightVisionBtn = new MenuButton(ModeOptions.ActionEnum.TOGGLE_NIGHT_VISION, (double) -157.0F, (double) (OPTION_BUTTONS_Y_START + 52.0F), Direction.DOWN);
+        boolean nightVisionEnabled = this.minecraft.player != null && ClientSettings.isNightVision();
+        nightVisionBtn.iconOverride = nightVisionEnabled ? AllIcons.I_EYE_ON : AllIcons.I_EYE_OFF;
+        nightVisionBtn.subtitle = I18n.get(nightVisionEnabled ? "options.on" : "options.off", new Object[0]);
+        nightVisionBtn.enabled = this.minecraft.player != null && (this.minecraft.player.isCreative() || this.minecraft.player.isSpectator());
+        buttons.add(nightVisionBtn);
+
+        MenuButton noclipBtn = new MenuButton(ModeOptions.ActionEnum.TOGGLE_NOCLIP, (double) -131.0F, (double) (OPTION_BUTTONS_Y_START + 52.0F), Direction.DOWN);
+        boolean noclipEnabled = this.minecraft.player != null && ClientSettings.isNoClip();
+        noclipBtn.iconOverride = noclipEnabled ? AllIcons.I_NOCLIP_ON : AllIcons.I_NOCLIP_OFF;
+        noclipBtn.subtitle = I18n.get(noclipEnabled ? "options.on" : "options.off", new Object[0]);
+        noclipBtn.enabled = this.minecraft.player != null && this.minecraft.player.isCreative();
+        buttons.add(noclipBtn);
         ModeOptions.OptionEnum[] options = currentBuildMode.options;
 
         for (int i = 0; i < options.length; ++i) {
@@ -221,7 +236,7 @@ public class RadialMenu extends Screen {
             double by1 = btn.y1 * scale;
             double by2 = btn.y2 * scale;
             boolean isHighlighted = bx1 <= mouseXCenter && bx2 >= mouseXCenter && by1 <= mouseYCenter && by2 >= mouseYCenter;
-            boolean isSelected = btn.enabled && (btn.action == ModeOptions.getBuildSpeed() || btn.action == ModeOptions.getFill() || btn.action == ModeOptions.getCubeFill() || btn.action == ModeOptions.getRaisedEdge() || btn.action == ModeOptions.getLineThickness() || btn.action == ModeOptions.getCircleStart() || btn.action == ModeOptions.getPointBuild() || btn.action == ModeOptions.getMeshFace() || btn.action == ModeOptions.getSides() || btn.action == ModeOptions.ActionEnum.CYCLE_REPLACE_MODE && BuildSettings.CLIENT.getReplaceMode() != BuildSettings.ReplaceMode.ONLY_AIR || btn.action == ModeOptions.ActionEnum.TOGGLE_ANGEL_PLACEMENT && BuildSettings.CLIENT.isAngelPlacementEnabled());
+            boolean isSelected = btn.enabled && (btn.action == ModeOptions.getBuildSpeed() || btn.action == ModeOptions.getFill() || btn.action == ModeOptions.getCubeFill() || btn.action == ModeOptions.getRaisedEdge() || btn.action == ModeOptions.getLineThickness() || btn.action == ModeOptions.getCircleStart() || btn.action == ModeOptions.getPointBuild() || btn.action == ModeOptions.getMeshFace() || btn.action == ModeOptions.getSides() || btn.action == ModeOptions.ActionEnum.CYCLE_REPLACE_MODE && BuildSettings.CLIENT.getReplaceMode() != BuildSettings.ReplaceMode.ONLY_AIR || btn.action == ModeOptions.ActionEnum.TOGGLE_ANGEL_PLACEMENT && BuildSettings.CLIENT.isAngelPlacementEnabled() || btn.action == ModeOptions.ActionEnum.TOGGLE_NIGHT_VISION && ClientSettings.isNightVision() || btn.action == ModeOptions.ActionEnum.TOGGLE_NOCLIP && ClientSettings.isNoClip());
             Vector4f color;
             if (!btn.enabled) {
                 color = isHighlighted ? this.disabledHighlightColor : this.disabledSideButtonColor;
@@ -390,7 +405,19 @@ public class RadialMenu extends Screen {
                 return;
             }
 
-            ModeOptions.performAction(this.minecraft.player, action);
+            if (action == ModeOptions.ActionEnum.TOGGLE_NIGHT_VISION) {
+                if (this.minecraft.player != null && (this.minecraft.player.isCreative() || this.minecraft.player.isSpectator())) {
+                    ClientSettings.setNightVision(!ClientSettings.isNightVision());
+                    this.minecraft.player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.night_vision", Component.translatable(ClientSettings.isNightVision() ? "options.on" : "options.off")), true);
+                }
+            } else if (action == ModeOptions.ActionEnum.TOGGLE_NOCLIP) {
+                if (this.minecraft.player != null && this.minecraft.player.isCreative()) {
+                    ClientSettings.setNoClip(!ClientSettings.isNoClip());
+                    this.minecraft.player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.noclip", Component.translatable(ClientSettings.isNoClip() ? "options.on" : "options.off")), true);
+                }
+            } else {
+                ModeOptions.performAction(this.minecraft.player, action);
+            }
             if (fromMouseClick) {
                 this.performedActionUsingMouse = true;
             }

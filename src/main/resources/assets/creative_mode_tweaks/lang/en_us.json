@@ -56,6 +56,8 @@
 
   "creative_mode_tweaks.message.plane_mode": "Plane: %s",
   "creative_mode_tweaks.message.angel_placement": "Angel Placement: %s",
+  "creative_mode_tweaks.message.night_vision": "Night Vision: %s",
+  "creative_mode_tweaks.message.noclip": "Noclip: %s",
 
   "creative_mode_tweaks.action.undo": "Undo",
   "creative_mode_tweaks.action.redo": "Redo",
@@ -70,6 +72,10 @@
   "creative_mode_tweaks.action.cycle_replace_mode.description": "Cycle through replace modes.",
   "creative_mode_tweaks.action.toggle_angel_placement": "Angel Placement",
   "creative_mode_tweaks.action.toggle_angel_placement.description": "Target the furthest available air block at the configured distance.",
+  "creative_mode_tweaks.action.toggle_night_vision": "Night Vision",
+  "creative_mode_tweaks.action.toggle_night_vision.description": "Brighten the world and remove normal fog while enabled.",
+  "creative_mode_tweaks.action.toggle_noclip": "Noclip",
+  "creative_mode_tweaks.action.toggle_noclip.description": "Allow creative-mode movement through blocks while enabled.",
   "creative_mode_tweaks.action.replace_only_air": "Replace Only Air",
   "creative_mode_tweaks.action.replace_only_air.description": "You can only place blocks where there was air. Replaceables such as short grass and ferns can still be replaced.",
   "creative_mode_tweaks.action.replace_blocks_and_air": "Replace Blocks And Air",
