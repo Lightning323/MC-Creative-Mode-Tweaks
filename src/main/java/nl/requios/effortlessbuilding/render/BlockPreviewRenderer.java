@@ -45,6 +45,7 @@ import net.minecraft.world.phys.BlockHitResult;
 public class BlockPreviewRenderer {
    private static final ResourceLocation CHECKERBOARD_TEXTURE = ResourceLocation.fromNamespaceAndPath("creative_mode_tweaks", "textures/special/checkerboard.png");
    private static final ResourceLocation SELECTION_TEXTURE = ResourceLocation.fromNamespaceAndPath("creative_mode_tweaks", "textures/special/selection.png");
+   private static final RenderType MESH_VERTEX_RENDER_TYPE = RenderType.eyes(SELECTION_TEXTURE);
    private static final ResourceLocation OUTLINE_TEXTURE = ResourceLocation.fromNamespaceAndPath("creative_mode_tweaks", "textures/special/blank.png");
    private static final int MAX_CACHED_BLOCK_MODELS = 256;
    private static final Map<BlockState, CachedBlockModel> CACHED_BLOCK_MODELS = new LinkedHashMap<>(MAX_CACHED_BLOCK_MODELS, 0.75F, true) {
@@ -197,14 +198,14 @@ public class BlockPreviewRenderer {
       }
 
       RenderSystem.depthMask(false);
-      VertexConsumer consumer = bufferSource.getBuffer(RenderType.entityTranslucentCull(SELECTION_TEXTURE));
+      VertexConsumer consumer = bufferSource.getBuffer(MESH_VERTEX_RENDER_TYPE);
 
       for (BlockPos vertex : vertices) {
          boolean selected = mesh.isVertexSelected(vertex);
          renderMeshVertexMarker(poseStack, consumer, level, vertex, camX, camY, camZ, selected ? 0 : 255, 255, selected ? 0 : 255);
       }
 
-      bufferSource.endBatch(RenderType.entityTranslucentCull(SELECTION_TEXTURE));
+      bufferSource.endBatch(MESH_VERTEX_RENDER_TYPE);
       RenderSystem.depthMask(true);
    }
 

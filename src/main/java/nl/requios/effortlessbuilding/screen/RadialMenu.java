@@ -42,7 +42,8 @@ public class RadialMenu extends Screen {
     private final Vector4f highlightColor = new Vector4f(0.6F, 0.8F, 1.0F, 0.6F);
     private final Vector4f selectedColor = new Vector4f(0.0F, 0.5F, 1.0F, 0.5F);
     private final Vector4f highlightSelectedColor = new Vector4f(0.2F, 0.7F, 1.0F, 0.7F);
-    private final float OPTION_BUTTONS_Y_START = -13.0F;
+    /** Shared vertical baseline for every control placed beside the radial menu. */
+    private static final float OPTION_BUTTONS_Y_START = -30.0F;
     public BuildModeEnum switchTo = null;
     public ModeOptions.ActionEnum doAction = null;
     public boolean performedActionUsingMouse;
@@ -110,7 +111,7 @@ public class RadialMenu extends Screen {
         buttons.add(new MenuButton(ModeOptions.ActionEnum.UNDO, (double) -131.0F, (double) OPTION_BUTTONS_Y_START, Direction.UP));
         buttons.add(new MenuButton(ModeOptions.ActionEnum.REDO, (double) -105.0F, (double) OPTION_BUTTONS_Y_START, Direction.UP));
 
-        MenuButton replaceBtn = new MenuButton(ModeOptions.ActionEnum.CYCLE_REPLACE_MODE, (double) -157.0F, (double) 13.0F, Direction.DOWN);
+        MenuButton replaceBtn = new MenuButton(ModeOptions.ActionEnum.CYCLE_REPLACE_MODE, (double) -157.0F, (double) (OPTION_BUTTONS_Y_START + 26.0F), Direction.DOWN);
         ModeOptions.ActionEnum currentReplaceAction = BuildSettings.CLIENT.getReplaceModeActionEnum();
         replaceBtn.iconOverride = currentReplaceAction.icon;
         replaceBtn.name = I18n.get("creative_mode_tweaks.action.replace_mode", new Object[0]);
@@ -118,7 +119,7 @@ public class RadialMenu extends Screen {
         replaceBtn.description = I18n.exists(currentReplaceAction.getDescriptionKey()) ? I18n.get(currentReplaceAction.getDescriptionKey(), new Object[0]) : "";
         buttons.add(replaceBtn);
 
-        MenuButton angelPlacementBtn = new MenuButton(ModeOptions.ActionEnum.TOGGLE_ANGEL_PLACEMENT, (double) -131.0F, (double) 13.0F, Direction.DOWN);
+        MenuButton angelPlacementBtn = new MenuButton(ModeOptions.ActionEnum.TOGGLE_ANGEL_PLACEMENT, (double) -131.0F, (double) (OPTION_BUTTONS_Y_START + 26.0F), Direction.DOWN);
         boolean angelPlacementEnabled = BuildSettings.CLIENT.isAngelPlacementEnabled();
         angelPlacementBtn.iconOverride = angelPlacementEnabled ? AllIcons.ANGEL_PLACEMENT_ON : AllIcons.ANGEL_PLACEMENT_OFF;
         angelPlacementBtn.subtitle = I18n.get(angelPlacementEnabled ? "options.on" : "options.off", new Object[0]);
@@ -277,7 +278,7 @@ public class RadialMenu extends Screen {
     private void drawTexts(GuiGraphics graphics, BuildModeEnum currentBuildMode, double middleX, double middleY, ArrayList<MenuRegion> modes, ArrayList<MenuButton> buttons, ModeOptions.OptionEnum[] options, int mouseX, int mouseY, double scale) {
         for (int i = 0; i < currentBuildMode.options.length; ++i) {
             ModeOptions.OptionEnum option = options[i];
-            graphics.drawString(this.font, I18n.get(option.name, new Object[0]), (int) (middleX + (double) 105.0F * scale - (double) 9.0F), (int) middleY - 37 + i * 39, -286331137, true);
+            graphics.drawString(this.font, I18n.get(option.name, new Object[0]), (int) (middleX + (double) 105.0F * scale - (double) 9.0F), (int) (middleY + (OPTION_BUTTONS_Y_START - 22.0F + i * 39) * scale), -286331137, true);
         }
 
 //      String credits = "Effortless Building";
