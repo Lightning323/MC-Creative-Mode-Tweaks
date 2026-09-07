@@ -302,7 +302,7 @@ public class RadialMenu extends Screen {
                 graphics.drawString(this.font, text, (int) middleX + fixed_x, (int) middleY + fixed_y, -1, true);
                 graphics.drawString(this.font, text, (int) middleX + fixed_x, (int) middleY + fixed_y, -1, true);
                 text = I18n.get(menuRegion.mode.getDescriptionKey(), new Object[0]);
-                graphics.drawString(this.font, text, (int) (middleX - (double) ((float) this.font.width(text) / 2.0F)), (int) middleY + 100, -578254712, true);
+                graphics.drawString(this.font, text, (int) (middleX - (double) ((float) this.font.width(text) / 2.0F)), (int) middleY + 85, -578254712, true);
             }
         }
 
