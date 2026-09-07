@@ -16,32 +16,6 @@ public class ModeOptions {
    private static ActionEnum lineThickness;
    private static ActionEnum circleStart;
 
-   public static ActionEnum getOptionSetting(OptionEnum option) {
-      switch (option.ordinal()) {
-         case 0 -> {
-            return getBuildSpeed();
-         }
-         case 1 -> {
-            return getFill();
-         }
-         case 2 -> {
-            return getCubeFill();
-         }
-         case 3 -> {
-            return getRaisedEdge();
-         }
-         case 4 -> {
-            return getLineThickness();
-         }
-         case 5 -> {
-            return getCircleStart();
-         }
-         default -> {
-            return null;
-         }
-      }
-   }
-
    public static ActionEnum getBuildSpeed() {
       return buildSpeed;
    }

@@ -21,10 +21,6 @@ public class Config {
             COMMON_BUILDER.comment("If we want to enhance survival hotbar")
                     .define("hotbar.enhance_survival_hotbar", false);
 
-    public static final ModConfigSpec.BooleanValue HOTBAR_LOAD_ACTIVE_SELECTION_AS_ROW =
-            COMMON_BUILDER.comment("If we want to load hotbar selection as the correct row in inventory")
-                    .define("hotbar.hotbar_load_active_selection_as_row", false);
-
     public static final ModConfigSpec.BooleanValue ALLOW_INVENTORY_ROTATION_IN_SURVIVAL =
             COMMON_BUILDER.comment("If we want to allow inventory rotation in survival")
                     .define("hotbar.allow_inventory_rotation_in_survival", false);
@@ -75,12 +71,6 @@ public class Config {
             COMMON_BUILDER.comment("If No-Clip should be enabled or disabled by default when logging in")
                     .define("noclip.noclip_enabled_by_default", true);
 
-    // Effortless Building - client
-    public static final ModConfigSpec.DoubleValue BUILDING_PREVIEW_BLOCK_SIZE =
-            CLIENT_BUILDER.comment("Size of block previews as a percentage of a full block.")
-                    .translation("creative_mode_tweaks.config.preview_block_size")
-                    .defineInRange("building.preview_block_size", 1.0D, 0.1D, 1.0D);
-
     public static final ModConfigSpec.DoubleValue BUILDING_PREVIEW_BLOCK_TRANSPARENCY =
             CLIENT_BUILDER.comment("Transparency of block previews. 0% = invisible, 100% = solid.")
                     .translation("creative_mode_tweaks.config.preview_block_transparency")
@@ -96,7 +86,6 @@ public class Config {
                     .translation("creative_mode_tweaks.config.max_block_previews")
                     .defineInRange("building.max_block_previews", 1000, 50, 10000);
 
-    // Effortless Building - server
     public static final ModConfigSpec.BooleanValue BUILDING_SURVIVAL_ALLOW_ANGEL_PLACEMENT =
             COMMON_BUILDER.comment("Allow survival players to use Angel Placement to target air blocks at a distance.")
                     .translation("creative_mode_tweaks.config.allow_angel_placement")
@@ -151,7 +140,6 @@ public class Config {
             COMMON_BUILDER.comment("Consume tool durability when survival players break blocks with build modes.")
                     .translation("creative_mode_tweaks.config.use_durability")
                     .define("building.survival.use_durability", false);
-
 
     public static final ModConfigSpec.IntValue BUILDING_CREATIVE_MAX_BLOCKS_PLACED =
             COMMON_BUILDER.comment("Maximum number of blocks creative players can place or break in a single action.")
@@ -244,10 +232,6 @@ public class Config {
 
     public static int getBuildingMaxArrayOffset(Player player) {
         return player.isCreative() ? BUILDING_CREATIVE_MAX_ARRAY_OFFSET.get() : BUILDING_SURVIVAL_MAX_ARRAY_OFFSET.get();
-    }
-
-    public static float getBuildingPreviewBlockSize() {
-        return BUILDING_PREVIEW_BLOCK_SIZE.get().floatValue();
     }
 
     public static float getBuildingPreviewBlockTransparency() {

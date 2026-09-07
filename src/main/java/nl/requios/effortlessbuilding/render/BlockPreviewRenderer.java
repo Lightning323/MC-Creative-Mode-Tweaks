@@ -6,6 +6,7 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -33,20 +34,23 @@ import net.minecraft.world.item.BucketItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
-import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.ClipContext.Block;
+import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.Vec3;
-import net.minecraft.world.phys.HitResult.Type;
 
 public class BlockPreviewRenderer {
    private static final ResourceLocation CHECKERBOARD_TEXTURE = ResourceLocation.fromNamespaceAndPath("creative_mode_tweaks", "textures/special/checkerboard.png");
    private static final ResourceLocation OUTLINE_TEXTURE = ResourceLocation.fromNamespaceAndPath("creative_mode_tweaks", "textures/special/blank.png");
    private static final double VANILLA_REACH_SQ = (double)20.25F;
+   private static final int MAX_CACHED_BLOCK_MODELS = 256;
+   private static final Map<BlockState, CachedBlockModel> CACHED_BLOCK_MODELS = new LinkedHashMap<>(MAX_CACHED_BLOCK_MODELS, 0.75F, true) {
+      protected boolean removeEldestEntry(Map.Entry<BlockState, CachedBlockModel> eldest) {
+         return this.size() > MAX_CACHED_BLOCK_MODELS;
+      }
+   };
 
    public static void render(PoseStack poseStack, MultiBufferSource.BufferSource bufferSource, double camX, double camY, double camZ) {
       Minecraft mc = Minecraft.getInstance();
@@ -55,6 +59,7 @@ public class BlockPreviewRenderer {
          boolean sequenceActive = BuildPipelineClient.getBuildState() != null;
          boolean modeActive = BuildModes.CLIENT.getBuildMode() != BuildModeEnum.DISABLED;
          BlockSet blockSet = BuildPipelineClient.getPreviewBlocks(mc);
+
          if (blockSet != null && !blockSet.isEmpty()) {
             if (blockSet.size() <= 1 && !sequenceActive) {
                RenderHandler.resetPreviewSize();
@@ -63,6 +68,7 @@ public class BlockPreviewRenderer {
                BuildPipeline.BuildState pendingAction = BuildPipelineClient.getBuildState();
                RenderHandler.updateFeedback(positions, sequenceActive, pendingAction);
                boolean isBreaking = pendingAction == BuildPipeline.BuildState.BREAKING;
+
                List<BlockPos> breakablePositions = new ArrayList();
                List<BlockPos> unbreakablePositions = new ArrayList();
                boolean selectionOutsideSublevel = blockSet.hasEntriesWithStatus(BlockStatus.OUTSIDE_REACH);
@@ -78,19 +84,20 @@ public class BlockPreviewRenderer {
 
                positions = breakablePositions;
                int maxPreviews = Config.BUILDING_MAX_BLOCK_PREVIEWS.get();
-               if (!isBreaking) {
-                  float blockScale = Config.getBuildingPreviewBlockSize();
+               if (!isBreaking) { //If we are building
+
                   int blockAlpha = (int)(Config.getBuildingPreviewBlockTransparency() * 255.0F);
                   ItemStack held = mc.player.getMainHandItem();
                   BlockState baseState = null;
-                  Item var25 = held.getItem();
-                  if (var25 instanceof BlockItem) {
-                     BlockItem blockItem = (BlockItem)var25;
+                  Item heldItem = held.getItem();
+
+                  if (heldItem instanceof BlockItem) {
+                     BlockItem blockItem = (BlockItem) heldItem;
                      baseState = getPlacementState(blockItem, mc);
                   } else {
-                     var25 = held.getItem();
-                     if (var25 instanceof BucketItem) {
-                        BucketItem bucketItem = (BucketItem)var25;
+                     heldItem = held.getItem();
+                     if (heldItem instanceof BucketItem) {
+                        BucketItem bucketItem = (BucketItem)heldItem;
                         Fluid fluid = ((BucketItemAccessor)bucketItem).effortlessbuilding$getFluid();
                         if (!fluid.isSame(Fluids.EMPTY)) {
                            baseState = fluid.defaultFluidState().createLegacyBlock();
@@ -102,7 +109,7 @@ public class BlockPreviewRenderer {
                   if (baseState != null || randomized) {
                      try {
                         AlphaMultiBufferSource wrappedSource = new AlphaMultiBufferSource(bufferSource, blockAlpha);
-                        TintedMultiBufferSource missingSource = new TintedMultiBufferSource(bufferSource, 255, 80, 80, 200);
+//                        TintedMultiBufferSource missingSource = new TintedMultiBufferSource(bufferSource, 255, 80, 80, 200);
 
                         Map<Item, BlockState> randomStates = new HashMap();
                         int rendered = 0;
@@ -114,7 +121,7 @@ public class BlockPreviewRenderer {
 
                            BlockState state = baseState;
                            BlockEntry entry = (BlockEntry)blockSet.get(pos);
-                           if (randomized && entry != null) {
+                           if (randomized && entry != null) { //If we have a trowel, set the block to a random block
                               Item var34 = entry.item;
                               if (var34 instanceof BlockItem) {
                                  BlockItem randomBlock = (BlockItem)var34;
@@ -127,13 +134,14 @@ public class BlockPreviewRenderer {
                                  state = entry.applyTransforms(state);
                               }
 
-                              boolean isMissing = false;//missingPositions.contains(pos);
                               poseStack.pushPose();
                               SableCompat.translateToBlock(poseStack, mc.level, pos, camX, camY, camZ);
-                              poseStack.translate((double)0.5F, (double)0.5F, (double)0.5F);
-                              poseStack.scale(blockScale, blockScale, blockScale);
-                              poseStack.translate((double)-0.5F, (double)-0.5F, (double)-0.5F);
-                              mc.getBlockRenderer().renderSingleBlock(state, poseStack, (MultiBufferSource)(isMissing ? missingSource : wrappedSource), 15728880, OverlayTexture.NO_OVERLAY);
+//                              poseStack.translate((double)0.5F, (double)0.5F, (double)0.5F);
+//                              poseStack.scale(blockScale, blockScale, blockScale);
+//                              poseStack.translate((double)-0.5F, (double)-0.5F, (double)-0.5F);
+
+                              renderCachedBlock(mc, state, poseStack, wrappedSource);
+
                               poseStack.popPose();
                               ++rendered;
                            }
@@ -146,9 +154,9 @@ public class BlockPreviewRenderer {
                }
 
                RenderSystem.depthMask(false);
-               renderBoundingBoxFaces(poseStack, bufferSource, mc.level, breakablePositions, camX, camY, camZ, isBreaking, false);
+               renderBoundingBoxAround(poseStack, bufferSource, mc.level, breakablePositions, camX, camY, camZ, isBreaking, false);
                if (!unbreakablePositions.isEmpty()) {
-                  renderBoundingBoxFaces(poseStack, bufferSource, mc.level, unbreakablePositions, camX, camY, camZ, isBreaking, true);
+                  renderBoundingBoxAround(poseStack, bufferSource, mc.level, unbreakablePositions, camX, camY, camZ, isBreaking, true);
                }
 
                bufferSource.endBatch(RenderType.entityTranslucentCull(CHECKERBOARD_TEXTURE));
@@ -157,25 +165,10 @@ public class BlockPreviewRenderer {
                int oR = 255;
                int oG = isBreaking ? 0 : 255;
                int oB = isBreaking ? 0 : 255;
-//               Set<BlockPos> missingSet = BuildPipelineClient.ITEM_USAGE.missingPositions;
-               List<BlockPos> validPositions = new ArrayList();
-               List<BlockPos> missingPositionsList = new ArrayList();
 
-               for(BlockPos pos : breakablePositions) {
-//                  if (missingSet.contains(pos)) {
-//                     missingPositionsList.add(pos);
-//                  } else {
-                     validPositions.add(pos);
-//                  }
-               }
-
+               List<BlockPos> validPositions = new ArrayList<>(breakablePositions);
                if (!validPositions.isEmpty()) {
                   renderEdgeQuads(poseStack, bufferSource, mc.level, computeBorderEdges(validPositions), camX, camY, camZ, outlineWidth, oR, oG, oB, 255);
-                  bufferSource.endBatch(RenderType.entityTranslucent(OUTLINE_TEXTURE));
-               }
-
-               if (!missingPositionsList.isEmpty()) {
-                  renderEdgeQuads(poseStack, bufferSource, mc.level, computeBorderEdges(missingPositionsList), camX, camY, camZ, outlineWidth, 255, 0, 0, 255);
                   bufferSource.endBatch(RenderType.entityTranslucent(OUTLINE_TEXTURE));
                }
 
@@ -191,8 +184,37 @@ public class BlockPreviewRenderer {
       }
    }
 
-   private static void renderBoundingBoxFaces(PoseStack poseStack, MultiBufferSource bufferSource, Level level, List<BlockPos> positions, double camX, double camY, double camZ, boolean isBreaking, boolean isUnbreakable) {
-      Set<BlockPos> posSet = new HashSet(positions);
+   /**
+    * The preview renderer always invokes vanilla's item-style block rendering: it has no
+    * position-dependent model data and uses a fixed random seed.  Cache its emitted local
+    * vertices so identical preview states do not re-tessellate their baked model every frame.
+    */
+   private static void renderCachedBlock(Minecraft mc, BlockState state, PoseStack poseStack, MultiBufferSource bufferSource) {
+      if (state.getRenderShape() != RenderShape.MODEL) {
+         // Animated block-entity renderers can change between frames, so they must stay live.
+         mc.getBlockRenderer().renderSingleBlock(state, poseStack, bufferSource, 15728880, OverlayTexture.NO_OVERLAY);
+         return;
+      }
+
+      CachedBlockModel cachedModel = CACHED_BLOCK_MODELS.get(state);
+      if (cachedModel == null) {
+         cachedModel = CachedBlockModel.capture(mc, state);
+         CACHED_BLOCK_MODELS.put(state, cachedModel);
+      }
+
+      cachedModel.render(poseStack.last(), bufferSource);
+   }
+
+   /** Called after block models are rebaked so stale vertex data is never reused. */
+   public static void clearCachedModels() {
+      CACHED_BLOCK_MODELS.clear();
+   }
+
+   private static void renderBoundingBoxAround(PoseStack poseStack, MultiBufferSource bufferSource, Level level, List<BlockPos> positions,
+                                               double camX, double camY, double camZ,
+                                               boolean isBreaking, boolean isUnbreakable) {
+
+      Set<BlockPos> posSet = new HashSet<>(positions);
       VertexConsumer consumer = bufferSource.getBuffer(RenderType.entityTranslucentCull(CHECKERBOARD_TEXTURE));
       int r;
       int g;
@@ -332,9 +354,168 @@ public class BlockPreviewRenderer {
    private static record EdgeKey(int axis, int x, int y, int z) {
    }
 
+   /** A state-specific copy of the vertices emitted by BlockRenderDispatcher.renderSingleBlock. */
+   private static final class CachedBlockModel {
+      private final List<CachedRenderLayer> layers;
+
+      private CachedBlockModel(List<CachedRenderLayer> layers) {
+         this.layers = layers;
+      }
+
+      static CachedBlockModel capture(Minecraft mc, BlockState state) {
+         CapturingMultiBufferSource capture = new CapturingMultiBufferSource();
+         mc.getBlockRenderer().renderSingleBlock(state, new PoseStack(), capture, 15728880, OverlayTexture.NO_OVERLAY);
+         return capture.finish();
+      }
+
+      void render(PoseStack.Pose pose, MultiBufferSource bufferSource) {
+         for(CachedRenderLayer layer : this.layers) {
+            VertexConsumer consumer = bufferSource.getBuffer(layer.renderType());
+
+            for(CachedVertex vertex : layer.vertices()) {
+               vertex.write(consumer, pose);
+            }
+         }
+      }
+   }
+
+   private static record CachedRenderLayer(RenderType renderType, List<CachedVertex> vertices) {
+   }
+
+   private static record CachedVertex(float x, float y, float z, int red, int green, int blue, int alpha, float u, float v, int overlayU, int overlayV, int lightU, int lightV, float normalX, float normalY, float normalZ) {
+      void write(VertexConsumer consumer, PoseStack.Pose pose) {
+         consumer.addVertex(pose, this.x, this.y, this.z)
+                 .setColor(this.red, this.green, this.blue, this.alpha)
+                 .setUv(this.u, this.v)
+                 .setUv1(this.overlayU, this.overlayV)
+                 .setUv2(this.lightU, this.lightV)
+                 .setNormal(pose, this.normalX, this.normalY, this.normalZ);
+      }
+   }
+
+   /** Captures dispatcher output once, before it is transformed to a preview block's position. */
+   private static final class CapturingMultiBufferSource implements MultiBufferSource {
+      private final Map<RenderType, CapturingVertexConsumer> consumers = new LinkedHashMap<>();
+
+      public VertexConsumer getBuffer(RenderType renderType) {
+         return this.consumers.computeIfAbsent(renderType, (unused) -> new CapturingVertexConsumer());
+      }
+
+      CachedBlockModel finish() {
+         List<CachedRenderLayer> layers = new ArrayList<>(this.consumers.size());
+
+         for(Map.Entry<RenderType, CapturingVertexConsumer> entry : this.consumers.entrySet()) {
+            layers.add(new CachedRenderLayer(entry.getKey(), entry.getValue().finish()));
+         }
+
+         return new CachedBlockModel(layers);
+      }
+   }
+
+   private static final class CapturingVertexConsumer implements VertexConsumer {
+      private final List<CachedVertex> vertices = new ArrayList<>();
+      private PendingVertex current;
+
+      public VertexConsumer addVertex(float x, float y, float z) {
+         this.completeCurrentVertex();
+         this.current = new PendingVertex(x, y, z);
+         return this;
+      }
+
+      public VertexConsumer setColor(int red, int green, int blue, int alpha) {
+         if (this.current != null) {
+            this.current.red = red;
+            this.current.green = green;
+            this.current.blue = blue;
+            this.current.alpha = alpha;
+         }
+
+         return this;
+      }
+
+      public VertexConsumer setUv(float u, float v) {
+         if (this.current != null) {
+            this.current.u = u;
+            this.current.v = v;
+         }
+
+         return this;
+      }
+
+      public VertexConsumer setUv1(int u, int v) {
+         if (this.current != null) {
+            this.current.overlayU = u;
+            this.current.overlayV = v;
+         }
+
+         return this;
+      }
+
+      public VertexConsumer setUv2(int u, int v) {
+         if (this.current != null) {
+            this.current.lightU = u;
+            this.current.lightV = v;
+         }
+
+         return this;
+      }
+
+      public VertexConsumer setNormal(float x, float y, float z) {
+         if (this.current != null) {
+            this.current.normalX = x;
+            this.current.normalY = y;
+            this.current.normalZ = z;
+         }
+
+         return this;
+      }
+
+      List<CachedVertex> finish() {
+         this.completeCurrentVertex();
+         return this.vertices;
+      }
+
+      private void completeCurrentVertex() {
+         if (this.current != null) {
+            this.vertices.add(this.current.toCachedVertex());
+            this.current = null;
+         }
+      }
+   }
+
+   private static final class PendingVertex {
+      private final float x;
+      private final float y;
+      private final float z;
+      private int red = 255;
+      private int green = 255;
+      private int blue = 255;
+      private int alpha = 255;
+      private float u;
+      private float v;
+      private int overlayU;
+      private int overlayV;
+      private int lightU;
+      private int lightV;
+      private float normalX;
+      private float normalY;
+      private float normalZ;
+
+      PendingVertex(float x, float y, float z) {
+         this.x = x;
+         this.y = y;
+         this.z = z;
+      }
+
+      CachedVertex toCachedVertex() {
+         return new CachedVertex(this.x, this.y, this.z, this.red, this.green, this.blue, this.alpha, this.u, this.v, this.overlayU, this.overlayV, this.lightU, this.lightV, this.normalX, this.normalY, this.normalZ);
+      }
+   }
+
    private static class AlphaMultiBufferSource implements MultiBufferSource {
       private final MultiBufferSource.BufferSource delegate;
       private final int alpha;
+      private final Map<RenderType, VertexConsumer> consumers = new HashMap<>();
 
       AlphaMultiBufferSource(MultiBufferSource.BufferSource delegate, int alpha) {
          this.delegate = delegate;
@@ -343,7 +524,7 @@ public class BlockPreviewRenderer {
 
       public VertexConsumer getBuffer(RenderType renderType) {
          RenderType renderTypeToUse = renderType.toString().contains("entity_cutout") ? RenderType.translucent() : renderType;
-         return new AlphaVertexConsumer(this.delegate.getBuffer(renderTypeToUse), this.alpha);
+         return this.consumers.computeIfAbsent(renderTypeToUse, (type) -> new AlphaVertexConsumer(this.delegate.getBuffer(type), this.alpha));
       }
    }
 

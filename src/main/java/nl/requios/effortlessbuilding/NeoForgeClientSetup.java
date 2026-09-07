@@ -10,6 +10,7 @@ import nl.requios.effortlessbuilding.buildpipeline.BuildPipelineClient;
 import nl.requios.effortlessbuilding.network.PacketHandler;
 import nl.requios.effortlessbuilding.network.RedoPacket;
 import nl.requios.effortlessbuilding.network.UndoPacket;
+import nl.requios.effortlessbuilding.render.BlockPreviewRenderer;
 import nl.requios.effortlessbuilding.render.RenderHandler;
 import nl.requios.effortlessbuilding.screen.ModifiersScreen;
 import nl.requios.effortlessbuilding.screen.RadialMenu;
@@ -26,12 +27,25 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.EventBusSubscriber.Bus;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.client.event.ModelEvent;
 import net.neoforged.neoforge.client.event.RenderGuiEvent;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent.Stage;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 
 public class NeoForgeClientSetup {
+   @EventBusSubscriber(
+      modid = "creative_mode_tweaks",
+      value = {Dist.CLIENT},
+      bus = Bus.MOD
+   )
+   public static class ModEvents {
+      @SubscribeEvent
+      public static void onModelsBaked(ModelEvent.BakingCompleted event) {
+         BlockPreviewRenderer.clearCachedModels();
+      }
+   }
+
    @EventBusSubscriber(
       modid = "creative_mode_tweaks",
       value = {Dist.CLIENT},
