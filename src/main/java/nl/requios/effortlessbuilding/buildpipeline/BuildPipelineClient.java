@@ -143,8 +143,8 @@ public class BuildPipelineClient {
             }
 
             BlockHitResult hit = target.hit();
-
-            clickedPos = resolveFirstClickPos(hit, action, mc.level);
+            BlockPos markerPos = mode.instance.getSelectionMarker(hit.getBlockPos());
+            clickedPos = markerPos != null ? markerPos : resolveFirstClickPos(hit, action, mc.level);
             buildState = action;
             firstClickHit = hit;
             angelPlacementSequence = target.isAngelTarget();
@@ -156,7 +156,9 @@ public class BuildPipelineClient {
                return;
             }
 
-            clickedPos = resolveFirstClickPos(target.hit(), action, mc.level);
+            BlockHitResult hit = target.hit();
+            BlockPos markerPos = mode.instance.getSelectionMarker(hit.getBlockPos());
+            clickedPos = markerPos != null ? markerPos : resolveFirstClickPos(hit, action, mc.level);
          } else {
             clickedPos = player.blockPosition();
          }

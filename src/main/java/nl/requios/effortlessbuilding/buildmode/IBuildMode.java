@@ -26,6 +26,19 @@ public interface IBuildMode {
    }
 
    /**
+    * Returns a persistent selection marker at the clicked block, when this
+    * mode has one. This lets modes reuse an existing selection point even if
+    * normal placement would offset the click to an adjacent block.
+    */
+   default @Nullable BlockPos getSelectionMarker(BlockPos clickedPos) {
+      return null;
+   }
+
+   /** Called once when the player changes away from this build mode. */
+   default void onBuildModeDeselected() {
+   }
+
+   /**
     * Whether the next click should use the block under the cursor as a selected
     * point instead of the player's look-vector based point selection.
     */

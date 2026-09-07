@@ -32,6 +32,10 @@ public class BuildModes {
    }
 
    public void setBuildMode(BuildModeEnum buildMode) {
+      if (this.buildMode != buildMode) {
+         this.buildMode.instance.onBuildModeDeselected();
+      }
+
       if (this.buildMode != BuildModeEnum.DISABLED && buildMode == BuildModeEnum.DISABLED) {
          this.beforeDisable.run();
       }

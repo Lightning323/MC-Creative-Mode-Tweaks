@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Set;
 import nl.requios.effortlessbuilding.buildmode.BuildModeEnum;
 import nl.requios.effortlessbuilding.buildmode.BuildModes;
+import nl.requios.effortlessbuilding.buildmode.buildmodes.Mesh;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipeline;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipelineClient;
 import nl.requios.effortlessbuilding.buildpipeline.TrowelSystem;
@@ -43,6 +44,7 @@ import net.minecraft.world.phys.BlockHitResult;
 
 public class BlockPreviewRenderer {
    private static final ResourceLocation CHECKERBOARD_TEXTURE = ResourceLocation.fromNamespaceAndPath("creative_mode_tweaks", "textures/special/checkerboard.png");
+   private static final ResourceLocation SELECTION_TEXTURE = ResourceLocation.fromNamespaceAndPath("creative_mode_tweaks", "textures/special/selection.png");
    private static final ResourceLocation OUTLINE_TEXTURE = ResourceLocation.fromNamespaceAndPath("creative_mode_tweaks", "textures/special/blank.png");
    private static final int MAX_CACHED_BLOCK_MODELS = 256;
    private static final Map<BlockState, CachedBlockModel> CACHED_BLOCK_MODELS = new LinkedHashMap<>(MAX_CACHED_BLOCK_MODELS, 0.75F, true) {
@@ -178,7 +180,54 @@ public class BlockPreviewRenderer {
          } else {
             RenderHandler.resetPreviewSize();
          }
+
+         renderSelectionMarkers(poseStack, bufferSource, mc.level, camX, camY, camZ);
       }
+   }
+
+   /** Renders Mesh's session-only vertices independently of the normal block preview. */
+   private static void renderSelectionMarkers(PoseStack poseStack, MultiBufferSource.BufferSource bufferSource, Level level, double camX, double camY, double camZ) {
+      if (BuildModes.CLIENT.getBuildMode() != BuildModeEnum.MESH || !(BuildModeEnum.MESH.instance instanceof Mesh mesh)) {
+         return;
+      }
+
+      List<BlockPos> vertices = mesh.getVertexMarkers();
+      if (vertices.isEmpty()) {
+         return;
+      }
+
+      RenderSystem.depthMask(false);
+      VertexConsumer consumer = bufferSource.getBuffer(RenderType.entityTranslucentCull(SELECTION_TEXTURE));
+
+      for (BlockPos vertex : vertices) {
+         boolean selected = mesh.isVertexSelected(vertex);
+         renderMeshVertexMarker(poseStack, consumer, level, vertex, camX, camY, camZ, selected ? 0 : 255, 255, selected ? 0 : 255);
+      }
+
+      bufferSource.endBatch(RenderType.entityTranslucentCull(SELECTION_TEXTURE));
+      RenderSystem.depthMask(true);
+   }
+
+   /** A full box keeps each persistent vertex individually visible, including adjacent ones. */
+   private static void renderMeshVertexMarker(PoseStack poseStack, VertexConsumer consumer, Level level, BlockPos pos, double camX, double camY, double camZ, int r, int g, int b) {
+      float epsilon = 0.008F;
+      float x0 = -epsilon;
+      float x1 = 1.0F + epsilon;
+      float y0 = -epsilon;
+      float y1 = 1.0F + epsilon;
+      float z0 = -epsilon;
+      float z1 = 1.0F + epsilon;
+      int alpha = 190;
+      poseStack.pushPose();
+      SableCompat.translateToBlock(poseStack, level, pos, camX, camY, camZ);
+      PoseStack.Pose pose = poseStack.last();
+      addFace(consumer, pose, x0, y0, z0, x1, y0, z0, x1, y0, z1, x0, y0, z1, 0.0F, -1.0F, 0.0F, r, g, b, alpha);
+      addFace(consumer, pose, x0, y1, z0, x0, y1, z1, x1, y1, z1, x1, y1, z0, 0.0F, 1.0F, 0.0F, r, g, b, alpha);
+      addFace(consumer, pose, x0, y0, z0, x0, y1, z0, x1, y1, z0, x1, y0, z0, 0.0F, 0.0F, -1.0F, r, g, b, alpha);
+      addFace(consumer, pose, x1, y0, z1, x1, y1, z1, x0, y1, z1, x0, y0, z1, 0.0F, 0.0F, 1.0F, r, g, b, alpha);
+      addFace(consumer, pose, x0, y0, z1, x0, y1, z1, x0, y1, z0, x0, y0, z0, -1.0F, 0.0F, 0.0F, r, g, b, alpha);
+      addFace(consumer, pose, x1, y0, z0, x1, y1, z0, x1, y1, z1, x1, y0, z1, 1.0F, 0.0F, 0.0F, r, g, b, alpha);
+      poseStack.popPose();
    }
 
    /**

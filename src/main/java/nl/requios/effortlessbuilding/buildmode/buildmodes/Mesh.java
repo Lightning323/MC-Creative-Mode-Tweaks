@@ -18,6 +18,7 @@ import org.jetbrains.annotations.Nullable;
 public class Mesh extends BaseBuildMode {
    private static final double SAMPLES_PER_BLOCK = 4.0D;
    private final List<BlockPos> points = new ArrayList();
+   private final Set<BlockPos> vertexMarkers = new LinkedHashSet();
    private ModeOptions.ActionEnum faceShape = ModeOptions.ActionEnum.MESH_TRIANGLE;
    private @Nullable BlockPos previewPoint;
 
@@ -28,13 +29,26 @@ public class Mesh extends BaseBuildMode {
       this.previewPoint = null;
    }
 
+   /** Markers belong to the current Mesh session, not an individual face. */
+   @Override
+   public void onBuildModeDeselected() {
+      this.points.clear();
+      this.vertexMarkers.clear();
+      this.previewPoint = null;
+   }
+
    public boolean onClick(BlockSet blocks, BlockPos clickedPos, Player player) {
       if (this.clicks == 0) {
          this.faceShape = ModeOptions.getMeshFace();
       }
 
+      if (this.points.contains(clickedPos)) {
+         return false;
+      }
+
       ++this.clicks;
       this.points.add(clickedPos);
+      this.vertexMarkers.add(clickedPos);
       return this.points.size() == this.requiredPointCount();
    }
 
@@ -80,6 +94,20 @@ public class Mesh extends BaseBuildMode {
 
    public void setPreviewSecondPoint(@Nullable BlockPos pos) {
       this.previewPoint = pos;
+   }
+
+   /** Persistent vertices can be clicked again to connect a new face. */
+   @Override
+   public @Nullable BlockPos getSelectionMarker(BlockPos clickedPos) {
+      return this.vertexMarkers.contains(clickedPos) ? clickedPos : null;
+   }
+
+   public List<BlockPos> getVertexMarkers() {
+      return List.copyOf(this.vertexMarkers);
+   }
+
+   public boolean isVertexSelected(BlockPos pos) {
+      return this.points.contains(pos);
    }
 
    public boolean usesDirectSecondPoint() {

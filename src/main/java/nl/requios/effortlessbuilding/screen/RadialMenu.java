@@ -42,7 +42,7 @@ public class RadialMenu extends Screen {
     private final Vector4f highlightColor = new Vector4f(0.6F, 0.8F, 1.0F, 0.6F);
     private final Vector4f selectedColor = new Vector4f(0.0F, 0.5F, 1.0F, 0.5F);
     private final Vector4f highlightSelectedColor = new Vector4f(0.2F, 0.7F, 1.0F, 0.7F);
-    private final float OPTION_BUTTONS_Y_START = -8.0F;
+    private final float OPTION_BUTTONS_Y_START = -13.0F;
     public BuildModeEnum switchTo = null;
     public ModeOptions.ActionEnum doAction = null;
     public boolean performedActionUsingMouse;
