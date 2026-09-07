@@ -38,13 +38,9 @@ public class MixinMinecraft {
       Minecraft mc = (Minecraft)(Object)this;
       if (mc.player != null && mc.level != null) {
          if (BuildPipelineClient.shouldInterceptBreaking()) {
-            boolean sequenceActive = BuildPipelineClient.getBuildState() != null;
-            if (sequenceActive || BuildPipeline.isBuildTriggerItem(mc.player.getMainHandItem())) {
-               if (mc.hitResult != null && mc.hitResult.getType() == Type.BLOCK) {
-                  cir.setReturnValue(false);
-                  cir.cancel();
-               }
-
+            if (mc.hitResult != null && mc.hitResult.getType() == Type.BLOCK) {
+               cir.setReturnValue(false);
+               cir.cancel();
             }
          }
       }
@@ -60,12 +56,8 @@ public class MixinMinecraft {
          Minecraft mc = (Minecraft)(Object)this;
          if (mc.player != null && mc.level != null) {
             if (BuildPipelineClient.shouldInterceptBreaking()) {
-               boolean sequenceActive = BuildPipelineClient.getBuildState() != null;
-               if (sequenceActive || BuildPipeline.isBuildTriggerItem(mc.player.getMainHandItem())) {
-                  if (mc.hitResult != null && mc.hitResult.getType() == Type.BLOCK) {
-                     ci.cancel();
-                  }
-
+               if (mc.hitResult != null && mc.hitResult.getType() == Type.BLOCK) {
+                  ci.cancel();
                }
             }
          }

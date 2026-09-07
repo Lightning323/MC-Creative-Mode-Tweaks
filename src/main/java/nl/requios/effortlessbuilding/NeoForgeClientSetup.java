@@ -18,7 +18,6 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 import org.lightning323.creative_mode_tweaks.Config;
 import org.lightning323.creative_mode_tweaks.client.ClientModEvents;
@@ -118,10 +117,10 @@ public class NeoForgeClientSetup {
                   }
                }
 
-               if (leftJustPressed && BuildPipelineClient.shouldInterceptBreaking()) {
+               if (leftJustPressed) {
                   if (BuildPipelineClient.getBuildState() == BuildPipeline.BuildState.PLACING) {
                      BuildPipelineClient.cancelCurrentSequence();
-                  } else if (mc.player.getMainHandItem().isEmpty() || BuildPipeline.isBuildTriggerItem(mc.player.getMainHandItem()) || BuildPipelineClient.getBuildState() != null) {
+                  } else if (BuildPipelineClient.shouldInterceptBreaking()) {
                      BuildPipelineClient.handleLeftClick(mc);
                   }
                }
@@ -153,12 +152,8 @@ public class NeoForgeClientSetup {
       @SubscribeEvent
       public static void onLeftClickBlock(PlayerInteractEvent.LeftClickBlock event) {
          if (event.getEntity().level().isClientSide()) {
-            if (BuildPipelineClient.shouldInterceptPlacing()) {
-               Player player = event.getEntity();
-               if (player.getMainHandItem().isEmpty() || BuildPipeline.isBuildTriggerItem(player.getMainHandItem()) || BuildPipelineClient.getBuildState() != null) {
-                  event.setCanceled(true);
-               }
-
+            if (BuildPipelineClient.getBuildState() == BuildPipeline.BuildState.PLACING || BuildPipelineClient.shouldInterceptBreaking()) {
+               event.setCanceled(true);
             }
          }
       }

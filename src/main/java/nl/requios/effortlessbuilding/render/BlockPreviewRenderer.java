@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Set;
 import nl.requios.effortlessbuilding.buildmode.BuildModeEnum;
 import nl.requios.effortlessbuilding.buildmode.BuildModes;
+import nl.requios.effortlessbuilding.buildmode.BuildSettings;
 import nl.requios.effortlessbuilding.buildmode.buildmodes.Mesh;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipeline;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipelineClient;
@@ -86,7 +87,9 @@ public class BlockPreviewRenderer {
 
                positions = breakablePositions;
                int maxPreviews = Config.BUILDING_MAX_BLOCK_PREVIEWS.get();
-               if (!isBreaking) { //If we are building
+               boolean renderPlacementBlocks = !isBreaking
+                       && BuildSettings.CLIENT.getReplaceMode() != BuildSettings.ReplaceMode.ONLY_BLOCKS;
+               if (renderPlacementBlocks) {
 
                   int blockAlpha = (int)(Config.getBuildingPreviewBlockTransparency() * 255.0F);
                   ItemStack held = mc.player.getMainHandItem();
