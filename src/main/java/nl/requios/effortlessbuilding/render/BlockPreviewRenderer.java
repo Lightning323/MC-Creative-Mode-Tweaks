@@ -18,6 +18,7 @@ import nl.requios.effortlessbuilding.buildpipeline.SableCompat;
 import nl.requios.effortlessbuilding.mixin.BucketItemAccessor;
 import nl.requios.effortlessbuilding.utilities.BlockEntry;
 import nl.requios.effortlessbuilding.utilities.BlockSet;
+import nl.requios.effortlessbuilding.utilities.BlockStatus;
 import org.lightning323.creative_mode_tweaks.Config;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -64,10 +65,11 @@ public class BlockPreviewRenderer {
                boolean isBreaking = pendingAction == BuildPipeline.BuildState.BREAKING;
                List<BlockPos> breakablePositions = new ArrayList();
                List<BlockPos> unbreakablePositions = new ArrayList();
+               boolean selectionOutsideSublevel = blockSet.hasEntriesWithStatus(BlockStatus.OUTSIDE_REACH);
 
                for(BlockPos pos : positions) {
                   BlockEntry entry = (BlockEntry)blockSet.get(pos);
-                  if (entry != null && !entry.isValid()) {
+                  if (selectionOutsideSublevel || entry != null && !entry.isValid()) {
                      unbreakablePositions.add(pos);
                   } else {
                      breakablePositions.add(pos);

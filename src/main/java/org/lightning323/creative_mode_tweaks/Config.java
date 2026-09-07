@@ -58,6 +58,11 @@ public class Config {
                     .translation("creative_mode_tweaks.config.angel_placement_distance")
                     .defineInRange("building.angel_placement.distance", 6, 5, 256);
 
+    public static final ModConfigSpec.BooleanValue BUILDING_CANCEL_OUT_OF_SUBLEVEL_SELECTIONS =
+            COMMON_BUILDER.comment("Cancel a build-mode selection when any of its blocks are outside the selected simulated sublevel.")
+                    .translation("creative_mode_tweaks.config.cancel_out_of_sublevel_selections")
+                    .define("building.cancel_out_of_sublevel_selections", true);
+
     private static final ModConfigSpec.BooleanValue DISABLE_FLIGHT_INERTIA =
             COMMON_BUILDER.comment("Whether to disable flight inertia")
                     .define("flight.disable_flight_inertia", true);
@@ -192,6 +197,7 @@ public class Config {
     public static int hotbarMaxScrollMargin;
     private static boolean clientAngelPlacementAllowed;
     private static int clientAngelPlacementDistance = 8;
+    private static boolean clientCancelOutOfSublevelSelections = true;
 
     public static int getReach(Player player) {
         return player.isCreative() ? CREATIVE_REACH.get() : SURVIVAL_REACH.get();
@@ -208,6 +214,16 @@ public class Config {
     public static void updateClientAngelPlacementSettings(boolean allowed, int distance) {
         clientAngelPlacementAllowed = allowed;
         clientAngelPlacementDistance = distance;
+    }
+
+    public static boolean shouldCancelOutOfSublevelSelections(Player player) {
+        return player.level().isClientSide()
+                ? clientCancelOutOfSublevelSelections
+                : BUILDING_CANCEL_OUT_OF_SUBLEVEL_SELECTIONS.get();
+    }
+
+    public static void updateClientOutOfSublevelSelectionSettings(boolean cancelSelections) {
+        clientCancelOutOfSublevelSelections = cancelSelections;
     }
 
     public static int getBuildingMaxBlocksPlaced(Player player) {

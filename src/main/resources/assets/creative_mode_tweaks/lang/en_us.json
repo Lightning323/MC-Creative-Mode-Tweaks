@@ -108,6 +108,7 @@
   "creative_mode_tweaks.message.too_hard": "Some blocks exceeded the maximum hardness",
   "creative_mode_tweaks.message.protected_tile_entity": "Some blocks were protected (tile entities)",
   "creative_mode_tweaks.message.world_border": "Some blocks are outside the world border or build height",
+  "creative_mode_tweaks.message.sublevel_out_of_bounds": "Selection extends outside the simulated contraption's bounds",
   "creative_mode_tweaks.message.not_operator": "Only admins can edit functional settings.",
 
   "creative_mode_tweaks.config.section_survival": "Survival",
@@ -116,6 +117,8 @@
   "creative_mode_tweaks.config.reach.tooltip": "How far away you can place and break blocks with build modes.",
   "creative_mode_tweaks.config.angel_placement_distance": "Angel Placement Distance",
   "creative_mode_tweaks.config.angel_placement_distance.tooltip": "Distance from the player at which Angel Placement targets an air block.",
+  "creative_mode_tweaks.config.cancel_out_of_sublevel_selections": "Cancel Out-of-Sublevel Selections",
+  "creative_mode_tweaks.config.cancel_out_of_sublevel_selections.tooltip": "If on, build-mode selections that extend outside the selected simulated contraption are cancelled. If off, only the in-bounds blocks are changed.",
   "creative_mode_tweaks.config.allow_angel_placement": "Allow Angel Placement",
   "creative_mode_tweaks.config.allow_angel_placement.tooltip": "If on, survival players can use Angel Placement.",
   "creative_mode_tweaks.config.max_blocks_placed": "Max Blocks Placed At Once",

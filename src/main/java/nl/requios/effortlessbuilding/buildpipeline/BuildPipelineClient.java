@@ -162,6 +162,12 @@ public class BuildPipelineClient {
                mode.instance.findCoordinates(blocks, player);
                CLIENT.processBlocks(blocks, player, action);
                if (blocks.firstPos != null && blocks.lastPos != null) {
+               if (blocks.hasEntriesWithStatus(BlockStatus.OUTSIDE_REACH) && Config.shouldCancelOutOfSublevelSelections(player)) {
+                  player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.sublevel_out_of_bounds"), true);
+                  cancelCurrentSequence();
+                  return;
+               }
+
                if (action == BuildPipeline.BuildState.PLACING) {
                   ItemStack held = player.getMainHandItem();
                   BlockEntry firstEntry = (BlockEntry)blocks.get(blocks.firstPos);

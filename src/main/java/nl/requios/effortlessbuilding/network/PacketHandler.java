@@ -18,6 +18,7 @@ import nl.requios.effortlessbuilding.modifier.ModifierServerStorage;
 import nl.requios.effortlessbuilding.modifier.ModifierSystem;
 import nl.requios.effortlessbuilding.utilities.BlockEntry;
 import nl.requios.effortlessbuilding.utilities.BlockSet;
+import nl.requios.effortlessbuilding.utilities.BlockStatus;
 import nl.requios.effortlessbuilding.utilities.InventoryHelper;
 import nl.requios.effortlessbuilding.utilities.PlacedBlockTracker;
 import nl.requios.effortlessbuilding.utilities.UndoManager;
@@ -104,6 +105,13 @@ public class PacketHandler {
       if (blockSet == null) {
          Constants.LOG.warn("[EffortlessBuilding] Received PlaceBuildModePacket but mode {} returned no blocks", packet.buildMode());
       } else {
+         if (blockSet.hasEntriesWithStatus(BlockStatus.OUTSIDE_REACH)) {
+            player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.sublevel_out_of_bounds"), true);
+            if (Config.shouldCancelOutOfSublevelSelections(player)) {
+               return;
+            }
+         }
+
          blockSet.sortByDistance();
          ItemStack held = player.getItemInHand(InteractionHand.MAIN_HAND);
          ItemStack offHand = player.getItemInHand(InteractionHand.OFF_HAND);
@@ -340,6 +348,13 @@ public class PacketHandler {
          if (blockSet == null) {
             Constants.LOG.warn("[EffortlessBuilding] Received BreakBuildModePacket but mode {} returned no blocks", packet.buildMode());
          } else {
+            if (blockSet.hasEntriesWithStatus(BlockStatus.OUTSIDE_REACH)) {
+               player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.sublevel_out_of_bounds"), true);
+               if (Config.shouldCancelOutOfSublevelSelections(player)) {
+                  return;
+               }
+            }
+
             Map<BlockPos, UndoManager.BlockChange> undoChanges = new LinkedHashMap();
             BlockState airState = Blocks.AIR.defaultBlockState();
             int broken = 0;

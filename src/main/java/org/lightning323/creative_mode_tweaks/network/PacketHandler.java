@@ -13,8 +13,8 @@ public class PacketHandler {
 
     @SubscribeEvent
     public static void register(final RegisterPayloadHandlersEvent event) {
-        // "1" is your protocol version
-        final PayloadRegistrar registrar = event.registrar("1");
+        // Bumped because ClientboundSyncConfigPayload gained a field.
+        final PayloadRegistrar registrar = event.registrar("2");
 
         // Register ToggleNoClip (Assumed simple payload)
         registrar.playToServer(

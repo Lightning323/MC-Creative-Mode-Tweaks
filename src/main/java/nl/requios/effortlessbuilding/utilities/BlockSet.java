@@ -90,6 +90,10 @@ public class BlockSet extends LinkedHashMap<BlockPos, BlockEntry> implements Ite
       return (List)this.entrySet().stream().filter((e) -> !((BlockEntry)e.getValue()).isValid()).collect(Collectors.toList());
    }
 
+   public boolean hasEntriesWithStatus(BlockStatus status) {
+      return this.values().stream().anyMatch((entry) -> entry.getStatus() == status);
+   }
+
    public List<BlockPos> validPositions() {
       List<BlockPos> result = new ArrayList();
 
