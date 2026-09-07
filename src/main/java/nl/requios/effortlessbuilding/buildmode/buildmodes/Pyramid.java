@@ -242,7 +242,7 @@ public class Pyramid extends ThreeClicksBuildMode {
          int secondV = coordinate(secondPos, this.vAxis);
          this.height = Math.abs(coordinate(thirdPos, this.normalAxis) - this.base);
          this.tip = this.base + this.normalStep * this.height;
-         this.corners = ModeOptions.getPyramidSides() == ModeOptions.ActionEnum.PYRAMID_THREE_SIDED
+         this.corners = ModeOptions.getSides() == ModeOptions.ActionEnum.THREE_SIDED
             ? createTriangle(firstU, firstV, secondU, secondV)
             : createSquare(firstU, firstV, secondU, secondV);
 

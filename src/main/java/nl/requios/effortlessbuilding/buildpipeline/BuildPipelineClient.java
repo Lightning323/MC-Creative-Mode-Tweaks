@@ -224,7 +224,7 @@ public class BuildPipelineClient {
 
                   Direction hitFace = firstClickHit != null ? firstClickHit.getDirection() : Direction.UP;
                   Vec3 hitLocation = firstClickHit != null ? firstClickHit.getLocation() : Vec3.atCenterOf(blocks.firstPos);
-                  PacketHandler.sendToServer(new PlaceBuildModePacket(mode, blocks.firstPos, secondPos, thirdPos, fourthPos, hitFace, hitLocation, ModeOptions.getFill(), ModeOptions.getCubeFill(), ModeOptions.getRaisedEdge(), ModeOptions.getCircleStart(), pointBuild, ModeOptions.getPyramidSides(), BuildSettings.CLIENT.getReplaceMode(), Config.BUILDING_PROTECT_TILE_ENTITIES.get(), angelPlacementSequence));
+                  PacketHandler.sendToServer(new PlaceBuildModePacket(mode, blocks.firstPos, secondPos, thirdPos, fourthPos, hitFace, hitLocation, ModeOptions.getFill(), ModeOptions.getCubeFill(), ModeOptions.getRaisedEdge(), ModeOptions.getCircleStart(), pointBuild, ModeOptions.getSides(), BuildSettings.CLIENT.getReplaceMode(), Config.BUILDING_PROTECT_TILE_ENTITIES.get(), angelPlacementSequence));
                   PlacedBlockTracker.clientTrackAll(mc.level.dimension(), blocks.keySet());
                } else {
                   if (!blocks.rejectedEntries().isEmpty()) {
@@ -243,7 +243,7 @@ public class BuildPipelineClient {
                   }
 
                   Direction hitFace = firstClickHit != null ? firstClickHit.getDirection() : Direction.UP;
-                  PacketHandler.sendToServer(new BreakBuildModePacket(mode, blocks.firstPos, secondPos, thirdPos, fourthPos, hitFace, ModeOptions.getFill(), ModeOptions.getCubeFill(), ModeOptions.getRaisedEdge(), ModeOptions.getCircleStart(), pointBuild, ModeOptions.getPyramidSides(), Config.BUILDING_PROTECT_TILE_ENTITIES.get(), angelPlacementSequence));
+                  PacketHandler.sendToServer(new BreakBuildModePacket(mode, blocks.firstPos, secondPos, thirdPos, fourthPos, hitFace, ModeOptions.getFill(), ModeOptions.getCubeFill(), ModeOptions.getRaisedEdge(), ModeOptions.getCircleStart(), pointBuild, ModeOptions.getSides(), Config.BUILDING_PROTECT_TILE_ENTITIES.get(), angelPlacementSequence));
                }
             } else {
                Constants.LOG.warn("[EffortlessBuilding] Build mode {} produced no block positions", mode);

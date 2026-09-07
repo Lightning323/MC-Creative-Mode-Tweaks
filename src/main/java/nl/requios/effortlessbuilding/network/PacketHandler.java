@@ -101,7 +101,7 @@ public class PacketHandler {
 
    private static void handlePlaceBuildModeInSelection(PlaceBuildModePacket packet, ServerPlayer player) {
       ServerLevel level = player.serverLevel();
-      BlockSet blockSet = BuildPipeline.SERVER.runServerPipeline(packet.buildMode(), packet.firstPos(), packet.secondPos(), packet.thirdPos(), packet.fourthPos(), packet.hitFace(), player, BuildPipeline.BuildState.PLACING, packet.fill(), packet.cubeFill(), packet.raisedEdge(), packet.circleStart(), packet.pointBuild(), packet.pyramidSides(), packet.protectTileEntities());
+      BlockSet blockSet = BuildPipeline.SERVER.runServerPipeline(packet.buildMode(), packet.firstPos(), packet.secondPos(), packet.thirdPos(), packet.fourthPos(), packet.hitFace(), player, BuildPipeline.BuildState.PLACING, packet.fill(), packet.cubeFill(), packet.raisedEdge(), packet.circleStart(), packet.pointBuild(), packet.sides(), packet.protectTileEntities());
       if (blockSet == null) {
          Constants.LOG.warn("[EffortlessBuilding] Received PlaceBuildModePacket but mode {} returned no blocks", packet.buildMode());
       } else {
@@ -344,7 +344,7 @@ public class PacketHandler {
 
    private static void handleBreakBuildModeInSelection(BreakBuildModePacket packet, ServerPlayer player, boolean creative) {
          ServerLevel level = player.serverLevel();
-         BlockSet blockSet = BuildPipeline.SERVER.runServerPipeline(packet.buildMode(), packet.firstPos(), packet.secondPos(), packet.thirdPos(), packet.fourthPos(), packet.firstClickFace(), player, BuildPipeline.BuildState.BREAKING, packet.fill(), packet.cubeFill(), packet.raisedEdge(), packet.circleStart(), packet.pointBuild(), packet.pyramidSides(), packet.protectTileEntities());
+         BlockSet blockSet = BuildPipeline.SERVER.runServerPipeline(packet.buildMode(), packet.firstPos(), packet.secondPos(), packet.thirdPos(), packet.fourthPos(), packet.firstClickFace(), player, BuildPipeline.BuildState.BREAKING, packet.fill(), packet.cubeFill(), packet.raisedEdge(), packet.circleStart(), packet.pointBuild(), packet.sides(), packet.protectTileEntities());
          if (blockSet == null) {
             Constants.LOG.warn("[EffortlessBuilding] Received BreakBuildModePacket but mode {} returned no blocks", packet.buildMode());
          } else {

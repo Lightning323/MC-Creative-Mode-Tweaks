@@ -20,7 +20,7 @@ public enum BuildModeEnum {
    DOME("dome", new Dome(), BuildModeCategoryEnum.CIRCULAR, AllIcons.I_DOME, new ModeOptions.OptionEnum[]{ModeOptions.OptionEnum.CIRCLE_START, ModeOptions.OptionEnum.FILL}),
 
    MESH("mesh", new Mesh(), BuildModeCategoryEnum.COMPLEX, AllIcons.I_MESH, new ModeOptions.OptionEnum[]{ModeOptions.OptionEnum.MESH_FACE}),
-   PYRAMID("pyramid", new Pyramid(), BuildModeCategoryEnum.COMPLEX, AllIcons.I_PYRAMID, new ModeOptions.OptionEnum[]{ModeOptions.OptionEnum.CIRCLE_START, ModeOptions.OptionEnum.PYRAMID_SIDES, ModeOptions.OptionEnum.FILL});
+   PYRAMID("pyramid", new Pyramid(), BuildModeCategoryEnum.COMPLEX, AllIcons.I_PYRAMID, new ModeOptions.OptionEnum[]{ModeOptions.OptionEnum.CIRCLE_START, ModeOptions.OptionEnum.SIDES, ModeOptions.OptionEnum.FILL});
 
    private final String name;
    public final IBuildMode instance;
