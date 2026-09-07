@@ -44,7 +44,6 @@ import net.minecraft.world.phys.BlockHitResult;
 public class BlockPreviewRenderer {
    private static final ResourceLocation CHECKERBOARD_TEXTURE = ResourceLocation.fromNamespaceAndPath("creative_mode_tweaks", "textures/special/checkerboard.png");
    private static final ResourceLocation OUTLINE_TEXTURE = ResourceLocation.fromNamespaceAndPath("creative_mode_tweaks", "textures/special/blank.png");
-   private static final double VANILLA_REACH_SQ = (double)20.25F;
    private static final int MAX_CACHED_BLOCK_MODELS = 256;
    private static final Map<BlockState, CachedBlockModel> CACHED_BLOCK_MODELS = new LinkedHashMap<>(MAX_CACHED_BLOCK_MODELS, 0.75F, true) {
       protected boolean removeEldestEntry(Map.Entry<BlockState, CachedBlockModel> eldest) {

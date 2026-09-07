@@ -18,27 +18,41 @@ public interface IBuildMode {
    }
 
    /**
-    * Supplies the block currently under the cursor while a two-point selection is
-    * being previewed.  Most modes determine their later points from the player's
-    * look vector, so they deliberately ignore this value.
+    * Supplies the block currently under the cursor while a direct-point
+    * selection is being previewed. Most modes determine later points from the
+    * player's look vector, so they deliberately ignore this value.
     */
    default void setPreviewSecondPoint(@Nullable BlockPos pos) {
    }
 
    /**
-    * Whether the next click should use the block under the cursor as its end
+    * Whether the next click should use the block under the cursor as a selected
     * point instead of the player's look-vector based point selection.
     */
    default boolean usesDirectSecondPoint() {
       return false;
    }
 
-   default List<BlockPos> getServerBlocks(Player player, BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos) {
+   default List<BlockPos> getServerBlocks(Player player, BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos, @Nullable BlockPos fourthPos) {
       return List.of();
    }
 
    default @Nullable BlockPos getIntermediatePos() {
       return null;
+   }
+
+   /** Additional selection vertices used by modes that need more than three clicks. */
+   default @Nullable BlockPos getThirdSelectionPos() {
+      return null;
+   }
+
+   default @Nullable BlockPos getFourthSelectionPos() {
+      return null;
+   }
+
+   /** Returns the point-count option captured when this selection was started. */
+   default ModeOptions.ActionEnum getPointBuildAction() {
+      return ModeOptions.getPointBuild();
    }
 
    default boolean isFirstClick() {

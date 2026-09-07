@@ -76,7 +76,7 @@ public abstract class TwoClicksBuildMode extends BaseBuildMode {
       }
    }
 
-   public List<BlockPos> getServerBlocks(Player player, BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos) {
+   public List<BlockPos> getServerBlocks(Player player, BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos, @Nullable BlockPos fourthPos) {
       int axisLimit = Config.getBuildingMaxBlocksPerAxis(player);
       int x1 = firstPos.getX();
       int x2 = secondPos.getX();

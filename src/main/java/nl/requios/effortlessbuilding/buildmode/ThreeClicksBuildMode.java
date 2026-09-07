@@ -200,7 +200,7 @@ public abstract class ThreeClicksBuildMode extends BaseBuildMode {
       return !this.twoPointBuild && this.secondBlockEntry != null ? this.secondBlockEntry.blockPos : null;
    }
 
-   public List<BlockPos> getServerBlocks(Player player, BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos) {
+   public List<BlockPos> getServerBlocks(Player player, BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos, @Nullable BlockPos fourthPos) {
       if (this.supportsTwoPointBuild() && ModeOptions.isTwoPointBuild()) {
          return this.getTwoPointBlocks(player, firstPos, secondPos);
       }
@@ -319,6 +319,10 @@ public abstract class ThreeClicksBuildMode extends BaseBuildMode {
 
    public boolean usesDirectSecondPoint() {
       return this.supportsTwoPointBuild() && (this.clicks == 0 ? ModeOptions.isTwoPointBuild() : this.twoPointBuild);
+   }
+
+   public ModeOptions.ActionEnum getPointBuildAction() {
+      return this.twoPointBuild ? ModeOptions.ActionEnum.TWO_POINT_BUILD : ModeOptions.ActionEnum.THREE_POINT_BUILD;
    }
 
    private void findTwoPointCoordinates(BlockSet blocks, Player player) {

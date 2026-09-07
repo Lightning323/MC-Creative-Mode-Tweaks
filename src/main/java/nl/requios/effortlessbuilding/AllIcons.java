@@ -44,6 +44,7 @@ public class AllIcons {
    public static final AllIcons I_PYRAMID = next();
    public static final AllIcons I_CONE = next();
    public static final AllIcons I_DOME = next();
+   public static final AllIcons I_MESH = next();
    public static final AllIcons I_NORMAL_SPEED = newRow();
    public static final AllIcons I_FAST_SPEED = next();
    public static final AllIcons I_FILLED = next();
@@ -77,6 +78,9 @@ public class AllIcons {
    public static final AllIcons ANGEL_PLACEMENT_OFF = next();
    public static final AllIcons I_TWO_POINT = next();
    public static final AllIcons I_THREE_POINT = next();
+   public static final AllIcons I_FOUR_POINT = next();
+   public static final AllIcons I_MESH_TRIANGLE = next();
+   public static final AllIcons I_MESH_QUAD = next();
 
    public AllIcons(int x, int y) {
       this.iconX = x * 16;

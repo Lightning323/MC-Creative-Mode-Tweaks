@@ -28,7 +28,7 @@ public class Single extends BaseBuildMode {
 
    }
 
-   public List<BlockPos> getServerBlocks(Player player, BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos) {
+   public List<BlockPos> getServerBlocks(Player player, BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos, @Nullable BlockPos fourthPos) {
       return List.of(firstPos);
    }
 }

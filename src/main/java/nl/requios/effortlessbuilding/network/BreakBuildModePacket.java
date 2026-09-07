@@ -10,7 +10,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
-public record BreakBuildModePacket(BuildModeEnum buildMode, BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos, Direction firstClickFace, ModeOptions.ActionEnum fill, ModeOptions.ActionEnum cubeFill, ModeOptions.ActionEnum raisedEdge, ModeOptions.ActionEnum circleStart, ModeOptions.ActionEnum pointBuild, boolean protectTileEntities, boolean angelPlacement) implements CustomPacketPayload {
+public record BreakBuildModePacket(BuildModeEnum buildMode, BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos, @Nullable BlockPos fourthPos, Direction firstClickFace, ModeOptions.ActionEnum fill, ModeOptions.ActionEnum cubeFill, ModeOptions.ActionEnum raisedEdge, ModeOptions.ActionEnum circleStart, ModeOptions.ActionEnum pointBuild, boolean protectTileEntities, boolean angelPlacement) implements CustomPacketPayload {
    public static final CustomPacketPayload.Type<BreakBuildModePacket> TYPE = new CustomPacketPayload.Type(ResourceLocation.fromNamespaceAndPath("creative_mode_tweaks", "break_build_mode"));
    public static final StreamCodec<FriendlyByteBuf, BreakBuildModePacket> STREAM_CODEC = StreamCodec.of(BreakBuildModePacket::encode, BreakBuildModePacket::decode);
 
@@ -21,6 +21,11 @@ public record BreakBuildModePacket(BuildModeEnum buildMode, BlockPos firstPos, B
       buf.writeBoolean(p.thirdPos != null);
       if (p.thirdPos != null) {
          buf.writeLong(p.thirdPos.asLong());
+      }
+
+      buf.writeBoolean(p.fourthPos != null);
+      if (p.fourthPos != null) {
+         buf.writeLong(p.fourthPos.asLong());
       }
 
       buf.writeVarInt(p.firstClickFace.ordinal());
@@ -38,6 +43,7 @@ public record BreakBuildModePacket(BuildModeEnum buildMode, BlockPos firstPos, B
       BlockPos firstPos = BlockPos.of(buf.readLong());
       BlockPos secondPos = BlockPos.of(buf.readLong());
       BlockPos thirdPos = buf.readBoolean() ? BlockPos.of(buf.readLong()) : null;
+      BlockPos fourthPos = buf.readBoolean() ? BlockPos.of(buf.readLong()) : null;
       Direction firstClickFace = Direction.values()[buf.readVarInt()];
       ModeOptions.ActionEnum fill = ModeOptions.ActionEnum.values()[buf.readVarInt()];
       ModeOptions.ActionEnum cubeFill = ModeOptions.ActionEnum.values()[buf.readVarInt()];
@@ -46,7 +52,7 @@ public record BreakBuildModePacket(BuildModeEnum buildMode, BlockPos firstPos, B
       ModeOptions.ActionEnum pointBuild = ModeOptions.ActionEnum.values()[buf.readVarInt()];
       boolean protectTileEntities = buf.readBoolean();
       boolean angelPlacement = buf.readBoolean();
-      return new BreakBuildModePacket(buildMode, firstPos, secondPos, thirdPos, firstClickFace, fill, cubeFill, raisedEdge, circleStart, pointBuild, protectTileEntities, angelPlacement);
+      return new BreakBuildModePacket(buildMode, firstPos, secondPos, thirdPos, fourthPos, firstClickFace, fill, cubeFill, raisedEdge, circleStart, pointBuild, protectTileEntities, angelPlacement);
    }
 
    public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {
