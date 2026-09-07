@@ -17,6 +17,22 @@ public interface IBuildMode {
    default void setFirstClickFace(Direction face) {
    }
 
+   /**
+    * Supplies the block currently under the cursor while a two-point selection is
+    * being previewed.  Most modes determine their later points from the player's
+    * look vector, so they deliberately ignore this value.
+    */
+   default void setPreviewSecondPoint(@Nullable BlockPos pos) {
+   }
+
+   /**
+    * Whether the next click should use the block under the cursor as its end
+    * point instead of the player's look-vector based point selection.
+    */
+   default boolean usesDirectSecondPoint() {
+      return false;
+   }
+
    default List<BlockPos> getServerBlocks(Player player, BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos) {
       return List.of();
    }

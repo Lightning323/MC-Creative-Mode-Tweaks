@@ -25,7 +25,7 @@ public class BuildModeSystem implements IBuildSystem {
    public void processBlocks(BlockSet blocks, Player player, BuildPipeline.BuildState action) {
       Context ctx = (Context)CONTEXT.get();
       if (ctx != null) {
-         ModeOptions.applyForCalculation(ctx.fill(), ctx.cubeFill(), ctx.raisedEdge(), ctx.circleStart());
+         ModeOptions.applyForCalculation(ctx.fill(), ctx.cubeFill(), ctx.raisedEdge(), ctx.circleStart(), ctx.pointBuild());
          ctx.mode().instance.setFirstClickFace(ctx.firstClickFace());
          List<BlockPos> rawPositions = ctx.mode().instance.getServerBlocks(player, ctx.firstPos(), ctx.secondPos(), ctx.thirdPos());
          if (!rawPositions.isEmpty()) {
@@ -42,6 +42,6 @@ public class BuildModeSystem implements IBuildSystem {
       }
    }
 
-   public static record Context(BuildModeEnum mode, BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos, Direction firstClickFace, ModeOptions.ActionEnum fill, ModeOptions.ActionEnum cubeFill, ModeOptions.ActionEnum raisedEdge, ModeOptions.ActionEnum circleStart) {
+   public static record Context(BuildModeEnum mode, BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos, Direction firstClickFace, ModeOptions.ActionEnum fill, ModeOptions.ActionEnum cubeFill, ModeOptions.ActionEnum raisedEdge, ModeOptions.ActionEnum circleStart, ModeOptions.ActionEnum pointBuild) {
    }
 }

@@ -104,6 +104,10 @@ public class Cube extends ThreeClicksBuildMode {
       return Floor.findFloor(player, firstPos, skipRaytrace);
    }
 
+   protected boolean supportsTwoPointBuild() {
+      return true;
+   }
+
    protected BlockPos findThirdPos(Player player, BlockPos firstPos, BlockPos secondPos, boolean skipRaytrace) {
       return findHeight(player, secondPos, skipRaytrace);
    }

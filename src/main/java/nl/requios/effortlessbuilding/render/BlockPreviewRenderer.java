@@ -166,14 +166,12 @@ public class BlockPreviewRenderer {
                int oG = isBreaking ? 0 : 255;
                int oB = isBreaking ? 0 : 255;
 
-               List<BlockPos> validPositions = new ArrayList<>(breakablePositions);
-               if (!validPositions.isEmpty()) {
-                  renderEdgeQuads(poseStack, bufferSource, mc.level, computeBorderEdges(validPositions), camX, camY, camZ, outlineWidth, oR, oG, oB, 255);
+               if (!breakablePositions.isEmpty()) {
+                  renderOutlineAround(poseStack, bufferSource, mc.level, computeBorderEdges(breakablePositions), camX, camY, camZ, outlineWidth, oR, oG, oB, 255);
                   bufferSource.endBatch(RenderType.entityTranslucent(OUTLINE_TEXTURE));
                }
-
                if (!unbreakablePositions.isEmpty()) {
-                  renderEdgeQuads(poseStack, bufferSource, mc.level, computeBorderEdges(unbreakablePositions), camX, camY, camZ, outlineWidth, 100, 100, 100, 255);
+                  renderOutlineAround(poseStack, bufferSource, mc.level, computeBorderEdges(unbreakablePositions), camX, camY, camZ, outlineWidth, 100, 100, 100, 255);
                   bufferSource.endBatch(RenderType.entityTranslucent(OUTLINE_TEXTURE));
                }
 
@@ -278,7 +276,7 @@ public class BlockPreviewRenderer {
       consumer.addVertex(pose, x3, y3, z3).setColor(r, g, b, a).setUv(1.0F, 0.0F).setOverlay(OverlayTexture.NO_OVERLAY).setLight(15728880).setNormal(pose, nx, ny, nz);
    }
 
-   private static void renderEdgeQuads(PoseStack poseStack, MultiBufferSource bufferSource, Level level, Set<EdgeKey> edges, double camX, double camY, double camZ, float halfWidth, int r, int g, int b, int a) {
+   private static void renderOutlineAround(PoseStack poseStack, MultiBufferSource bufferSource, Level level, Set<EdgeKey> edges, double camX, double camY, double camZ, float halfWidth, int r, int g, int b, int a) {
       VertexConsumer consumer = bufferSource.getBuffer(RenderType.entityTranslucent(OUTLINE_TEXTURE));
 
       for(EdgeKey edge : edges) {

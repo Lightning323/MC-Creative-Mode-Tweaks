@@ -96,6 +96,9 @@
   "creative_mode_tweaks.action.circle_start": "Start Point",
   "creative_mode_tweaks.action.start_center": "Middle",
   "creative_mode_tweaks.action.start_corner": "Corner",
+  "creative_mode_tweaks.action.point_build": "Point Count",
+  "creative_mode_tweaks.action.two_point": "2 Points",
+  "creative_mode_tweaks.action.three_point": "3 Points",
 
   "creative_mode_tweaks.message.undo": "Undo: restored %s blocks",
   "creative_mode_tweaks.message.redo": "Redo: re-applied %s blocks",

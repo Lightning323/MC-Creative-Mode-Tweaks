@@ -14,14 +14,33 @@ import org.jetbrains.annotations.Nullable;
 public abstract class ThreeClicksBuildMode extends BaseBuildMode {
    protected BlockEntry firstBlockEntry;
    protected BlockEntry secondBlockEntry;
+   private boolean twoPointBuild;
+   private @Nullable BlockPos previewSecondPoint;
 
    public void initialize() {
       super.initialize();
       this.firstBlockEntry = null;
       this.secondBlockEntry = null;
+      this.twoPointBuild = false;
+      this.previewSecondPoint = null;
    }
 
    public boolean onClick(BlockSet blocks, BlockPos clickedPos, Player player) {
+      if (this.clicks == 0) {
+         this.twoPointBuild = this.supportsTwoPointBuild() && ModeOptions.isTwoPointBuild();
+      }
+
+      if (this.twoPointBuild) {
+         ++this.clicks;
+         if (this.clicks == 1) {
+            this.firstBlockEntry = new BlockEntry(clickedPos);
+            return false;
+         } else {
+            this.secondBlockEntry = new BlockEntry(clickedPos);
+            return true;
+         }
+      }
+
       super.onClick(blocks, clickedPos, player);
       if (this.clicks == 1) {
          this.firstBlockEntry = new BlockEntry(clickedPos);
@@ -43,6 +62,11 @@ public abstract class ThreeClicksBuildMode extends BaseBuildMode {
    }
 
    public void findCoordinates(BlockSet blocks, Player player) {
+      if (this.twoPointBuild) {
+         this.findTwoPointCoordinates(blocks, player);
+         return;
+      }
+
       if (this.clicks != 0) {
          int axisLimit = Config.getBuildingMaxBlocksPerAxis(player);
          if (this.clicks == 1) {
@@ -173,10 +197,14 @@ public abstract class ThreeClicksBuildMode extends BaseBuildMode {
    }
 
    public @Nullable BlockPos getIntermediatePos() {
-      return this.secondBlockEntry != null ? this.secondBlockEntry.blockPos : null;
+      return !this.twoPointBuild && this.secondBlockEntry != null ? this.secondBlockEntry.blockPos : null;
    }
 
    public List<BlockPos> getServerBlocks(Player player, BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos) {
+      if (this.supportsTwoPointBuild() && ModeOptions.isTwoPointBuild()) {
+         return this.getTwoPointBlocks(player, firstPos, secondPos);
+      }
+
       if (thirdPos == null) {
          return List.of();
       } else {
@@ -275,11 +303,87 @@ public abstract class ThreeClicksBuildMode extends BaseBuildMode {
 
    protected abstract BlockPos findSecondPos(Player var1, BlockPos var2, boolean var3);
 
+   protected boolean supportsTwoPointBuild() {
+      return false;
+   }
+
    protected abstract BlockPos findThirdPos(Player var1, BlockPos var2, BlockPos var3, boolean var4);
 
    protected abstract List<BlockPos> getIntermediateBlocks(Player var1, int var2, int var3, int var4, int var5, int var6, int var7);
 
    protected abstract List<BlockPos> getFinalBlocks(Player var1, int var2, int var3, int var4, int var5, int var6, int var7, int var8, int var9, int var10);
+
+   public void setPreviewSecondPoint(@Nullable BlockPos pos) {
+      this.previewSecondPoint = pos;
+   }
+
+   public boolean usesDirectSecondPoint() {
+      return this.supportsTwoPointBuild() && (this.clicks == 0 ? ModeOptions.isTwoPointBuild() : this.twoPointBuild);
+   }
+
+   private void findTwoPointCoordinates(BlockSet blocks, Player player) {
+      if (this.clicks == 0 || this.firstBlockEntry == null) {
+         return;
+      }
+
+      BlockPos secondPos = this.clicks == 1 ? this.previewSecondPoint : this.secondBlockEntry.blockPos;
+      if (secondPos == null) {
+         return;
+      }
+
+      BlockPos firstPos = this.firstBlockEntry.blockPos;
+      BlockPos boundedSecondPos = this.limitToBuildRange(player, firstPos, secondPos);
+      blocks.clear();
+
+      for(BlockPos pos : this.getTwoPointBlocks(player, firstPos, boundedSecondPos)) {
+         if (!blocks.containsKey(pos)) {
+            blocks.add(new BlockEntry(pos));
+         }
+      }
+
+      blocks.firstPos = firstPos;
+      blocks.lastPos = boundedSecondPos;
+   }
+
+   private List<BlockPos> getTwoPointBlocks(Player player, BlockPos firstPos, BlockPos secondPos) {
+      BlockPos boundedSecondPos = this.limitToBuildRange(player, firstPos, secondPos);
+      return this.getFinalBlocks(player, firstPos.getX(), firstPos.getY(), firstPos.getZ(), boundedSecondPos.getX(), boundedSecondPos.getY(), boundedSecondPos.getZ(), boundedSecondPos.getX(), boundedSecondPos.getY(), boundedSecondPos.getZ());
+   }
+
+   private BlockPos limitToBuildRange(Player player, BlockPos firstPos, BlockPos secondPos) {
+      int axisLimit = Config.getBuildingMaxBlocksPerAxis(player);
+      int x1 = firstPos.getX();
+      int y1 = firstPos.getY();
+      int z1 = firstPos.getZ();
+      int x2 = secondPos.getX();
+      int y2 = secondPos.getY();
+      int z2 = secondPos.getZ();
+      if (x2 - x1 >= axisLimit) {
+         x2 = x1 + axisLimit - 1;
+      }
+
+      if (x1 - x2 >= axisLimit) {
+         x2 = x1 - axisLimit + 1;
+      }
+
+      if (y2 - y1 >= axisLimit) {
+         y2 = y1 + axisLimit - 1;
+      }
+
+      if (y1 - y2 >= axisLimit) {
+         y2 = y1 - axisLimit + 1;
+      }
+
+      if (z2 - z1 >= axisLimit) {
+         z2 = z1 + axisLimit - 1;
+      }
+
+      if (z1 - z2 >= axisLimit) {
+         z2 = z1 - axisLimit + 1;
+      }
+
+      return new BlockPos(x2, y2, z2);
+   }
 
    static class HeightCriteria {
       Vec3 planeBound;

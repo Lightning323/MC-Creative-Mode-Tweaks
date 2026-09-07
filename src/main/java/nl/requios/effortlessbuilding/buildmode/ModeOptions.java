@@ -15,6 +15,7 @@ public class ModeOptions {
    private static ActionEnum raisedEdge;
    private static ActionEnum lineThickness;
    private static ActionEnum circleStart;
+   private static ActionEnum pointBuild;
 
    public static ActionEnum getBuildSpeed() {
       return buildSpeed;
@@ -40,11 +41,20 @@ public class ModeOptions {
       return circleStart;
    }
 
-   public static void applyForCalculation(ActionEnum fill, ActionEnum cubeFill, ActionEnum raisedEdge, ActionEnum circleStart) {
+   public static ActionEnum getPointBuild() {
+      return pointBuild;
+   }
+
+   public static boolean isTwoPointBuild() {
+      return pointBuild == ActionEnum.TWO_POINT_BUILD;
+   }
+
+   public static void applyForCalculation(ActionEnum fill, ActionEnum cubeFill, ActionEnum raisedEdge, ActionEnum circleStart, ActionEnum pointBuild) {
       ModeOptions.fill = fill;
       ModeOptions.cubeFill = cubeFill;
       ModeOptions.raisedEdge = raisedEdge;
       ModeOptions.circleStart = circleStart;
+      ModeOptions.pointBuild = pointBuild;
    }
 
    public static void performAction(Player player, ActionEnum action) {
@@ -113,6 +123,12 @@ public class ModeOptions {
                if (Config.isAngelPlacementAllowed(player)) {
                   BuildSettings.CLIENT.toggleAngelPlacement();
                }
+               break;
+            case 25:
+               pointBuild = ActionEnum.TWO_POINT_BUILD;
+               break;
+            case 26:
+               pointBuild = ActionEnum.THREE_POINT_BUILD;
          }
 
          if (player.level().isClientSide && action != ActionEnum.OPEN_MODIFIER_SETTINGS && action != ActionEnum.PREVIOUS_BUILD_MODE && action != ActionEnum.DISABLE_BUILD_MODE_TOGGLE && action != ActionEnum.UNDO && action != ActionEnum.REDO) {
@@ -137,6 +153,7 @@ public class ModeOptions {
       raisedEdge = ActionEnum.SHORT_EDGE;
       lineThickness = ActionEnum.THICKNESS_1;
       circleStart = ActionEnum.CIRCLE_START_CORNER;
+      pointBuild = ActionEnum.THREE_POINT_BUILD;
    }
 
    public static enum ActionEnum {
@@ -164,7 +181,9 @@ public class ModeOptions {
       THICKNESS_5("thickness_5", AllIcons.I_THICKNESS_5),
       CIRCLE_START_CORNER("start_corner", AllIcons.I_CIRCLE_START_CORNER),
       CIRCLE_START_CENTER("start_center", AllIcons.I_CIRCLE_START_CENTER),
-      TOGGLE_ANGEL_PLACEMENT("toggle_angel_placement", AllIcons.I_ALTERNATE_OFF);
+      TOGGLE_ANGEL_PLACEMENT("toggle_angel_placement", AllIcons.ANGEL_PLACEMENT_ON),
+      TWO_POINT_BUILD("two_point", AllIcons.I_TWO_POINT),
+      THREE_POINT_BUILD("three_point", AllIcons.I_THREE_POINT);
 
       public String name;
       public AllIcons icon;
@@ -188,7 +207,7 @@ public class ModeOptions {
 
       // $FF: synthetic method
       private static ActionEnum[] $values() {
-         return new ActionEnum[]{UNDO, REDO, OPEN_MODIFIER_SETTINGS, PREVIOUS_BUILD_MODE, DISABLE_BUILD_MODE_TOGGLE, CYCLE_REPLACE_MODE, REPLACE_ONLY_AIR, REPLACE_BLOCKS_AND_AIR, REPLACE_ONLY_BLOCKS, REPLACE_FILTERED_BY_OFFHAND, NORMAL_SPEED, FAST_SPEED, FULL, HOLLOW, CUBE_FULL, CUBE_HOLLOW, CUBE_SKELETON, SHORT_EDGE, LONG_EDGE, THICKNESS_1, THICKNESS_3, THICKNESS_5, CIRCLE_START_CORNER, CIRCLE_START_CENTER, TOGGLE_ANGEL_PLACEMENT};
+         return new ActionEnum[]{UNDO, REDO, OPEN_MODIFIER_SETTINGS, PREVIOUS_BUILD_MODE, DISABLE_BUILD_MODE_TOGGLE, CYCLE_REPLACE_MODE, REPLACE_ONLY_AIR, REPLACE_BLOCKS_AND_AIR, REPLACE_ONLY_BLOCKS, REPLACE_FILTERED_BY_OFFHAND, NORMAL_SPEED, FAST_SPEED, FULL, HOLLOW, CUBE_FULL, CUBE_HOLLOW, CUBE_SKELETON, SHORT_EDGE, LONG_EDGE, THICKNESS_1, THICKNESS_3, THICKNESS_5, CIRCLE_START_CORNER, CIRCLE_START_CENTER, TOGGLE_ANGEL_PLACEMENT, TWO_POINT_BUILD, THREE_POINT_BUILD};
       }
    }
 
@@ -198,7 +217,8 @@ public class ModeOptions {
       CUBE_FILL("creative_mode_tweaks.action.filling", new ActionEnum[]{ActionEnum.CUBE_FULL, ActionEnum.CUBE_HOLLOW, ActionEnum.CUBE_SKELETON}),
       RAISED_EDGE("creative_mode_tweaks.action.raised_edge", new ActionEnum[]{ActionEnum.SHORT_EDGE, ActionEnum.LONG_EDGE}),
       LINE_THICKNESS("creative_mode_tweaks.action.thickness", new ActionEnum[]{ActionEnum.THICKNESS_1, ActionEnum.THICKNESS_3, ActionEnum.THICKNESS_5}),
-      CIRCLE_START("creative_mode_tweaks.action.circle_start", new ActionEnum[]{ActionEnum.CIRCLE_START_CORNER, ActionEnum.CIRCLE_START_CENTER});
+      CIRCLE_START("creative_mode_tweaks.action.circle_start", new ActionEnum[]{ActionEnum.CIRCLE_START_CORNER, ActionEnum.CIRCLE_START_CENTER}),
+      POINT_BUILD("creative_mode_tweaks.action.point_build", new ActionEnum[]{ActionEnum.TWO_POINT_BUILD, ActionEnum.THREE_POINT_BUILD});
 
       public String name;
       public ActionEnum[] actions;
@@ -210,7 +230,7 @@ public class ModeOptions {
 
       // $FF: synthetic method
       private static OptionEnum[] $values() {
-         return new OptionEnum[]{BUILD_SPEED, FILL, CUBE_FILL, RAISED_EDGE, LINE_THICKNESS, CIRCLE_START};
+         return new OptionEnum[]{BUILD_SPEED, FILL, CUBE_FILL, RAISED_EDGE, LINE_THICKNESS, CIRCLE_START, POINT_BUILD};
       }
    }
 }

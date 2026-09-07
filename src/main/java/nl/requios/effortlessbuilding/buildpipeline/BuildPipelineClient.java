@@ -150,6 +150,13 @@ public class BuildPipelineClient {
             angelPlacementSequence = target.isAngelTarget();
             mode.instance.setFirstClickFace(hit.getDirection());
             selectionOrigin = clickedPos;
+         } else if (mode.instance.usesDirectSecondPoint()) {
+            AngelPlacement.Target target = getCurrentTarget(mc);
+            if (target == null) {
+               return;
+            }
+
+            clickedPos = resolveFirstClickPos(target.hit(), action, mc.level);
          } else {
             clickedPos = player.blockPosition();
          }
@@ -196,6 +203,7 @@ public class BuildPipelineClient {
                BlockPos intermediate = mode.instance.getIntermediatePos();
                BlockPos secondPos = intermediate != null ? intermediate : blocks.lastPos;
                BlockPos thirdPos = intermediate != null ? blocks.lastPos : null;
+               ModeOptions.ActionEnum pointBuild = mode.instance.usesDirectSecondPoint() ? ModeOptions.ActionEnum.TWO_POINT_BUILD : ModeOptions.ActionEnum.THREE_POINT_BUILD;
                if (action == BuildPipeline.BuildState.PLACING) {
                   if (!blocks.rejectedEntries().isEmpty()) {
                      BlockStatus firstRejection = ((BlockEntry)((Map.Entry)blocks.rejectedEntries().getFirst()).getValue()).getStatus();
@@ -214,7 +222,7 @@ public class BuildPipelineClient {
 
                   Direction hitFace = firstClickHit != null ? firstClickHit.getDirection() : Direction.UP;
                   Vec3 hitLocation = firstClickHit != null ? firstClickHit.getLocation() : Vec3.atCenterOf(blocks.firstPos);
-                  PacketHandler.sendToServer(new PlaceBuildModePacket(mode, blocks.firstPos, secondPos, thirdPos, hitFace, hitLocation, ModeOptions.getFill(), ModeOptions.getCubeFill(), ModeOptions.getRaisedEdge(), ModeOptions.getCircleStart(), BuildSettings.CLIENT.getReplaceMode(), Config.BUILDING_PROTECT_TILE_ENTITIES.get(), angelPlacementSequence));
+                  PacketHandler.sendToServer(new PlaceBuildModePacket(mode, blocks.firstPos, secondPos, thirdPos, hitFace, hitLocation, ModeOptions.getFill(), ModeOptions.getCubeFill(), ModeOptions.getRaisedEdge(), ModeOptions.getCircleStart(), pointBuild, BuildSettings.CLIENT.getReplaceMode(), Config.BUILDING_PROTECT_TILE_ENTITIES.get(), angelPlacementSequence));
                   PlacedBlockTracker.clientTrackAll(mc.level.dimension(), blocks.keySet());
                } else {
                   if (!blocks.rejectedEntries().isEmpty()) {
@@ -233,7 +241,7 @@ public class BuildPipelineClient {
                   }
 
                   Direction hitFace = firstClickHit != null ? firstClickHit.getDirection() : Direction.UP;
-                  PacketHandler.sendToServer(new BreakBuildModePacket(mode, blocks.firstPos, secondPos, thirdPos, hitFace, ModeOptions.getFill(), ModeOptions.getCubeFill(), ModeOptions.getRaisedEdge(), ModeOptions.getCircleStart(), Config.BUILDING_PROTECT_TILE_ENTITIES.get(), angelPlacementSequence));
+                  PacketHandler.sendToServer(new BreakBuildModePacket(mode, blocks.firstPos, secondPos, thirdPos, hitFace, ModeOptions.getFill(), ModeOptions.getCubeFill(), ModeOptions.getRaisedEdge(), ModeOptions.getCircleStart(), pointBuild, Config.BUILDING_PROTECT_TILE_ENTITIES.get(), angelPlacementSequence));
                }
             } else {
                Constants.LOG.warn("[EffortlessBuilding] Build mode {} produced no block positions", mode);
@@ -258,6 +266,12 @@ public class BuildPipelineClient {
             BlockPos selectionAnchor = selectionOrigin != null ? selectionOrigin : player.blockPosition();
             try (SableCompat.SelectionScope ignored = SableCompat.pushSelection(mc.level, selectionAnchor)) {
                BlockSet previewBlocks = new BlockSet();
+               if (mode.instance.usesDirectSecondPoint()) {
+                  BlockHitResult hit = getCurrentTargetHit(mc);
+                  BuildPipeline.BuildState action = buildState != null ? buildState : BuildPipeline.BuildState.PLACING;
+                  mode.instance.setPreviewSecondPoint(hit != null ? resolveFirstClickPos(hit, action, mc.level) : null);
+               }
+
                mode.instance.findCoordinates(previewBlocks, player);
                BuildPipeline.BuildState action = buildState != null ? buildState : BuildPipeline.BuildState.PLACING;
                CLIENT.processBlocks(previewBlocks, player, action);

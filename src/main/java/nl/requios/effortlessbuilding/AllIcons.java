@@ -75,6 +75,8 @@ public class AllIcons {
    public static final AllIcons I_ALTERNATE_ON = next();
    public static final AllIcons ANGEL_PLACEMENT_ON = newRow();
    public static final AllIcons ANGEL_PLACEMENT_OFF = next();
+   public static final AllIcons I_TWO_POINT = next();
+   public static final AllIcons I_THREE_POINT = next();
 
    public AllIcons(int x, int y) {
       this.iconX = x * 16;
