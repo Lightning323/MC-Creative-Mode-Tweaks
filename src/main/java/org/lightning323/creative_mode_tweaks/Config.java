@@ -40,7 +40,7 @@ public class Config {
     public static final ModConfigSpec.IntValue HOTBAR_MAX_SCROLL_MARGIN =
             CLIENT_BUILDER.comment("Maximum number of preview slots on either side when scrolling (setting this to the max value will always keep the selector in the center)")
                     .defineInRange("hotbar.hotbar_max_scroll_margin", 4, 0, 100);
-    
+
     public static final ModConfigSpec.IntValue CREATIVE_REACH =
             COMMON_BUILDER.comment("How far creative players can place and break blocks.")
                     .defineInRange("reach.creative_reach", 32, 1, 256);
@@ -231,11 +231,12 @@ public class Config {
             flightSpeed = FLIGHT_SPEED.get().floatValue();
             enhanceCreativeHotbar = ENHANCE_CREATIVE_HOTBAR.get();
             enhanceSurvivalHotbar = ENHANCE_SURVIVAL_HOTBAR.get();
+            allowInventoryRotationInSurvival = ALLOW_INVENTORY_ROTATION_IN_SURVIVAL.get();
+        } else if (event.getConfig().getSpec() == CLIENT_SPEC) {
             creativeHotbarMaxSize = CREATIVE_HOTBAR_MAX_SIZE.get();
             survivalHotbarMaxSize = SURVIVAL_HOTBAR_MAX_SIZE.get();
             hotbarMinScrollMargin = HOTBAR_MIN_SCROLL_MARGIN.get();
             hotbarMaxScrollMargin = HOTBAR_MAX_SCROLL_MARGIN.get();
-            allowInventoryRotationInSurvival = ALLOW_INVENTORY_ROTATION_IN_SURVIVAL.get();
         }
     }
 }

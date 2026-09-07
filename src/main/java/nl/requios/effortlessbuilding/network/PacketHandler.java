@@ -4,6 +4,8 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import net.minecraft.ChatFormatting;
 import nl.requios.effortlessbuilding.Constants;
 import nl.requios.effortlessbuilding.EffortlessBuilding;
 import nl.requios.effortlessbuilding.buildmode.BuildSettings;
@@ -108,7 +110,7 @@ public class PacketHandler {
          Constants.LOG.warn("[EffortlessBuilding] Received PlaceBuildModePacket but mode {} returned no blocks", packet.buildMode());
       } else {
          if (blockSet.hasEntriesWithStatus(BlockStatus.OUTSIDE_REACH)) {
-            player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.sublevel_out_of_bounds"), true);
+            player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.sublevel_out_of_bounds").withStyle(ChatFormatting.RED), true);
             return;
          }
 
@@ -350,7 +352,7 @@ public class PacketHandler {
             Constants.LOG.warn("[EffortlessBuilding] Received BreakBuildModePacket but mode {} returned no blocks", packet.buildMode());
          } else {
             if (blockSet.hasEntriesWithStatus(BlockStatus.OUTSIDE_REACH)) {
-               player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.sublevel_out_of_bounds"), true);
+               player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.sublevel_out_of_bounds").withStyle(ChatFormatting.RED), true);
                return;
             }
 
@@ -395,7 +397,7 @@ public class PacketHandler {
          return true;
       }
 
-      player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.sublevel_out_of_bounds"), true);
+      player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.sublevel_out_of_bounds").withStyle(ChatFormatting.RED), true);
       return false;
    }
 

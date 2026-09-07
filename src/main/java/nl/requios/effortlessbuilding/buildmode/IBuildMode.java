@@ -10,6 +10,14 @@ import org.jetbrains.annotations.Nullable;
 public interface IBuildMode {
    void initialize();
 
+   /**
+    * Discards the in-progress selection. Build modes with persistent markers
+    * can override this to remove any markers created by the cancelled input.
+    */
+   default void onCancel() {
+      this.initialize();
+   }
+
    boolean onClick(BlockSet var1, BlockPos var2, Player var3);
 
    void findCoordinates(BlockSet var1, Player var2);

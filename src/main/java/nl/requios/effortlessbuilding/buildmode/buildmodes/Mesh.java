@@ -19,14 +19,23 @@ public class Mesh extends BaseBuildMode {
    private static final double SAMPLES_PER_BLOCK = 4.0D;
    private final List<BlockPos> points = new ArrayList();
    private final Set<BlockPos> vertexMarkers = new LinkedHashSet();
+   private final Set<BlockPos> pendingVertexMarkers = new LinkedHashSet();
    private ModeOptions.ActionEnum faceShape = ModeOptions.ActionEnum.MESH_TRIANGLE;
    private @Nullable BlockPos previewPoint;
 
    public void initialize() {
       super.initialize();
       this.points.clear();
+      this.pendingVertexMarkers.clear();
       this.faceShape = ModeOptions.getMeshFace();
       this.previewPoint = null;
+   }
+
+   /** Removes only vertices created by the unfinished face, retaining completed-face markers. */
+   @Override
+   public void onCancel() {
+      this.vertexMarkers.removeAll(this.pendingVertexMarkers);
+      this.initialize();
    }
 
    /** Markers belong to the current Mesh session, not an individual face. */
@@ -34,6 +43,7 @@ public class Mesh extends BaseBuildMode {
    public void onBuildModeDeselected() {
       this.points.clear();
       this.vertexMarkers.clear();
+      this.pendingVertexMarkers.clear();
       this.previewPoint = null;
    }
 
@@ -48,7 +58,9 @@ public class Mesh extends BaseBuildMode {
 
       ++this.clicks;
       this.points.add(clickedPos);
-      this.vertexMarkers.add(clickedPos);
+      if (this.vertexMarkers.add(clickedPos)) {
+         this.pendingVertexMarkers.add(clickedPos);
+      }
       return this.points.size() == this.requiredPointCount();
    }
 

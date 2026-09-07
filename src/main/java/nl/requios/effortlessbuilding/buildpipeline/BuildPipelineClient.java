@@ -1,6 +1,8 @@
 package nl.requios.effortlessbuilding.buildpipeline;
 
 import java.util.Map;
+
+import net.minecraft.ChatFormatting;
 import nl.requios.effortlessbuilding.Constants;
 import nl.requios.effortlessbuilding.buildmode.BuildModeEnum;
 import nl.requios.effortlessbuilding.buildmode.BuildModes;
@@ -353,7 +355,7 @@ public class BuildPipelineClient {
          Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_TOAST_OUT, 1.0F));
       }
 
-      BuildModes.CLIENT.getBuildMode().instance.initialize();
+      BuildModes.CLIENT.onCancel();
       buildState = null;
       firstClickHit = null;
       selectionOrigin = null;
@@ -361,7 +363,7 @@ public class BuildPipelineClient {
    }
 
    private static void rejectMixedSelection(Player player) {
-      player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.sublevel_out_of_bounds"), true);
+      player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.sublevel_out_of_bounds").withStyle(ChatFormatting.RED), true);
       cancelCurrentSequence();
    }
 

@@ -64,7 +64,7 @@ public class BuildModes {
    }
 
    public void onCancel() {
-      this.getBuildMode().instance.initialize();
+      this.getBuildMode().instance.onCancel();
    }
 
    public static Vec3 findXBound(double x, Vec3 start, Vec3 look) {
