@@ -4,20 +4,23 @@ import nl.requios.effortlessbuilding.AllIcons;
 import nl.requios.effortlessbuilding.buildmode.buildmodes.*;
 
 public enum BuildModeEnum {
-   DISABLED("normal", new Single(), BuildModeCategoryEnum.BASIC, AllIcons.I_SINGLE, new ModeOptions.OptionEnum[0]),
+   DISABLED("normal", new Single(), BuildModeCategoryEnum.DEFAULT, AllIcons.I_SINGLE, new ModeOptions.OptionEnum[0]),
    LINE("line", new Line(), BuildModeCategoryEnum.BASIC, AllIcons.I_LINE, new ModeOptions.OptionEnum[0]),
    PLANE("plane", new Plane(), BuildModeCategoryEnum.BASIC, AllIcons.I_FLOOR, new ModeOptions.OptionEnum[]{ModeOptions.OptionEnum.FILL}),
    WALL("wall", new Wall(), BuildModeCategoryEnum.BASIC, AllIcons.I_WALL, new ModeOptions.OptionEnum[]{ModeOptions.OptionEnum.FILL}),
    FLOOR("floor", new Floor(), BuildModeCategoryEnum.BASIC, AllIcons.I_FLOOR, new ModeOptions.OptionEnum[]{ModeOptions.OptionEnum.FILL}),
    CUBE("cube", new Cube(), BuildModeCategoryEnum.BASIC, AllIcons.I_CUBE, new ModeOptions.OptionEnum[]{ModeOptions.OptionEnum.CUBE_FILL, ModeOptions.OptionEnum.POINT_BUILD}),
-   MESH("mesh", new Mesh(), BuildModeCategoryEnum.DIAGONAL, AllIcons.I_MESH, new ModeOptions.OptionEnum[]{ModeOptions.OptionEnum.MESH_FACE}),
+
    DIAGONAL_LINE("diagonal_line", new DiagonalLine(), BuildModeCategoryEnum.DIAGONAL, AllIcons.I_DIAGONAL_LINE, new ModeOptions.OptionEnum[]{ModeOptions.OptionEnum.POINT_BUILD}),
    DIAGONAL_WALL("diagonal_wall", new DiagonalWall(), BuildModeCategoryEnum.DIAGONAL, AllIcons.I_DIAGONAL_WALL, new ModeOptions.OptionEnum[]{ModeOptions.OptionEnum.POINT_BUILD}),
    SLOPE_FLOOR("slope_floor", new SlopeFloor(), BuildModeCategoryEnum.DIAGONAL, AllIcons.I_SLOPED_FLOOR, new ModeOptions.OptionEnum[]{ModeOptions.OptionEnum.RAISED_EDGE, ModeOptions.OptionEnum.POINT_BUILD}),
    CIRCLE("circle", new Circle(), BuildModeCategoryEnum.CIRCULAR, AllIcons.I_CIRCLE, new ModeOptions.OptionEnum[]{ModeOptions.OptionEnum.CIRCLE_START, ModeOptions.OptionEnum.FILL}),
    CYLINDER("cylinder", new Cylinder(), BuildModeCategoryEnum.CIRCULAR, AllIcons.I_CYLINDER, new ModeOptions.OptionEnum[]{ModeOptions.OptionEnum.CIRCLE_START, ModeOptions.OptionEnum.FILL}),
    SPHERE("sphere", new Sphere(), BuildModeCategoryEnum.CIRCULAR, AllIcons.I_SPHERE, new ModeOptions.OptionEnum[]{ModeOptions.OptionEnum.CIRCLE_START, ModeOptions.OptionEnum.FILL}),
-   DOME("dome", new Dome(), BuildModeCategoryEnum.CIRCULAR, AllIcons.I_DOME, new ModeOptions.OptionEnum[]{ModeOptions.OptionEnum.CIRCLE_START, ModeOptions.OptionEnum.FILL});
+   DOME("dome", new Dome(), BuildModeCategoryEnum.CIRCULAR, AllIcons.I_DOME, new ModeOptions.OptionEnum[]{ModeOptions.OptionEnum.CIRCLE_START, ModeOptions.OptionEnum.FILL}),
+
+   MESH("mesh", new Mesh(), BuildModeCategoryEnum.COMPLEX, AllIcons.I_MESH, new ModeOptions.OptionEnum[]{ModeOptions.OptionEnum.MESH_FACE}),
+   PYRAMID("pyramid", new Pyramid(), BuildModeCategoryEnum.COMPLEX, AllIcons.I_PYRAMID, new ModeOptions.OptionEnum[]{ModeOptions.OptionEnum.CIRCLE_START, ModeOptions.OptionEnum.PYRAMID_SIDES, ModeOptions.OptionEnum.FILL});
 
    private final String name;
    public final IBuildMode instance;
@@ -43,6 +46,6 @@ public enum BuildModeEnum {
 
    // $FF: synthetic method
    private static BuildModeEnum[] $values() {
-      return new BuildModeEnum[]{DISABLED, LINE, PLANE, WALL, FLOOR, CUBE, MESH, DIAGONAL_LINE, DIAGONAL_WALL, SLOPE_FLOOR, CIRCLE, CYLINDER, SPHERE, DOME};
+      return new BuildModeEnum[]{DISABLED, LINE, PLANE, WALL, FLOOR, CUBE, MESH, DIAGONAL_LINE, DIAGONAL_WALL, SLOPE_FLOOR, CIRCLE, CYLINDER, SPHERE, DOME, PYRAMID};
    }
 }

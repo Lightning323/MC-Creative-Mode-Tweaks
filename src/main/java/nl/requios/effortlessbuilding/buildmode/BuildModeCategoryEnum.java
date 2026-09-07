@@ -3,10 +3,11 @@ package nl.requios.effortlessbuilding.buildmode;
 import org.joml.Vector4f;
 
 public enum BuildModeCategoryEnum {
+   DEFAULT(new Vector4f(0.5F, 0.5F, 0.5F, 0.8F)),
    BASIC(new Vector4f(0.0F, 0.5F, 1.0F, 0.8F)),
    DIAGONAL(new Vector4f(0.56F, 0.28F, 0.87F, 0.8F)),
    CIRCULAR(new Vector4f(0.29F, 0.76F, 0.3F, 0.8F)),
-   ROOF(new Vector4f(0.83F, 0.87F, 0.23F, 0.8F));
+   COMPLEX(new Vector4f(0.83F, 0.87F, 0.23F, 0.8F));
 
    public final Vector4f color;
 
@@ -14,8 +15,4 @@ public enum BuildModeCategoryEnum {
       this.color = color;
    }
 
-   // $FF: synthetic method
-   private static BuildModeCategoryEnum[] $values() {
-      return new BuildModeCategoryEnum[]{BASIC, DIAGONAL, CIRCULAR, ROOF};
-   }
 }

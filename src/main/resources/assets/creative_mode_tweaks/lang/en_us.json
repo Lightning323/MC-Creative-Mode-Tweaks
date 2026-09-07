@@ -50,7 +50,7 @@
   "creative_mode_tweaks.modedescription.circle": "",
   "creative_mode_tweaks.modedescription.cylinder": "",
   "creative_mode_tweaks.modedescription.sphere": "",
-  "creative_mode_tweaks.modedescription.pyramid": "",
+  "creative_mode_tweaks.modedescription.pyramid": "Builds an even triangular or square pyramid outward from the face clicked first",
   "creative_mode_tweaks.modedescription.cone": "",
   "creative_mode_tweaks.modedescription.dome": "Builds a hemisphere outward from the face clicked first",
 
@@ -104,6 +104,9 @@
   "creative_mode_tweaks.action.mesh_face": "Face Shape",
   "creative_mode_tweaks.action.mesh_triangle": "Triangle (3 Points)",
   "creative_mode_tweaks.action.mesh_quad": "Quad (4 Points)",
+  "creative_mode_tweaks.action.pyramid_sides": "Pyramid Sides",
+  "creative_mode_tweaks.action.pyramid_three_sided": "Triangle (3 Sides)",
+  "creative_mode_tweaks.action.pyramid_four_sided": "Square (4 Sides)",
 
   "creative_mode_tweaks.message.undo": "Undo: restored %s blocks",
   "creative_mode_tweaks.message.redo": "Redo: re-applied %s blocks",

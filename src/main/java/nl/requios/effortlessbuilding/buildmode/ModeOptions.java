@@ -17,6 +17,7 @@ public class ModeOptions {
    private static ActionEnum circleStart;
    private static ActionEnum pointBuild;
    private static ActionEnum meshFace;
+   private static ActionEnum pyramidSides;
 
    public static ActionEnum getBuildSpeed() {
       return buildSpeed;
@@ -54,12 +55,17 @@ public class ModeOptions {
       return meshFace;
    }
 
-   public static void applyForCalculation(ActionEnum fill, ActionEnum cubeFill, ActionEnum raisedEdge, ActionEnum circleStart, ActionEnum pointBuild) {
+   public static ActionEnum getPyramidSides() {
+      return pyramidSides;
+   }
+
+   public static void applyForCalculation(ActionEnum fill, ActionEnum cubeFill, ActionEnum raisedEdge, ActionEnum circleStart, ActionEnum pointBuild, ActionEnum pyramidSides) {
       ModeOptions.fill = fill;
       ModeOptions.cubeFill = cubeFill;
       ModeOptions.raisedEdge = raisedEdge;
       ModeOptions.circleStart = circleStart;
       ModeOptions.pointBuild = pointBuild;
+      ModeOptions.pyramidSides = pyramidSides;
    }
 
    public static void performAction(Player player, ActionEnum action) {
@@ -140,6 +146,12 @@ public class ModeOptions {
                break;
             case 28:
                meshFace = ActionEnum.MESH_QUAD;
+               break;
+            case 29:
+               pyramidSides = ActionEnum.PYRAMID_THREE_SIDED;
+               break;
+            case 30:
+               pyramidSides = ActionEnum.PYRAMID_FOUR_SIDED;
          }
 
          if (player.level().isClientSide && action != ActionEnum.OPEN_MODIFIER_SETTINGS && action != ActionEnum.PREVIOUS_BUILD_MODE && action != ActionEnum.DISABLE_BUILD_MODE_TOGGLE && action != ActionEnum.UNDO && action != ActionEnum.REDO) {
@@ -166,6 +178,7 @@ public class ModeOptions {
       circleStart = ActionEnum.CIRCLE_START_CORNER;
       pointBuild = ActionEnum.THREE_POINT_BUILD;
       meshFace = ActionEnum.MESH_TRIANGLE;
+      pyramidSides = ActionEnum.PYRAMID_FOUR_SIDED;
    }
 
    public static enum ActionEnum {
@@ -197,7 +210,9 @@ public class ModeOptions {
       TWO_POINT_BUILD("two_point", AllIcons.I_TWO_POINT),
       THREE_POINT_BUILD("three_point", AllIcons.I_THREE_POINT),
       MESH_TRIANGLE("mesh_triangle", AllIcons.I_MESH_TRIANGLE),
-      MESH_QUAD("mesh_quad", AllIcons.I_MESH_QUAD);
+      MESH_QUAD("mesh_quad", AllIcons.I_MESH_QUAD),
+      PYRAMID_THREE_SIDED("pyramid_three_sided", AllIcons.I_MESH_TRIANGLE),
+      PYRAMID_FOUR_SIDED("pyramid_four_sided", AllIcons.I_MESH_QUAD);
 
       public String name;
       public AllIcons icon;
@@ -221,7 +236,7 @@ public class ModeOptions {
 
       // $FF: synthetic method
       private static ActionEnum[] $values() {
-         return new ActionEnum[]{UNDO, REDO, OPEN_MODIFIER_SETTINGS, PREVIOUS_BUILD_MODE, DISABLE_BUILD_MODE_TOGGLE, CYCLE_REPLACE_MODE, REPLACE_ONLY_AIR, REPLACE_BLOCKS_AND_AIR, REPLACE_ONLY_BLOCKS, REPLACE_FILTERED_BY_OFFHAND, NORMAL_SPEED, FAST_SPEED, FULL, HOLLOW, CUBE_FULL, CUBE_HOLLOW, CUBE_SKELETON, SHORT_EDGE, LONG_EDGE, THICKNESS_1, THICKNESS_3, THICKNESS_5, CIRCLE_START_CORNER, CIRCLE_START_CENTER, TOGGLE_ANGEL_PLACEMENT, TWO_POINT_BUILD, THREE_POINT_BUILD, MESH_TRIANGLE, MESH_QUAD};
+         return new ActionEnum[]{UNDO, REDO, OPEN_MODIFIER_SETTINGS, PREVIOUS_BUILD_MODE, DISABLE_BUILD_MODE_TOGGLE, CYCLE_REPLACE_MODE, REPLACE_ONLY_AIR, REPLACE_BLOCKS_AND_AIR, REPLACE_ONLY_BLOCKS, REPLACE_FILTERED_BY_OFFHAND, NORMAL_SPEED, FAST_SPEED, FULL, HOLLOW, CUBE_FULL, CUBE_HOLLOW, CUBE_SKELETON, SHORT_EDGE, LONG_EDGE, THICKNESS_1, THICKNESS_3, THICKNESS_5, CIRCLE_START_CORNER, CIRCLE_START_CENTER, TOGGLE_ANGEL_PLACEMENT, TWO_POINT_BUILD, THREE_POINT_BUILD, MESH_TRIANGLE, MESH_QUAD, PYRAMID_THREE_SIDED, PYRAMID_FOUR_SIDED};
       }
    }
 
@@ -233,7 +248,8 @@ public class ModeOptions {
       LINE_THICKNESS("creative_mode_tweaks.action.thickness", new ActionEnum[]{ActionEnum.THICKNESS_1, ActionEnum.THICKNESS_3, ActionEnum.THICKNESS_5}),
       CIRCLE_START("creative_mode_tweaks.action.circle_start", new ActionEnum[]{ActionEnum.CIRCLE_START_CORNER, ActionEnum.CIRCLE_START_CENTER}),
       POINT_BUILD("creative_mode_tweaks.action.point_build", new ActionEnum[]{ActionEnum.TWO_POINT_BUILD, ActionEnum.THREE_POINT_BUILD}),
-      MESH_FACE("creative_mode_tweaks.action.mesh_face", new ActionEnum[]{ActionEnum.MESH_TRIANGLE, ActionEnum.MESH_QUAD});
+      MESH_FACE("creative_mode_tweaks.action.mesh_face", new ActionEnum[]{ActionEnum.MESH_TRIANGLE, ActionEnum.MESH_QUAD}),
+      PYRAMID_SIDES("creative_mode_tweaks.action.pyramid_sides", new ActionEnum[]{ActionEnum.PYRAMID_THREE_SIDED, ActionEnum.PYRAMID_FOUR_SIDED});
 
       public String name;
       public ActionEnum[] actions;
@@ -245,7 +261,7 @@ public class ModeOptions {
 
       // $FF: synthetic method
       private static OptionEnum[] $values() {
-         return new OptionEnum[]{BUILD_SPEED, FILL, CUBE_FILL, RAISED_EDGE, LINE_THICKNESS, CIRCLE_START, POINT_BUILD, MESH_FACE};
+         return new OptionEnum[]{BUILD_SPEED, FILL, CUBE_FILL, RAISED_EDGE, LINE_THICKNESS, CIRCLE_START, POINT_BUILD, MESH_FACE, PYRAMID_SIDES};
       }
    }
 }
