@@ -23,7 +23,7 @@ public class Config {
 
     public static final ModConfigSpec.BooleanValue ALLOW_INVENTORY_ROTATION_IN_SURVIVAL =
             COMMON_BUILDER.comment("If we want to allow inventory rotation in survival")
-                    .define("hotbar.allow_inventory_rotation_in_survival", false);
+                    .define("hotbar.allow_inventory_rotation_in_survival", true);
 
     public static final ModConfigSpec.IntValue CREATIVE_HOTBAR_MAX_SIZE =
             CLIENT_BUILDER.comment("Size of enhanced hotbar (valid values: 9,12,15,18)")
@@ -60,7 +60,7 @@ public class Config {
 
     private static final ModConfigSpec.DoubleValue FLIGHT_SPEED =
             COMMON_BUILDER.comment("Flight speed (vanilla is 0.05)")
-                    .defineInRange("flight.flight_speed_multiplier", 0.075, 0.05, 1.0);
+                    .defineInRange("flight.flight_speed", 0.08, 0.05, 1.0);
 
     public static final ModConfigSpec.BooleanValue NOCLIP_ON_LOGIN =
             COMMON_BUILDER.comment("If No-Clip should be enabled or disabled by default when logging in")

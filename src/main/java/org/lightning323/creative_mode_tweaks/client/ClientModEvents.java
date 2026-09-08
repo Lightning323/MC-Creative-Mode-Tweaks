@@ -79,7 +79,7 @@ public class ClientModEvents {
 
     // Effortless Building controls are registered with the rest of Creative Mode Tweaks.
     public static final KeyMapping KEY_OPEN_RADIAL_MENU = new KeyMapping(
-            "key." + MODID + ".open_radial_menu", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_LEFT_ALT, DEFAULT_CATEGORY);
+            "key." + MODID + ".open_radial_menu", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_TAB, DEFAULT_CATEGORY);
 
     public static final KeyMapping KEY_OPEN_MODIFIERS_SCREEN = new KeyMapping(
             "key." + MODID + ".open_modifiers_screen", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_KP_ADD, DEFAULT_CATEGORY);
