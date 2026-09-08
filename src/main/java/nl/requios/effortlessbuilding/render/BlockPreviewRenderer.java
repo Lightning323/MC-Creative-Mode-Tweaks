@@ -525,12 +525,8 @@ public class BlockPreviewRenderer {
          renderType.setupRenderState();
          ShaderInstance shader = RenderSystem.getShader();
          try {
-            // Chunk shaders add CHUNK_OFFSET to every vertex. We bake the section
-            // origin (and any Sable sublevel transform) into the model-view instead,
-            // so make sure no stale offset leaks in from vanilla chunk rendering.
-            if (shader != null && shader.CHUNK_OFFSET != null) {
-               shader.CHUNK_OFFSET.set(0.0F, 0.0F, 0.0F);
-               shader.CHUNK_OFFSET.upload();
+            if (shader == null) {
+               return;
             }
             PoseStack sectionPose = new PoseStack();
             for (SectionMesh section : this.sections) {
