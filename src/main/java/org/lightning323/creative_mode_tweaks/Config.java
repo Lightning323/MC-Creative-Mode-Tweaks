@@ -76,6 +76,13 @@ public class Config {
                     .translation("creative_mode_tweaks.config.protect_tile_entities")
                     .define("building.protect_tile_entities", true);
 
+    public static final ModConfigSpec.BooleanValue BUILDING_ASYNC_BOUNDARY =
+            CLIENT_BUILDER.comment("Bake the preview border on the background thread along with the ghost blocks.",
+                            "Off: the border updates instantly on the main thread while ghost blocks catch up.",
+                            "On: both wait for the background build (smoother frames, slower border).")
+                    .translation("creative_mode_tweaks.config.async_boundary")
+                    .define("building.async_boundary", false);
+
     public static final ModConfigSpec.BooleanValue BUILDING_SURVIVAL_ALLOW_ANGEL_PLACEMENT =
             COMMON_BUILDER.comment("Allow survival players to use Angel Placement to target air blocks at a distance.")
                     .translation("creative_mode_tweaks.config.allow_angel_placement")

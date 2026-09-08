@@ -41,19 +41,21 @@ import org.joml.Matrix4f;
 import org.lightning323.creative_mode_tweaks.Config;
 
 /**
- * Central preview cache: turns per-frame rendering into "hash cheap inputs,
- * reuse expensive outputs".
+ * Central preview cache: cheap per-frame key compare on the render thread,
+ * shape + border resolved synchronously on change, ghost-block tessellation
+ * on {@link PreviewBuildWorker}.
  *
- * <p><b>Per frame (cheap):</b> one crosshair raycast, ~15 config getters,
- * one {@link PreviewShapeKey} compare. On a key hit nothing else runs except
- * GPU draws — no shape generation, no sorting, no world lookups, no
- * tessellation, no border math.</p>
+ * <p><b>Why the split is shaped this way:</b> the border must react the same
+ * frame the crosshair moves onto a new block — no worker round-trip allowed —
+ * while ghost tessellation (baked models, AO, thousands of quads) is the part
+ * that hitches. So per key change the render thread does coordinates,
+ * constraints, state resolution and the pure-math border bake immediately,
+ * and only the model tessellation goes async. The previous ghost mesh keeps
+ * drawing until the new one swaps in: seamless, no flicker.</p>
  *
- * <p><b>On shape change only:</b> snap the hover point (same marker logic as
- * clicks), {@code findCoordinates}, {@code processBlocks} (constraints),
- * distance sort, state resolution, then rebuild {@link PreviewBlockMesh} and
- * {@link PreviewOverlayMesh}. Animated block entities are collected here but
- * drawn immediately each frame — their models tick, so they can never cache.</p>
+ * <p>Set {@code building.async_boundary} to bake the border on the worker too
+ * (smoother shape-change frames, but the border then lags with the ghosts).
+ * Off by default.</p>
  *
  * <p>Validity split is preserved: over-limit / protected / out-of-reach blocks
  * stay flagged as <i>rejected</i> for the overlay, which draws the <i>exact
@@ -71,23 +73,35 @@ public final class PreviewRenderCache {
     private final PreviewBlockMesh blockMesh = new PreviewBlockMesh();
     private final PreviewOverlayMesh overlayMesh;
 
-    // Last built outputs. Lists are plain snapshots — safe to read on later
-    // frames because findCoordinates hands us a fresh BlockSet each rebuild.
-    private PreviewShapeKey lastKey;
-    private Level lastLevel;
+    // Last SHAPED outputs (applied synchronously: lists, overlay, feedback).
+    private PreviewShapeKey shapedKey;
+    private Level shapedLevel;
     private List<BlockPos> breakable = List.of();
     private List<BlockPos> unbreakable = List.of();
     // Combined view for the action-bar feedback (count + dims). Built once per
     // shape so the per-frame feedback call allocates nothing.
     private List<BlockPos> all = List.of();
     private List<PreviewBlock> animated = List.of();
-    private boolean hasBlockMesh;
     private boolean hasOverlay;
-    // True when the count cap (getBuildingMaxBlocksPlaced) cut blocks out of
-    // this shape. Drives the red count/dims warning; part of the rebuild,
-    // not the per-frame key, since it derives from the constraint results.
-    private boolean overLimit;
     private boolean isBreaking;
+    // True when the count cap (getBuildingMaxBlocksPlaced) cut blocks out of
+    // this shape. Drives the red count/dims warning.
+    private boolean overLimit;
+    private boolean wantsBlocks;
+
+    // Ghost-mesh tracking (async): meshKey = key whose mesh is uploaded,
+    // submittedKey = key handed to the worker. HasPreview for ghosts means
+    // meshKey caught up; the overlay/lists above are always live.
+    private PreviewShapeKey meshKey;
+    private PreviewShapeKey submittedKey;
+    // Retained bake inputs for the stuck-build retry (rare, see update).
+    private List<PreviewBlock> pendingMeshBlocks = List.of();
+    private int pendingAlpha;
+    private long submittedFrame;
+    private long frame;
+
+    // Bumped on resource reload so pre-reload bakes can never go live.
+    private int modelGeneration;
 
     private PreviewRenderCache() {
         this.overlayMesh = new PreviewOverlayMesh(
@@ -107,7 +121,9 @@ public final class PreviewRenderCache {
             return;
         }
         if (BuildModes.CLIENT.getBuildMode() == BuildModeEnum.DISABLED) {
-            clear();
+            if (this.shapedKey != null || this.submittedKey != null || this.hasPreview()) {
+                clear();
+            }
             RenderHandler.resetPreviewSize();
             return;
         }
@@ -117,41 +133,44 @@ public final class PreviewRenderCache {
         BuildPipeline.BuildState state = BuildPipelineClient.getBuildState();
 
         // Single-block cursor with no sequence: old code explicitly showed no
-        // big preview here, so keep the meshes empty (markers still draw).
+        // big preview here, so keep everything empty (markers still draw).
         if (!inProgress && state == null) {
-            if (this.lastKey != null || !this.breakable.isEmpty() || !this.unbreakable.isEmpty()) {
+            if (this.shapedKey != null || this.submittedKey != null || this.hasPreview()) {
                 clear();
                 RenderHandler.resetPreviewSize();
             }
-            this.lastLevel = level;
             return;
         }
 
-        PreviewShapeKey key = buildKey(mc, player, level, mode, inProgress, state);
+        BlockHitResult hit = BuildPipelineClient.getCurrentTargetHit(mc);
+        PreviewShapeKey key = buildKey(player, level, mode, inProgress, state, hit);
         if (key == null) {
             // Hovered across a Sable boundary: nothing valid to show.
             clear();
             return;
         }
-        if (key.equals(this.lastKey) && level == this.lastLevel) {
-            return;
-        }
 
-        rebuild(mc, player, level, mode, state, key);
-        this.lastKey = key;
-        this.lastLevel = level;
+        // A finished bake only lands while it is still the live shape.
+        drainReady(key, level);
+        this.frame++;
+
+        if (!key.equals(this.shapedKey) || level != this.shapedLevel) {
+            shapeOnRenderThread(mc, player, level, mode, state, hit, key);
+        } else if (this.wantsBlocks && !key.equals(this.meshKey)
+                && this.frame - this.submittedFrame > 120) {
+            // Worker bake vanished without a trace (dropped race + no
+            // follow-up change). Re-hand the retained inputs, no shape redo.
+            submitMeshTask(mc, level, key);
+        }
     }
 
-    /** Ghost blocks (cached sections). No-op when the mesh is empty. */
+    /** Ghost blocks (cached sections). No-op until the first bake swaps in. */
     public void renderBlocks(Level level, double camX, double camY, double camZ,
                              Matrix4f modelView, Matrix4f projection) {
-        if (!this.hasBlockMesh) {
-            return;
-        }
         this.blockMesh.render(level, camX, camY, camZ, modelView, projection);
     }
 
-    /** Tinted fill boxes (cached sections). */
+    /** Tinted fill boxes (cached sections, always live). */
     public void renderFill(Level level, double camX, double camY, double camZ,
                            Matrix4f modelView, Matrix4f projection) {
         if (!this.hasOverlay) {
@@ -160,7 +179,7 @@ public final class PreviewRenderCache {
         this.overlayMesh.renderFill(level, camX, camY, camZ, modelView, projection);
     }
 
-    /** Border outline (cached sections). */
+    /** Border outline (cached sections, always live). */
     public void renderOutline(Level level, double camX, double camY, double camZ,
                               Matrix4f modelView, Matrix4f projection) {
         if (!this.hasOverlay) {
@@ -171,7 +190,7 @@ public final class PreviewRenderCache {
 
     /**
      * Animated block entities can't cache (models tick), so these draw via
-     * the immediate path each frame. Normally zero or a handful.
+     * the immediate path each frame. Resolved at shape time, so live too.
      */
     public List<PreviewBlock> animatedBlocks() {
         return this.animated;
@@ -203,19 +222,203 @@ public final class PreviewRenderCache {
         return !this.breakable.isEmpty() || !this.unbreakable.isEmpty();
     }
 
-    /** Drops GPU buffers + snapshots (dimension hop, mode disable, reload). */
+    /** Drops GPU buffers + snapshots and cancels in-flight work. */
     public void clear() {
+        PreviewBuildWorker.cancel();
         this.blockMesh.clear();
         this.overlayMesh.clear();
-        this.lastKey = null;
-        this.lastLevel = null;
+        this.shapedKey = null;
+        this.meshKey = null;
+        this.submittedKey = null;
+        this.shapedLevel = null;
         this.breakable = List.of();
         this.unbreakable = List.of();
         this.all = List.of();
         this.animated = List.of();
-        this.hasBlockMesh = false;
+        this.pendingMeshBlocks = List.of();
         this.hasOverlay = false;
+        this.wantsBlocks = false;
         this.overLimit = false;
+    }
+
+    /** Resource reload: same as clear, plus retire pre-reload bakes. */
+    public void onModelsBaked() {
+        clear();
+        this.modelGeneration++;
+    }
+
+    // -- shape path (render thread, key-gated) --------------------------------
+
+    // Everything except ghost tessellation, done the moment the key changes:
+    // hover publish, coordinates, constraints, state resolution, overlay bake,
+    // feedback — then the ghosts go to the worker. The overlay/message are
+    // therefore instantaneous even while ghosts still bake.
+    private void shapeOnRenderThread(Minecraft mc, Player player, Level level,
+                                     BuildModeEnum mode, BuildPipeline.@Nullable BuildState state,
+                                     @Nullable BlockHitResult hit, PreviewShapeKey key) {
+        // Publish the hover point BEFORE generating coordinates —
+        // findCoordinates reads it as the in-progress second/third point.
+        if (mode.instance.usesDirectSecondPoint()) {
+            mode.instance.setPreviewSecondPoint(key.hoverPoint());
+        }
+
+        BlockPos anchor = key.selectionOrigin() != null ? key.selectionOrigin() : player.blockPosition();
+        BlockSet blocks = new BlockSet();
+        try (SableCompat.SelectionScope ignored = SableCompat.pushSelection(level, anchor)) {
+            mode.instance.findCoordinates(blocks, player);
+        }
+        if (blocks.isEmpty()) {
+            clear();
+            RenderHandler.resetPreviewSize();
+            this.shapedKey = key;
+            this.shapedLevel = level;
+            return;
+        }
+
+        // NOTE: no sorting before processBlocks — and that is deliberate.
+        // ConstraintSystem keeps the first N blocks in GENERATION order, and
+        // the server pipeline caps the exact same way. Sorting first would
+        // preview a different subset (closest-first blob) than placed.
+        BuildPipeline.BuildState action = state != null ? state : BuildPipeline.BuildState.PLACING;
+        try (SableCompat.SelectionScope ignored = SableCompat.pushSelection(level, anchor)) {
+            BuildPipelineClient.CLIENT.processBlocks(blocks, player, action);
+        }
+        // Display ordering only (deterministic lists); never affects which
+        // blocks were kept valid above.
+        blocks.sortByDistance();
+
+        List<BlockPos> ok = new ArrayList<>();
+        List<BlockPos> bad = new ArrayList<>();
+        boolean outsideSublevel = blocks.hasEntriesWithStatus(BlockStatus.OUTSIDE_REACH);
+        boolean overCap = false;
+        for (BlockPos pos : blocks.keySet()) {
+            BlockEntry entry = blocks.get(pos);
+            if (outsideSublevel || (entry != null && !entry.isValid())) {
+                bad.add(pos);
+            } else {
+                ok.add(pos);
+            }
+            if (entry != null && entry.getStatus() == BlockStatus.MAX_BLOCKS_EXCEEDED) {
+                overCap = true;
+            }
+        }
+
+        this.isBreaking = action == BuildPipeline.BuildState.BREAKING;
+        boolean wantBlocks = !this.isBreaking
+                && BuildSettings.CLIENT.getReplaceMode() != BuildSettings.ReplaceMode.ONLY_BLOCKS
+                && !outsideSublevel;
+
+        // Ghost states resolve here (was per-frame before caching). Trowel
+        // rolls one random set per shape instead of shimmering every frame.
+        // Mesh stays strictly placeable-only: over-cap blocks show red in the
+        // overlay + red count line instead of rendering as ghosts.
+        List<PreviewBlock> meshBlocks = new ArrayList<>();
+        List<PreviewBlock> animatedBlocks = new ArrayList<>();
+        if (wantBlocks) {
+            BlockHitResult firstHit = BuildPipelineClient.getFirstClickHit();
+            BlockState base = resolveBaseState(mc, player, firstHit, hit);
+            Map<Item, BlockState> trowelCache = new HashMap<>();
+            boolean trowel = TrowelSystem.isTrowel(player.getMainHandItem());
+            for (BlockPos pos : ok) {
+                BlockState resolved = base;
+                BlockEntry entry = blocks.get(pos);
+                if (trowel && entry != null && entry.item instanceof BlockItem randomBlock) {
+                    resolved = trowelCache.computeIfAbsent(entry.item,
+                            item -> resolveBaseState(mc, player, randomBlock, new ItemStack(item), firstHit, hit));
+                }
+                if (resolved == null) {
+                    continue;
+                }
+                if (entry != null) {
+                    resolved = entry.applyTransforms(resolved);
+                }
+                // Animated entities tick — immediate path, never the baked mesh.
+                if (resolved.getRenderShape() == RenderShape.ENTITYBLOCK_ANIMATED) {
+                    animatedBlocks.add(new PreviewBlock(pos, resolved));
+                } else {
+                    meshBlocks.add(new PreviewBlock(pos, resolved));
+                }
+            }
+        }
+
+        int alpha = key.blockAlpha();
+        this.breakable = List.copyOf(ok);
+        this.unbreakable = List.copyOf(bad);
+        List<BlockPos> combined = new ArrayList<>(ok.size() + bad.size());
+        combined.addAll(ok);
+        combined.addAll(bad);
+        this.all = List.copyOf(combined);
+        this.animated = List.copyOf(animatedBlocks);
+        this.overLimit = overCap;
+        this.wantsBlocks = wantBlocks && !meshBlocks.isEmpty();
+        this.shapedKey = key;
+        this.shapedLevel = level;
+
+        // Border: synchronous by default so it lands the same frame as the
+        // shape. With async-boundary on, it rides the worker with the ghosts.
+        if (!key.asyncBoundary()) {
+            this.overlayMesh.adopt(level, PreviewOverlayMesh.bake(ok, bad, this.isBreaking));
+            this.hasOverlay = !this.overlayMesh.isEmpty();
+        }
+
+        // Sound + action-bar feedback, exactly like the old per-frame call —
+        // internally it only dings when the size actually changed.
+        RenderHandler.updateFeedback(this.all, state != null, state, this.overLimit);
+
+        if (this.wantsBlocks) {
+            this.pendingMeshBlocks = List.copyOf(meshBlocks);
+            this.pendingAlpha = alpha;
+            submitMeshTask(mc, level, key);
+        } else {
+            // Nothing for the worker: drop stale ghosts now, cancel any bake.
+            PreviewBuildWorker.cancel();
+            this.blockMesh.clear();
+            this.meshKey = key;
+            this.submittedKey = key;
+        }
+    }
+
+    // Hands the retained bake inputs to the worker. Previous ghosts stay live
+    // until the swap: seamless, no flicker.
+    private void submitMeshTask(Minecraft mc, Level level, PreviewShapeKey key) {
+        PreviewBuildWorker.submit(new PreviewBuildWorker.Task(
+                PreviewBuildWorker.nextSeq(), this.modelGeneration, key,
+                level, mc.getBlockRenderer(),
+                this.pendingMeshBlocks, this.pendingAlpha,
+                this.breakable, this.unbreakable, this.isBreaking));
+        this.submittedKey = key;
+        this.submittedFrame = this.frame;
+    }
+
+    // -- swap-in (render thread: GL upload) -----------------------------------
+
+    // Takes a finished bake if it is still the live shape; anything older
+    // (superseded key, level hop, pre-reload bake) is freed un-drawn.
+    private void drainReady(PreviewShapeKey liveKey, Level liveLevel) {
+        BuiltPreview ready = PreviewBuildWorker.pollReady();
+        if (ready == null) {
+            return;
+        }
+        if (ready.modelGeneration() != this.modelGeneration
+                || ready.level() != liveLevel
+                || !ready.key().equals(liveKey)) {
+            ready.discard();
+            return;
+        }
+        try {
+            this.blockMesh.adopt(liveLevel, ready.blockSections());
+            if (liveKey.asyncBoundary() && ready.overlay() != null) {
+                this.overlayMesh.adopt(liveLevel, ready.overlay());
+                this.hasOverlay = !this.overlayMesh.isEmpty();
+            }
+        } catch (RuntimeException glFailure) {
+            // GL upload all but guarantees success short of context loss (in
+            // which case everything GL is gone anyway). Reset to empty; the
+            // failing mesh was consumed by the upload itself.
+            this.blockMesh.clear();
+            this.hasOverlay = false;
+        }
+        this.meshKey = liveKey;
     }
 
     // -- key building (must stay cheap: raycast + getters only) -------------
@@ -223,10 +426,10 @@ public final class PreviewRenderCache {
     // Resolves the hovered block exactly like a click would land: reuse a
     // persistent Mesh vertex when hovering one, otherwise offset to air.
     // Returns null only when hovering across a Sable boundary (no preview).
-    private static @Nullable PreviewShapeKey buildKey(Minecraft mc, Player player, Level level,
+    private static @Nullable PreviewShapeKey buildKey(Player player, Level level,
                                                       BuildModeEnum mode, boolean inProgress,
-                                                      BuildPipeline.@Nullable BuildState state) {
-        BlockHitResult hit = BuildPipelineClient.getCurrentTargetHit(mc);
+                                                      BuildPipeline.@Nullable BuildState state,
+                                                      @Nullable BlockHitResult hit) {
         BlockPos hoverPos = hit != null ? hit.getBlockPos() : null;
         Direction hoverFace = hit != null ? hit.getDirection() : null;
 
@@ -234,7 +437,7 @@ public final class PreviewRenderCache {
         if (hit != null && mode.instance.usesDirectSecondPoint()) {
             BuildPipeline.BuildState action = state != null ? state : BuildPipeline.BuildState.PLACING;
             BlockPos marker = mode.instance.getSelectionMarker(hit.getBlockPos());
-            hoverPoint = marker != null ? marker : resolvePlacePos(hit, action, level);
+            hoverPoint = marker != null ? marker : resolvePlacePos(hit, action, level, player);
             BlockPos anchor = BuildPipelineClient.getSelectionOrigin() != null
                     ? BuildPipelineClient.getSelectionOrigin() : player.blockPosition();
             if (!SableCompat.isInSameSelection(level, anchor, hoverPoint)) {
@@ -269,157 +472,21 @@ public final class PreviewRenderCache {
                 ModeOptions.getSides(),
                 ModeOptions.getPointBuild(),
                 player.getAbilities().instabuild,
+                readAsyncBoundary(),
                 level.dimension().location().toString());
     }
 
-    // -- rebuild (expensive: runs only when the key changed) ----------------
-
-    private void rebuild(Minecraft mc, Player player, Level level,
-                         BuildModeEnum mode, BuildPipeline.@Nullable BuildState state,
-                         PreviewShapeKey key) {
-        // Publish the hover point to the mode BEFORE generating coordinates —
-        // findCoordinates reads it as the in-progress second/third point.
-        if (mode.instance.usesDirectSecondPoint()) {
-            mode.instance.setPreviewSecondPoint(key.hoverPoint());
-        }
-
-        BlockPos anchor = key.selectionOrigin() != null ? key.selectionOrigin() : player.blockPosition();
-        BlockSet blocks = new BlockSet();
-        try (SableCompat.SelectionScope ignored = SableCompat.pushSelection(level, anchor)) {
-            mode.instance.findCoordinates(blocks, player);
-        }
-        if (blocks.isEmpty()) {
-            clearKeepKey();
-            RenderHandler.resetPreviewSize();
-            return;
-        }
-
-        // NOTE: no sorting before processBlocks — and that is deliberate.
-        // ConstraintSystem keeps the first N blocks in GENERATION order, and the
-        // server pipeline (BuildModeSystem -> ... -> ConstraintSystem, no sort)
-        // caps the exact same way. Sorting first would keep the N closest to
-        // the first click instead, carving a rounded blob out of big shapes
-        // while the server places a flat generation-ordered slice. The preview
-        // must show what will actually be placed, so membership matches.
-        BuildPipeline.BuildState action = state != null ? state : BuildPipeline.BuildState.PLACING;
-        try (SableCompat.SelectionScope ignored = SableCompat.pushSelection(level, anchor)) {
-            BuildPipelineClient.CLIENT.processBlocks(blocks, player, action);
-        }
-        // Display ordering only (deterministic lists); must not affect which
-        // blocks were kept valid above.
-        blocks.sortByDistance();
-
-        List<BlockPos> ok = new ArrayList<>();
-        List<BlockPos> bad = new ArrayList<>();
-        boolean outsideSublevel = blocks.hasEntriesWithStatus(BlockStatus.OUTSIDE_REACH);
-        boolean overCap = false;
-        for (BlockPos pos : blocks.keySet()) {
-            BlockEntry entry = blocks.get(pos);
-            if (outsideSublevel || (entry != null && !entry.isValid())) {
-                bad.add(pos);
-            } else {
-                ok.add(pos);
-            }
-            if (entry != null && entry.getStatus() == BlockStatus.MAX_BLOCKS_EXCEEDED) {
-                overCap = true;
-            }
-        }
-        this.overLimit = overCap;
-
-        this.isBreaking = action == BuildPipeline.BuildState.BREAKING;
-        boolean wantBlocks = !this.isBreaking
-                && BuildSettings.CLIENT.getReplaceMode() != BuildSettings.ReplaceMode.ONLY_BLOCKS;
-
-        // Resolve ghost states once per shape (was per frame). Trowel rolls
-        // one random set per shape instead of shimmering every frame.
-        //
-        // The mesh renders strictly what will be placed: valid blocks only.
-        // Anything cut by getBuildingMaxBlocksPlaced stays out of the mesh and
-        // shows red in the overlay instead, with the count/dims line turned
-        // red (see isOverLimit) so it reads as "this won't fully build".
-        List<PreviewBlock> meshBlocks = new ArrayList<>();
-        List<PreviewBlock> animatedBlocks = new ArrayList<>();
-        if (wantBlocks && !outsideSublevel) {
-            BlockState base = resolveBaseState(mc, player);
-            Map<Item, BlockState> trowelCache = new HashMap<>();
-            boolean trowel = TrowelSystem.isTrowel(player.getMainHandItem());
-            for (BlockPos pos : ok) {
-                BlockState s = base;
-                BlockEntry entry = blocks.get(pos);
-                if (trowel && entry != null && entry.item instanceof BlockItem randomBlock) {
-                    s = trowelCache.computeIfAbsent(entry.item,
-                            item -> resolveBaseState(mc, player, randomBlock, new ItemStack(item)));
-                }
-                if (s == null) {
-                    continue;
-                }
-                if (entry != null) {
-                    s = entry.applyTransforms(s);
-                }
-                // Animated entities tick — immediate path, never the static mesh.
-                if (s.getRenderShape() == RenderShape.ENTITYBLOCK_ANIMATED) {
-                    animatedBlocks.add(new PreviewBlock(pos, s));
-                } else {
-                    meshBlocks.add(new PreviewBlock(pos, s));
-                }
-            }
-        }
-
-        int alpha = key.blockAlpha();
-        if (wantBlocks && !meshBlocks.isEmpty()) {
-            this.blockMesh.update(mc, level, meshBlocks, alpha);
-            this.hasBlockMesh = !this.blockMesh.isEmpty();
-        } else {
-            this.blockMesh.clear();
-            this.hasBlockMesh = false;
-        }
-
-        // Overlay always draws the EXACT tool shape: white fill + outline for
-        // placeable, red/grey for rejected (over-limit, protected, …).
-        if (!ok.isEmpty() || !bad.isEmpty()) {
-            this.overlayMesh.update(level, ok, bad, this.isBreaking);
-            this.hasOverlay = !this.overlayMesh.isEmpty();
-        } else {
-            this.overlayMesh.clear();
-            this.hasOverlay = false;
-        }
-
-        this.breakable = List.copyOf(ok);
-        this.unbreakable = List.copyOf(bad);
-        this.animated = List.copyOf(animatedBlocks);
-
-        // Sound + action-bar feedback, exactly like the old per-frame call —
-        // internally it only dings when the size actually changed.
-        List<BlockPos> combined = new ArrayList<>(ok.size() + bad.size());
-        combined.addAll(ok);
-        combined.addAll(bad);
-        this.all = List.copyOf(combined);
-        RenderHandler.updateFeedback(this.all, state != null, state, this.overLimit);
-    }
-
-    private void clearKeepKey() {
-        this.blockMesh.clear();
-        this.overlayMesh.clear();
-        this.breakable = List.of();
-        this.unbreakable = List.of();
-        this.all = List.of();
-        this.animated = List.of();
-        this.hasBlockMesh = false;
-        this.hasOverlay = false;
-        this.overLimit = false;
-    }
-
-    // -- small helpers (mirrors of click-time logic) -------------------------
+    // -- small helpers -------------------------------------------------------
 
     // Same placement-offset rule as clicks: solid blocks preview in the
     // adjacent air cell, replaceable ones (grass, water…) in place.
-    private static BlockPos resolvePlacePos(BlockHitResult hit, BuildPipeline.BuildState action, Level level) {
+    private static BlockPos resolvePlacePos(BlockHitResult hit, BuildPipeline.BuildState action,
+                                            Level level, Player player) {
         BlockPos hitPos = hit.getBlockPos();
         if (action == BuildPipeline.BuildState.BREAKING) {
             return hitPos;
         }
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.player != null && BuildPipeline.isToolInteractionItem(mc.player.getMainHandItem())) {
+        if (BuildPipeline.isToolInteractionItem(player.getMainHandItem())) {
             return hitPos;
         }
         if (BuildSettings.CLIENT.shouldOffsetStartPosition()) {
@@ -428,10 +495,12 @@ public final class PreviewRenderCache {
         return level.getBlockState(hitPos).canBeReplaced() ? hitPos : hitPos.relative(hit.getDirection());
     }
 
-    private static BlockState resolveBaseState(Minecraft mc, Player player) {
+    private static @Nullable BlockState resolveBaseState(Minecraft mc, Player player,
+                                                         @Nullable BlockHitResult firstHit,
+                                                         @Nullable BlockHitResult hoverHit) {
         ItemStack held = player.getMainHandItem();
         if (held.getItem() instanceof BlockItem blockItem) {
-            return resolveBaseState(mc, player, blockItem, held);
+            return resolveBaseState(mc, player, blockItem, held, firstHit, hoverHit);
         }
         if (held.getItem() instanceof BucketItem bucket) {
             Fluid fluid = ((BucketItemAccessor) bucket).effortlessbuilding$getFluid();
@@ -442,14 +511,13 @@ public final class PreviewRenderCache {
         return null;
     }
 
-    private static BlockState resolveBaseState(Minecraft mc, Player player,
-                                               BlockItem blockItem, ItemStack stack) {
-        BlockHitResult hit = BuildPipelineClient.getFirstClickHit();
+    private static @Nullable BlockState resolveBaseState(Minecraft mc, Player player,
+                                                         BlockItem blockItem, ItemStack stack,
+                                                         @Nullable BlockHitResult firstHit,
+                                                         @Nullable BlockHitResult hoverHit) {
+        BlockHitResult hit = firstHit != null ? firstHit : hoverHit;
         if (hit == null) {
-            hit = BuildPipelineClient.getCurrentTargetHit(mc);
-            if (hit == null) {
-                return blockItem.getBlock().defaultBlockState();
-            }
+            return blockItem.getBlock().defaultBlockState();
         }
         BlockPlaceContext ctx = new OpenBlockPlaceContext(mc.level, player, InteractionHand.MAIN_HAND, stack, hit);
         BlockState state = blockItem.getBlock().getStateForPlacement(ctx);
@@ -459,6 +527,14 @@ public final class PreviewRenderCache {
     private static boolean readProtectTiles() {
         try {
             return Config.BUILDING_PROTECT_TILE_ENTITIES.get();
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    private static boolean readAsyncBoundary() {
+        try {
+            return Config.BUILDING_ASYNC_BOUNDARY.get();
         } catch (Exception ignored) {
             return false;
         }

@@ -4,8 +4,6 @@ import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.ByteBufferBuilder;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.MeshData;
-import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexBuffer;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import java.util.ArrayList;
@@ -43,9 +41,9 @@ import org.joml.Matrix4f;
  *       emission (up to ~6 quads x 50k blocks per frame before).</li>
  * </ul>
  *
- * <p>Colors are baked into the vertices (white/cyan for placeable, red/grey
- * for rejected, red tint when breaking), so a breaking↔placing switch is part
- * of the fingerprint and rebuilds the mesh — no per-frame color patching.</p>
+ * <p>Colors are baked into the vertices (white for placeable, red/grey for
+ * rejected, red tint when breaking), so a breaking↔placing switch is part of
+ * the shape key and rebakes — no per-frame color patching.</p>
  */
 public final class PreviewOverlayMesh {
     private static final int SECTION_BUFFER_HINT = 65536;
@@ -59,30 +57,28 @@ public final class PreviewOverlayMesh {
     private final List<Section> fillSections = new ArrayList<>();
     private final List<Section> outlineSections = new ArrayList<>();
     private Level level;
-    private long fingerprint = Long.MIN_VALUE;
 
     public PreviewOverlayMesh(ResourceLocation fillTexture, ResourceLocation outlineTexture) {
         this.fillTexture = fillTexture;
         this.outlineTexture = outlineTexture;
     }
 
-    /**
-     * Rebuilds fill + outline buffers unless the exact same inputs were baked
-     * last time. {@code breakable} draws white (cyan when breaking is handled
-     * by color choice), {@code unbreakable} draws red fill + grey outline.
-     */
-    public void update(Level level, List<BlockPos> breakable, List<BlockPos> unbreakable, boolean isBreaking) {
-        long next = fingerprint(breakable, unbreakable, isBreaking);
-        if (this.level == level && this.fingerprint == next) {
-            return;
-        }
+    /** Worker-side result: baked fill + outline, still CPU-side (no GL). */
+    public record Baked(List<SectionMeshDraw.PendingSection> fill,
+                        List<SectionMeshDraw.PendingSection> outline) {
+    }
 
-        SectionMeshDraw.closeAll(this.fillSections);
-        SectionMeshDraw.closeAll(this.outlineSections);
-        this.level = level;
-        this.fingerprint = next;
+    /**
+     * Bakes fill + outline into CPU-side meshes. Runs on the preview worker
+     * thread — pure math on the position lists, no level reads, no GL.
+     * {@code breakable} draws white (red when breaking), {@code unbreakable}
+     * draws red fill + grey outline.
+     */
+    public static Baked bake(List<BlockPos> breakable, List<BlockPos> unbreakable, boolean isBreaking) {
+        List<SectionMeshDraw.PendingSection> fill = new ArrayList<>();
+        List<SectionMeshDraw.PendingSection> outline = new ArrayList<>();
         if (breakable.isEmpty() && unbreakable.isEmpty()) {
-            return;
+            return new Baked(fill, outline);
         }
 
         // Fill colors match the old immediate path.
@@ -91,16 +87,17 @@ public final class PreviewOverlayMesh {
         Map<Long, ByteBufferBuilder> fillBacking = new LinkedHashMap<>();
         try {
             // Each list culls against itself only — same as the old per-list
-            // renderBoundingBoxAround calls, so shared faces between the two
-            // lists still draw (preserves old look, avoids cross-list logic).
+            // box calls, so shared faces between the two lists still draw
+            // (preserves old look, avoids cross-list logic).
             emitFill(fillBuilders, fillBacking, breakable, new HashSet<>(breakable), fillR, fillG, fillB, fillA);
             emitFill(fillBuilders, fillBacking, unbreakable, new HashSet<>(unbreakable), 255, 80, 80, 100);
-            uploadAll(fillBuilders, fillBacking, this.fillSections);
-        } finally {
-            // Uploaded buffers copy the data; backing memory always closes here.
-            for (ByteBufferBuilder backing : fillBacking.values()) {
-                backing.close();
-            }
+            collectAll(fillBuilders, fillBacking, fill);
+        } catch (RuntimeException failure) {
+            // Bake failed partway: free everything built so far (both closes
+            // are idempotent, so transferred + untransferred mix safely).
+            SectionMeshDraw.discardAllPending(fill);
+            closeAllBacking(fillBacking);
+            throw failure;
         }
 
         // Outline: border edges only (interior edges cancel in pairs), one
@@ -111,11 +108,40 @@ public final class PreviewOverlayMesh {
         try {
             emitOutline(lineBuilders, lineBacking, computeBorderEdges(breakable), lineR, lineG, lineB, 255);
             emitOutline(lineBuilders, lineBacking, computeBorderEdges(unbreakable), 100, 100, 100, 255);
-            uploadAll(lineBuilders, lineBacking, this.outlineSections);
-        } finally {
-            for (ByteBufferBuilder backing : lineBacking.values()) {
-                backing.close();
+            collectAll(lineBuilders, lineBacking, outline);
+        } catch (RuntimeException failure) {
+            SectionMeshDraw.discardAllPending(outline);
+            closeAllBacking(lineBacking);
+            throw failure;
+        }
+        return new Baked(fill, outline);
+    }
+
+    /**
+     * Uploads a baked result to GL. Must run on the render thread. Takes
+     * ownership of every pending mesh; on mid-loop GL failure the failing
+     * section frees itself inside upload() and the never-attempted tail is
+     * freed here, so no path leaks native memory.
+     */
+    public void adopt(Level level, Baked baked) {
+        SectionMeshDraw.closeAll(this.fillSections);
+        SectionMeshDraw.closeAll(this.outlineSections);
+        this.level = level;
+        adoptAll(baked.fill(), this.fillSections);
+        adoptAll(baked.outline(), this.outlineSections);
+    }
+
+    private void adoptAll(List<SectionMeshDraw.PendingSection> pending, List<Section> live) {
+        int done = 0;
+        try {
+            for (; done < pending.size(); done++) {
+                live.add(SectionMeshDraw.upload(pending.get(done)));
             }
+        } catch (RuntimeException failure) {
+            for (int j = done + 1; j < pending.size(); j++) {
+                pending.get(j).discard();
+            }
+            throw failure;
         }
     }
 
@@ -143,7 +169,6 @@ public final class PreviewOverlayMesh {
         SectionMeshDraw.closeAll(this.fillSections);
         SectionMeshDraw.closeAll(this.outlineSections);
         this.level = null;
-        this.fingerprint = Long.MIN_VALUE;
     }
 
     public boolean isEmpty() {
@@ -245,27 +270,31 @@ public final class PreviewOverlayMesh {
         return created;
     }
 
-    private static void uploadAll(Map<Long, BufferBuilder> builders, Map<Long, ByteBufferBuilder> backing,
-                                  List<Section> out) {
+    // Collects finished builders into CPU-side sections (render thread
+    // uploads them later). Backing stores travel with their meshes — see
+    // PendingSection — and are freed on upload or discard, never here.
+    // Null builds (empty builders) free their backing immediately.
+    private static void collectAll(Map<Long, BufferBuilder> builders, Map<Long, ByteBufferBuilder> backing,
+                                   List<SectionMeshDraw.PendingSection> out) {
         for (Map.Entry<Long, BufferBuilder> entry : builders.entrySet()) {
+            ByteBufferBuilder store = backing.get(entry.getKey());
             MeshData mesh = entry.getValue().build();
             if (mesh == null) {
+                if (store != null) {
+                    store.close();
+                }
                 continue;
             }
-            VertexBuffer buffer = new VertexBuffer(VertexBuffer.Usage.STATIC);
-            buffer.bind();
-            try {
-                buffer.upload(mesh);
-            } catch (RuntimeException failure) {
-                buffer.close();
-                throw failure;
-            } finally {
-                VertexBuffer.unbind();
-            }
             long key = entry.getKey();
-            out.add(new Section(new BlockPos(SectionPos.sectionToBlockCoord(SectionPos.x(key)),
+            out.add(new SectionMeshDraw.PendingSection(new BlockPos(SectionPos.sectionToBlockCoord(SectionPos.x(key)),
                     SectionPos.sectionToBlockCoord(SectionPos.y(key)),
-                    SectionPos.sectionToBlockCoord(SectionPos.z(key))), buffer));
+                    SectionPos.sectionToBlockCoord(SectionPos.z(key))), mesh, store));
+        }
+    }
+
+    private static void closeAllBacking(Map<Long, ByteBufferBuilder> backing) {
+        for (ByteBufferBuilder store : backing.values()) {
+            store.close();
         }
     }
 
@@ -321,29 +350,5 @@ public final class PreviewOverlayMesh {
     }
 
     private record EdgeKey(int axis, int x, int y, int z) {
-    }
-
-    private static long fingerprint(List<BlockPos> breakable, List<BlockPos> unbreakable, boolean isBreaking) {
-        // Order-independent like the block mesh: same shape in any iteration
-        // order must hit the cache.
-        long sum = 0L;
-        long xor = 0L;
-        for (BlockPos pos : breakable) {
-            long entry = pos.asLong() * -7046029254386353131L + 1L;
-            entry ^= entry >>> 33;
-            sum += entry;
-            xor ^= Long.rotateLeft(entry, (int) entry & 63);
-        }
-        for (BlockPos pos : unbreakable) {
-            long entry = pos.asLong() * -7046029254386353131L + 2L;
-            entry ^= entry >>> 33;
-            sum += entry;
-            xor ^= Long.rotateLeft(entry, (int) entry & 63);
-        }
-        long hash = 7640891576956012809L ^ (isBreaking ? 1L : 0L)
-                ^ (long) breakable.size() << 32 ^ unbreakable.size();
-        hash ^= sum;
-        hash = Long.rotateLeft(hash, 27) * -4658895280553007687L;
-        return hash ^ xor;
     }
 }

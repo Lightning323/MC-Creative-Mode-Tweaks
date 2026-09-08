@@ -1,6 +1,8 @@
 package nl.requios.effortlessbuilding.render.preview;
 
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.ByteBufferBuilder;
+import com.mojang.blaze3d.vertex.MeshData;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexBuffer;
 import java.util.List;
@@ -33,6 +35,29 @@ public final class SectionMeshDraw {
 
     /** One uploaded chunk-section of a cached mesh. */
     public record Section(BlockPos origin, VertexBuffer buffer) {
+    }
+
+    /**
+     * One tessellated chunk-section that has NOT touched GL yet. Built on any
+     * thread (pure CPU vertex data) and uploaded on the render thread.
+     *
+     * <p><b>Ownership is the whole game here:</b> the {@code MeshData} is a
+     * <i>view</i> into the backing's native memory — reading it after
+     * {@code backing.close()} throws (or worse). So the backing travels WITH
+     * the mesh and is closed exactly once, either right after a successful
+     * upload or as part of {@link #discard}. Closing it early (like vanilla's
+     * synchronous try-with-resources would) while the mesh is still pending
+     * is a guaranteed crash; never closing it leaks native memory until the
+     * game dies. Both already happened — this record exists so neither can.</p>
+     */
+    public record PendingSection(BlockPos origin, MeshData mesh, ByteBufferBuilder backing) {
+        /** Frees the mesh view AND its native memory. Call on every discard path. */
+        public void discard() {
+            // Result closes are idempotent (closed flag); backing close is
+            // idempotent too (pointer check) — safe even partially consumed.
+            this.mesh.close();
+            this.backing.close();
+        }
     }
 
     /**
@@ -79,5 +104,37 @@ public final class SectionMeshDraw {
             section.buffer().close();
         }
         sections.clear();
+    }
+
+    /** Frees every pending (never uploaded) mesh in the list and empties it. */
+    public static void discardAllPending(List<PendingSection> pending) {
+        for (PendingSection section : pending) {
+            section.discard();
+        }
+        pending.clear();
+    }
+
+    /**
+     * Uploads one pending section to GL. Must run on the render thread.
+     * The upload copies vertices to the GPU synchronously, so the backing
+     * memory is freed right after (mirroring vanilla's build-then-close
+     * pattern, just split across the handoff).
+     */
+    public static Section upload(PendingSection pending) {
+        VertexBuffer buffer = new VertexBuffer(VertexBuffer.Usage.STATIC);
+        buffer.bind();
+        try {
+            buffer.upload(pending.mesh());
+        } catch (RuntimeException failure) {
+            buffer.close();
+            pending.discard();
+            throw failure;
+        } finally {
+            VertexBuffer.unbind();
+        }
+        // MeshData is consumed by the upload; now free the native memory it
+        // was viewing. Order matters: never close before a successful upload.
+        pending.backing().close();
+        return new Section(pending.origin(), buffer);
     }
 }

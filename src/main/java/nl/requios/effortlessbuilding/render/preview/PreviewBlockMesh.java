@@ -5,7 +5,6 @@ import com.mojang.blaze3d.vertex.ByteBufferBuilder;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.MeshData;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexBuffer;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
@@ -13,7 +12,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.block.BlockRenderDispatcher;
@@ -39,10 +37,10 @@ import org.joml.Matrix4f;
 /**
  * Cached ghost-block mesh: the translucent preview cubes.
  *
- * <p><b>When it rebuilds:</b> only from {@link PreviewRenderCache}, and only
- * when the shape key changes (new hover block, new click, new held item,
- * …). Frames in between skip tessellation entirely and just re-draw the
- * uploaded section buffers at the new camera position.</p>
+ * <p><b>Threading split:</b> {@link #bake} tessellates into CPU-side
+ * {@code MeshData} on the preview worker thread (never GL); {@link #adopt}
+ * uploads those to GPU buffers on the render thread. Frames in between just
+ * re-draw the uploaded sections at the new camera position.</p>
  *
  * <p><b>How it tessellates:</b> one pass per 16³ section through vanilla's
  * chunk baker ({@code renderBatched}). The {@link PreviewBlockView} below
@@ -64,24 +62,20 @@ public final class PreviewBlockMesh {
 
     private final List<Section> sections = new ArrayList<>();
     private Level level;
-    private long fingerprint = Long.MIN_VALUE;
 
     /**
-     * Rebuilds the GPU buffers unless positions, states and opacity all match
-     * the last build. {@code blocks} must already be the valid-only subset —
-     * over-limit entries never reach the mesh, they show up red in the overlay.
+     * Tessellates ghost blocks into CPU-side meshes. Runs on the preview
+     * worker thread — touches baked models and level reads (same class of
+     * reads vanilla chunk builders do off-thread) but never GL.
+     * {@code blocks} must already be the valid-only subset.
+     *
+     * @return per-section meshes the render thread uploads via {@link #adopt}.
      */
-    public void update(Minecraft mc, Level level, List<PreviewBlock> blocks, int alpha) {
-        long next = fingerprint(blocks, alpha);
-        if (this.level == level && this.fingerprint == next) {
-            return;
-        }
-
-        SectionMeshDraw.closeAll(this.sections);
-        this.level = level;
-        this.fingerprint = next;
+    public static List<SectionMeshDraw.PendingSection> bake(BlockRenderDispatcher dispatcher, Level level,
+                                                            List<PreviewBlock> blocks, int alpha) {
+        List<SectionMeshDraw.PendingSection> out = new ArrayList<>();
         if (blocks.isEmpty() || alpha == 0) {
-            return;
+            return out;
         }
 
         // Fast neighbor lookups for face culling: pos -> preview state.
@@ -93,21 +87,45 @@ public final class PreviewBlockMesh {
         }
 
         PreviewBlockView view = new PreviewBlockView(level, states);
-        BlockRenderDispatcher dispatcher = mc.getBlockRenderer();
         RandomSource random = RandomSource.create();
+        // ThreadLocal cache (vanilla uses the same pattern on its meshing
+        // workers), so enable/clear stays paired on THIS thread.
         ModelBlockRenderer.enableCaching();
         try {
             for (Map.Entry<Long, List<PreviewBlock>> entry : bySection.entrySet()) {
-                Section section = buildSection(dispatcher, view, random, entry.getKey(), entry.getValue(), alpha);
+                SectionMeshDraw.PendingSection section = buildSection(dispatcher, view, random, entry.getKey(), entry.getValue(), alpha);
                 if (section != null) {
-                    this.sections.add(section);
+                    out.add(section);
                 }
             }
         } catch (RuntimeException failure) {
-            clear();
+            SectionMeshDraw.discardAllPending(out);
             throw failure;
         } finally {
             ModelBlockRenderer.clearCache();
+        }
+        return out;
+    }
+
+    /**
+     * Uploads baked sections to GL. Must run on the render thread. Takes
+     * ownership of every pending mesh: uploaded ones join the drawn sections,
+     * and anything never attempted (after a mid-loop GL failure) is freed —
+     * the failing section itself is freed inside upload().
+     */
+    public void adopt(Level level, List<SectionMeshDraw.PendingSection> pending) {
+        SectionMeshDraw.closeAll(this.sections);
+        this.level = level;
+        int done = 0;
+        try {
+            for (; done < pending.size(); done++) {
+                this.sections.add(SectionMeshDraw.upload(pending.get(done)));
+            }
+        } catch (RuntimeException failure) {
+            for (int j = done + 1; j < pending.size(); j++) {
+                pending.get(j).discard();
+            }
+            throw failure;
         }
     }
 
@@ -125,19 +143,23 @@ public final class PreviewBlockMesh {
     public void clear() {
         SectionMeshDraw.closeAll(this.sections);
         this.level = null;
-        this.fingerprint = Long.MIN_VALUE;
     }
 
     public boolean isEmpty() {
         return this.sections.isEmpty();
     }
 
-    // Bakes one 16³ section into a GPU buffer. Vertices are section-local;
-    // the section origin is re-applied at draw time (see SectionMeshDraw).
-    private static Section buildSection(BlockRenderDispatcher dispatcher, PreviewBlockView view,
-                                        RandomSource random, long sectionKey,
-                                        List<PreviewBlock> blocks, int alpha) {
-        try (ByteBufferBuilder backing = new ByteBufferBuilder(SECTION_BUFFER_HINT)) {
+    // Bakes one 16³ section into CPU-side vertex data (no GL — safe on the
+    // worker). Vertices are section-local; the origin goes back on at draw.
+    // The backing store travels WITH the mesh (see PendingSection): closing
+    // it here would invalidate the mesh before upload (crash), never closing
+    // it would leak native memory until OOM (also crash).
+    private static SectionMeshDraw.PendingSection buildSection(BlockRenderDispatcher dispatcher, PreviewBlockView view,
+                                                              RandomSource random, long sectionKey,
+                                                              List<PreviewBlock> blocks, int alpha) {
+        ByteBufferBuilder backing = new ByteBufferBuilder(SECTION_BUFFER_HINT);
+        boolean transferred = false;
+        try {
             BufferBuilder builder = new BufferBuilder(backing, VertexFormat.Mode.QUADS, DefaultVertexFormat.BLOCK);
             VertexConsumer consumer = new AlphaFullBrightVertexConsumer(builder, alpha);
             PoseStack sectionPose = new PoseStack();
@@ -171,40 +193,18 @@ public final class PreviewBlockMesh {
             if (mesh == null) {
                 return null;
             }
-            VertexBuffer buffer = new VertexBuffer(VertexBuffer.Usage.STATIC);
-            buffer.bind();
-            try {
-                buffer.upload(mesh);
-            } catch (RuntimeException failure) {
-                buffer.close();
-                throw failure;
-            } finally {
-                VertexBuffer.unbind();
-            }
+            // Ownership of mesh AND backing moves to the caller: the render
+            // thread uploads (then frees the backing) or discards both.
+            transferred = true;
             BlockPos origin = new BlockPos(SectionPos.sectionToBlockCoord(SectionPos.x(sectionKey)),
                     SectionPos.sectionToBlockCoord(SectionPos.y(sectionKey)),
                     SectionPos.sectionToBlockCoord(SectionPos.z(sectionKey)));
-            return new Section(origin, buffer);
+            return new SectionMeshDraw.PendingSection(origin, mesh, backing);
+        } finally {
+            if (!transferred) {
+                backing.close();
+            }
         }
-    }
-
-    // Order-independent hash of (pos, state, alpha). Lets update() skip
-    // rebuilds when the shape didn't actually change between frames.
-    private static long fingerprint(List<PreviewBlock> blocks, int alpha) {
-        long sum = 0L;
-        long xor = 0L;
-        for (PreviewBlock block : blocks) {
-            long entry = block.pos().asLong() ^ (long) block.state().hashCode() * -7046029254386353131L;
-            entry ^= entry >>> 33;
-            entry *= -49064778989728563L;
-            entry ^= entry >>> 33;
-            sum += entry;
-            xor ^= Long.rotateLeft(entry, (int) entry & 63);
-        }
-        long hash = 7640891576956012809L ^ (long) alpha << 32 ^ blocks.size();
-        hash ^= sum;
-        hash = Long.rotateLeft(hash, 27) * -4658895280553007687L;
-        return hash ^ xor;
     }
 
     /**
