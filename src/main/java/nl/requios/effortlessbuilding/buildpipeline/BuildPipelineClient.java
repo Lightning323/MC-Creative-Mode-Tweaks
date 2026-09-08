@@ -287,16 +287,19 @@ public class BuildPipelineClient {
                   mode.instance.setPreviewSecondPoint(previewPoint);
                }
 
-               mode.instance.findCoordinates(previewBlocks, player);
-               BuildPipeline.BuildState action = buildState != null ? buildState : BuildPipeline.BuildState.PLACING;
-               CLIENT.processBlocks(previewBlocks, player, action);
-               if (previewBlocks.isEmpty()) {
-                  return null;
-               }
+                mode.instance.findCoordinates(previewBlocks, player);
+                // Sort before constraining so the closest blocks are the ones kept valid;
+                // keep rejected entries (e.g. MAX_BLOCKS_EXCEEDED) so the overlay/outline
+                // can still resolve around the exact tool shape while the block mesh
+                // itself is built only from the valid subset.
+                previewBlocks.sortByDistance();
+                BuildPipeline.BuildState action = buildState != null ? buildState : BuildPipeline.BuildState.PLACING;
+                CLIENT.processBlocks(previewBlocks, player, action);
+                if (previewBlocks.isEmpty()) {
+                   return null;
+                }
 
-               previewBlocks.sortByDistance();
-               previewBlocks.truncate(Config.getBuildingMaxBlocksPlaced(player));
-               result = previewBlocks;
+                result = previewBlocks;
             }
          } else {
             BlockHitResult hit = getCurrentTargetHit(mc);
