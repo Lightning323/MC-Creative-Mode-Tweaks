@@ -16,6 +16,12 @@ public class PlacedBlockTracker {
    public static final UUID CLIENT_ID = new UUID(64408460885L, 12656295L);
    private static final Map<UUID, Map<ResourceKey<Level>, LinkedHashSet<BlockPos>>> data = new HashMap();
 
+   // All methods synchronize on the map: preview constraint checks now run on
+   // a worker thread while placements write from the game thread. Sections
+   // are tiny (writes are rare), so this never shows up in profiles — but an
+   // unsynchronized HashMap read racing a resize can corrupt memory, whereas
+   // every other cross-thread read in the preview path merely risks one frame
+   // of stale data.
    public static void clientTrackAll(ResourceKey<Level> dimension, Collection<BlockPos> positions) {
       trackAll(CLIENT_ID, dimension, positions);
    }
@@ -30,23 +36,27 @@ public class PlacedBlockTracker {
 
    public static void trackAll(UUID playerId, ResourceKey<Level> dimension, Collection<BlockPos> positions) {
       if (!positions.isEmpty()) {
-         LinkedHashSet<BlockPos> set = getOrCreate(playerId, dimension);
+         synchronized (data) {
+            LinkedHashSet<BlockPos> set = getOrCreate(playerId, dimension);
 
-         for(BlockPos pos : positions) {
-            set.add(pos.immutable());
+            for(BlockPos pos : positions) {
+               set.add(pos.immutable());
+            }
+
+            evict(playerId, dimension);
          }
-
-         evict(playerId, dimension);
       }
    }
 
    public static boolean isTracked(UUID playerId, ResourceKey<Level> dimension, BlockPos pos) {
-      Map<ResourceKey<Level>, LinkedHashSet<BlockPos>> dimMap = (Map)data.get(playerId);
-      if (dimMap == null) {
-         return false;
-      } else {
-         LinkedHashSet<BlockPos> set = (LinkedHashSet)dimMap.get(dimension);
-         return set != null && set.contains(pos);
+      synchronized (data) {
+         Map<ResourceKey<Level>, LinkedHashSet<BlockPos>> dimMap = (Map)data.get(playerId);
+         if (dimMap == null) {
+            return false;
+         } else {
+            LinkedHashSet<BlockPos> set = (LinkedHashSet)dimMap.get(dimension);
+            return set != null && set.contains(pos);
+         }
       }
    }
 
@@ -55,7 +65,9 @@ public class PlacedBlockTracker {
    }
 
    public static void clearPlayer(UUID playerId) {
-      data.remove(playerId);
+      synchronized (data) {
+         data.remove(playerId);
+      }
    }
 
    private static LinkedHashSet<BlockPos> getOrCreate(UUID playerId, ResourceKey<Level> dimension) {

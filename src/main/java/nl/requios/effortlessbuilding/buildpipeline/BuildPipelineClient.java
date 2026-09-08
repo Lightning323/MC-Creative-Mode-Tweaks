@@ -60,9 +60,14 @@ public class BuildPipelineClient {
       return buildState;
    }
 
-   public static @Nullable BlockHitResult getFirstClickHit() {
-      return firstClickHit;
-   }
+    public static @Nullable BlockHitResult getFirstClickHit() {
+       return firstClickHit;
+    }
+
+    /** Anchor of the in-progress selection (first click), if any. */
+    public static @Nullable BlockPos getSelectionOrigin() {
+       return selectionOrigin;
+    }
 
    public static boolean isAngelPlacementActive(Player player) {
       return BuildSettings.CLIENT.isAngelPlacementEnabled() && Config.isAngelPlacementAllowed(player);
@@ -262,7 +267,12 @@ public class BuildPipelineClient {
       }
    }
 
-   public static BlockSet getPreviewBlocks(Minecraft mc) {
+    /**
+     * Legacy per-frame preview builder. Kept working, but the renderer no
+     * longer calls it — {@code PreviewRenderCache} runs this same pipeline
+     * only when its shape key changes, then reuses the cached GPU meshes.
+     */
+    public static BlockSet getPreviewBlocks(Minecraft mc) {
       Player player = mc.player;
       if (player != null && mc.level != null) {
          BuildModeEnum mode = BuildModes.CLIENT.getBuildMode();
@@ -291,16 +301,21 @@ public class BuildPipelineClient {
                   mode.instance.setPreviewPoint(previewPoint);
                }
 
-               mode.instance.findCoordinates(previewBlocks, player);
-               BuildPipeline.BuildState action = buildState != null ? buildState : BuildPipeline.BuildState.PLACING;
-               CLIENT.processBlocks(previewBlocks, player, action);
-               if (previewBlocks.isEmpty()) {
-                  return null;
-               }
+                mode.instance.findCoordinates(previewBlocks, player);
+                // No sorting before processBlocks: the constraint cap keeps the
+                // first N blocks in generation order, exactly like the server
+                // pipeline does. Sorting first would preview a different subset
+                // (closest-first blob) than what actually gets placed.
+                // Rejected entries are kept so overlays still resolve around
+                // the exact tool shape; the block mesh uses the valid subset.
+                BuildPipeline.BuildState action = buildState != null ? buildState : BuildPipeline.BuildState.PLACING;
+                CLIENT.processBlocks(previewBlocks, player, action);
+                if (previewBlocks.isEmpty()) {
+                   return null;
+                }
 
-               previewBlocks.sortByDistance();
-               previewBlocks.truncate(Config.getBuildingMaxBlocksPlaced(player));
-               result = previewBlocks;
+                previewBlocks.sortByDistance();
+                result = previewBlocks;
             }
          } else {
             BlockHitResult hit = getCurrentTargetHit(mc);

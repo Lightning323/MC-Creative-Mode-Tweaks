@@ -30,17 +30,23 @@ public class RenderHandler {
    private static final Component INTERACTING_TEXT;
    private static final Component BREAKING_TEXT;
 
-   public static void onRenderLevel(PoseStack poseStack, MultiBufferSource.BufferSource bufferSource, double camX, double camY, double camZ) {
-      ModifierRenderer.render(poseStack, bufferSource, camX, camY, camZ);
-      BlockPreviewRenderer.render(poseStack, bufferSource, camX, camY, camZ);
-   }
+    public static void onRenderLevel(PoseStack poseStack, MultiBufferSource.BufferSource bufferSource, double camX, double camY, double camZ, org.joml.Matrix4f modelViewMatrix, org.joml.Matrix4f projectionMatrix) {
+       ModifierRenderer.render(poseStack, bufferSource, camX, camY, camZ);
+       BlockPreviewRenderer.render(poseStack, bufferSource, camX, camY, camZ, modelViewMatrix, projectionMatrix);
+    }
 
    public static void onRenderGui(GuiGraphics graphics) {
       renderSubtitle(graphics);
       drawStacks(graphics);
    }
 
-   static void updateFeedback(List<BlockPos> positions, boolean sequenceActive, BuildPipeline.BuildState pendingAction) {
+    /**
+     * Action-bar count/dims + placement tick sound. Called by the preview cache.
+     *
+     * @param overLimit when true the count cap cut blocks out of this shape, so
+     *                  the line renders red: the whole thing won't get built.
+     */
+    public static void updateFeedback(List<BlockPos> positions, boolean sequenceActive, BuildPipeline.BuildState pendingAction, boolean overLimit) {
       Minecraft mc = Minecraft.getInstance();
       if (mc.player != null && mc.level != null) {
          boolean isBreaking = pendingAction == BuildPipeline.BuildState.BREAKING;
@@ -120,13 +126,15 @@ public class RenderHandler {
                msg = sb.toString();
             }
 
-            mc.player.displayClientMessage(Component.literal(msg), true);
+            mc.player.displayClientMessage(overLimit
+                    ? Component.literal(msg).withStyle(ChatFormatting.RED) : Component.literal(msg), true);
          }
 
       }
    }
 
-   static void resetPreviewSize() {
+    /** Resets the placement-tick baseline (mode off, preview empty). */
+    public static void resetPreviewSize() {
       lastPreviewSize = 0;
    }
 

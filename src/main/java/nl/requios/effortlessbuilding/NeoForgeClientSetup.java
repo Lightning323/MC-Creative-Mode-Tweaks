@@ -41,7 +41,7 @@ public class NeoForgeClientSetup {
    public static class ModEvents {
       @SubscribeEvent
       public static void onModelsBaked(ModelEvent.BakingCompleted event) {
-         BlockPreviewRenderer.clearCachedModels();
+         BlockPreviewRenderer.clearPreviewMesh();
       }
    }
 
@@ -145,7 +145,7 @@ public class NeoForgeClientSetup {
          if (event.getStage() == Stage.AFTER_ENTITIES) {
             Vec3 camPos = event.getCamera().getPosition();
             MultiBufferSource.BufferSource bufferSource = Minecraft.getInstance().renderBuffers().bufferSource();
-            RenderHandler.onRenderLevel(event.getPoseStack(), bufferSource, camPos.x, camPos.y, camPos.z);
+            RenderHandler.onRenderLevel(event.getPoseStack(), bufferSource, camPos.x, camPos.y, camPos.z, event.getModelViewMatrix(), event.getProjectionMatrix());
          }
       }
 
