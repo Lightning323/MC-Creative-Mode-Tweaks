@@ -49,9 +49,9 @@ public class Config {
             COMMON_BUILDER.comment("How far creative players can place and break blocks in single building mode.")
                     .defineInRange("reach.creative_reach", 46, 1, 256);
 
-    public static final ModConfigSpec.IntValue SURVIVAL_REACH =
+    public static final ModConfigSpec.IntValue SURVIVAL_BUILDING_REACH =
             COMMON_BUILDER.comment("How far survival players can place and break blocks with build modes.")
-                    .defineInRange("reach.survival_reach", 6, 1, 256);
+                    .defineInRange("reach.survival_building_reach", 6, 1, 256);
 
     public static final ModConfigSpec.IntValue BUILDING_ANGEL_PLACEMENT_DISTANCE =
             COMMON_BUILDER.comment("Distance at which Angel Placement targets an air block.")
@@ -186,7 +186,7 @@ public class Config {
     private static int clientAngelPlacementDistance = 8;
 
     public static int getBuildingReach(Player player) {
-        return player.isCreative() ? CREATIVE_BUILDING_REACH.get() : SURVIVAL_REACH.get();
+        return player.isCreative() ? CREATIVE_BUILDING_REACH.get() : SURVIVAL_BUILDING_REACH.get();
     }
 
     public static int getAngelPlacementDistance(Player player) {
