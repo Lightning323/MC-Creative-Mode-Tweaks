@@ -259,7 +259,7 @@ public final class PreviewRenderCache {
         // Publish the hover point BEFORE generating coordinates —
         // findCoordinates reads it as the in-progress second/third point.
         if (mode.instance.usesDirectSecondPoint()) {
-            mode.instance.setPreviewSecondPoint(key.hoverPoint());
+            mode.instance.setPreviewPoint(key.hoverPoint());
         }
 
         BlockPos anchor = key.selectionOrigin() != null ? key.selectionOrigin() : player.blockPosition();
