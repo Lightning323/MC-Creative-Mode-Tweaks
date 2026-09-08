@@ -30,10 +30,10 @@ public class RenderHandler {
    private static final Component INTERACTING_TEXT;
    private static final Component BREAKING_TEXT;
 
-   public static void onRenderLevel(PoseStack poseStack, MultiBufferSource.BufferSource bufferSource, double camX, double camY, double camZ) {
-      ModifierRenderer.render(poseStack, bufferSource, camX, camY, camZ);
-      BlockPreviewRenderer.render(poseStack, bufferSource, camX, camY, camZ);
-   }
+    public static void onRenderLevel(PoseStack poseStack, MultiBufferSource.BufferSource bufferSource, double camX, double camY, double camZ, org.joml.Matrix4f modelViewMatrix, org.joml.Matrix4f projectionMatrix) {
+       ModifierRenderer.render(poseStack, bufferSource, camX, camY, camZ);
+       BlockPreviewRenderer.render(poseStack, bufferSource, camX, camY, camZ, modelViewMatrix, projectionMatrix);
+    }
 
    public static void onRenderGui(GuiGraphics graphics) {
       renderSubtitle(graphics);

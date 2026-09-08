@@ -64,6 +64,7 @@ import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.phys.BlockHitResult;
 import net.neoforged.neoforge.client.model.data.ModelData;
+import org.joml.Matrix4f;
 
 public class BlockPreviewRenderer {
    private static final ResourceLocation CHECKERBOARD_TEXTURE = ResourceLocation.fromNamespaceAndPath("creative_mode_tweaks", "textures/special/checkerboard.png");
@@ -72,7 +73,7 @@ public class BlockPreviewRenderer {
    private static final ResourceLocation OUTLINE_TEXTURE = ResourceLocation.fromNamespaceAndPath("creative_mode_tweaks", "textures/special/blank.png");
    private static final PreviewBlockMesh PREVIEW_BLOCK_MESH = new PreviewBlockMesh();
 
-   public static void render(PoseStack poseStack, MultiBufferSource.BufferSource bufferSource, double camX, double camY, double camZ) {
+    public static void render(PoseStack poseStack, MultiBufferSource.BufferSource bufferSource, double camX, double camY, double camZ, Matrix4f modelViewMatrix, Matrix4f projectionMatrix) {
       Minecraft mc = Minecraft.getInstance();
       if (mc.player != null && mc.level != null) {
          boolean emptyHand = !BuildPipeline.isBuildTriggerItem(mc.player.getMainHandItem());
@@ -160,7 +161,7 @@ public class BlockPreviewRenderer {
                         }
 
                         PREVIEW_BLOCK_MESH.update(mc, mc.level, previewBlocks, blockAlpha);
-                        PREVIEW_BLOCK_MESH.render(poseStack, mc.level, camX, camY, camZ);
+                        PREVIEW_BLOCK_MESH.render(mc.level, camX, camY, camZ, modelViewMatrix, projectionMatrix);
 
                         for (PreviewBlock previewBlock : animatedBlocks) {
                            poseStack.pushPose();
@@ -515,7 +516,7 @@ public class BlockPreviewRenderer {
          }
       }
 
-      void render(PoseStack poseStack, Level level, double camX, double camY, double camZ) {
+      void render(Level level, double camX, double camY, double camZ, Matrix4f baseModelView, Matrix4f projectionMatrix) {
          if (this.sections.isEmpty() || this.level != level) {
             return;
          }
@@ -524,14 +525,27 @@ public class BlockPreviewRenderer {
          renderType.setupRenderState();
          ShaderInstance shader = RenderSystem.getShader();
          try {
+            // Chunk shaders add CHUNK_OFFSET to every vertex. We bake the section
+            // origin (and any Sable sublevel transform) into the model-view instead,
+            // so make sure no stale offset leaks in from vanilla chunk rendering.
+            if (shader != null && shader.CHUNK_OFFSET != null) {
+               shader.CHUNK_OFFSET.set(0.0F, 0.0F, 0.0F);
+               shader.CHUNK_OFFSET.upload();
+            }
+            PoseStack sectionPose = new PoseStack();
             for (SectionMesh section : this.sections) {
-               poseStack.pushPose();
+               sectionPose.pushPose();
                try {
-                  SableCompat.translateToBlock(poseStack, level, section.origin(), camX, camY, camZ);
+                  // Reuse the same world/sublevel logic as the immediate-mode overlays:
+                  // vanilla -> translate(origin - cam), sublevel -> globalOrigin - cam + rotation + scale.
+                  SableCompat.translateToBlock(sectionPose, level, section.origin(), camX, camY, camZ);
+                  // Event model-view carries the camera rotation; the pose stack carries
+                  // the camera-relative translation (plus sublevel rotation/scale).
+                  Matrix4f sectionModelView = new Matrix4f(baseModelView).mul(sectionPose.last().pose());
                   section.buffer().bind();
-                  section.buffer().drawWithShader(poseStack.last().pose(), RenderSystem.getProjectionMatrix(), shader);
+                  section.buffer().drawWithShader(sectionModelView, projectionMatrix, shader);
                } finally {
-                  poseStack.popPose();
+                  sectionPose.popPose();
                }
             }
          } finally {
