@@ -58,9 +58,8 @@ import org.lightning323.creative_mode_tweaks.Config;
  * <p>Validity split is preserved: over-limit / protected / out-of-reach blocks
  * stay flagged as <i>rejected</i> for the overlay, which draws the <i>exact
  * tool shape</i> — white fill + outline for placeable, red/grey for rejected.
- * The block mesh renders everything the shape will place, including blocks
- * rejected only for the count cap (the server is authoritative over that cap,
- * so trimming them here used to punch holes in big previews).</p>
+ * The block mesh itself stays strictly placeable-only, and the count/dims
+ * line turns red whenever the count cap cuts blocks (see isOverLimit).</p>
  */
 public final class PreviewRenderCache {
     private static final PreviewRenderCache INSTANCE = new PreviewRenderCache();
@@ -84,6 +83,10 @@ public final class PreviewRenderCache {
     private List<PreviewBlock> animated = List.of();
     private boolean hasBlockMesh;
     private boolean hasOverlay;
+    // True when the count cap (getBuildingMaxBlocksPlaced) cut blocks out of
+    // this shape. Drives the red count/dims warning; part of the rebuild,
+    // not the per-frame key, since it derives from the constraint results.
+    private boolean overLimit;
     private boolean isBreaking;
 
     private PreviewRenderCache() {
@@ -191,6 +194,11 @@ public final class PreviewRenderCache {
         return this.isBreaking;
     }
 
+    /** True when the count cap cut blocks: the shape won't fully build. */
+    public boolean isOverLimit() {
+        return this.overLimit;
+    }
+
     public boolean hasPreview() {
         return !this.breakable.isEmpty() || !this.unbreakable.isEmpty();
     }
@@ -207,6 +215,7 @@ public final class PreviewRenderCache {
         this.animated = List.of();
         this.hasBlockMesh = false;
         this.hasOverlay = false;
+        this.overLimit = false;
     }
 
     // -- key building (must stay cheap: raycast + getters only) -------------
@@ -303,6 +312,7 @@ public final class PreviewRenderCache {
         List<BlockPos> ok = new ArrayList<>();
         List<BlockPos> bad = new ArrayList<>();
         boolean outsideSublevel = blocks.hasEntriesWithStatus(BlockStatus.OUTSIDE_REACH);
+        boolean overCap = false;
         for (BlockPos pos : blocks.keySet()) {
             BlockEntry entry = blocks.get(pos);
             if (outsideSublevel || (entry != null && !entry.isValid())) {
@@ -310,7 +320,11 @@ public final class PreviewRenderCache {
             } else {
                 ok.add(pos);
             }
+            if (entry != null && entry.getStatus() == BlockStatus.MAX_BLOCKS_EXCEEDED) {
+                overCap = true;
+            }
         }
+        this.overLimit = overCap;
 
         this.isBreaking = action == BuildPipeline.BuildState.BREAKING;
         boolean wantBlocks = !this.isBreaking
@@ -319,29 +333,17 @@ public final class PreviewRenderCache {
         // Resolve ghost states once per shape (was per frame). Trowel rolls
         // one random set per shape instead of shimmering every frame.
         //
-        // The mesh covers EVERYTHING the tool shape will place: all valid
-        // blocks PLUS anything rejected only for MAX_BLOCKS_EXCEEDED. The
-        // count cap can differ between client and server (and the server is
-        // authoritative), so excluding over-cap blocks here is what used to
-        // leave holes in big previews. Other rejections (borders, tile
-        // protection, survival rules) genuinely won't be placed and stay out.
-        // When the whole selection is outside the active sublevel nothing
-        // will be placed at all, so the mesh stays empty then.
+        // The mesh renders strictly what will be placed: valid blocks only.
+        // Anything cut by getBuildingMaxBlocksPlaced stays out of the mesh and
+        // shows red in the overlay instead, with the count/dims line turned
+        // red (see isOverLimit) so it reads as "this won't fully build".
         List<PreviewBlock> meshBlocks = new ArrayList<>();
         List<PreviewBlock> animatedBlocks = new ArrayList<>();
         if (wantBlocks && !outsideSublevel) {
             BlockState base = resolveBaseState(mc, player);
             Map<Item, BlockState> trowelCache = new HashMap<>();
             boolean trowel = TrowelSystem.isTrowel(player.getMainHandItem());
-            List<BlockPos> meshPositions = new ArrayList<>(ok.size() + bad.size());
-            meshPositions.addAll(ok);
-            for (BlockPos pos : bad) {
-                BlockEntry rejected = blocks.get(pos);
-                if (rejected != null && rejected.getStatus() == BlockStatus.MAX_BLOCKS_EXCEEDED) {
-                    meshPositions.add(pos);
-                }
-            }
-            for (BlockPos pos : meshPositions) {
+            for (BlockPos pos : ok) {
                 BlockState s = base;
                 BlockEntry entry = blocks.get(pos);
                 if (trowel && entry != null && entry.item instanceof BlockItem randomBlock) {
@@ -392,7 +394,7 @@ public final class PreviewRenderCache {
         combined.addAll(ok);
         combined.addAll(bad);
         this.all = List.copyOf(combined);
-        RenderHandler.updateFeedback(this.all, state != null, state);
+        RenderHandler.updateFeedback(this.all, state != null, state, this.overLimit);
     }
 
     private void clearKeepKey() {
@@ -404,6 +406,7 @@ public final class PreviewRenderCache {
         this.animated = List.of();
         this.hasBlockMesh = false;
         this.hasOverlay = false;
+        this.overLimit = false;
     }
 
     // -- small helpers (mirrors of click-time logic) -------------------------

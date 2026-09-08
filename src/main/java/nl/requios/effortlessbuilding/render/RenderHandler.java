@@ -40,8 +40,13 @@ public class RenderHandler {
       drawStacks(graphics);
    }
 
-    /** Action-bar count/dims + placement tick sound. Called by the preview cache. */
-    public static void updateFeedback(List<BlockPos> positions, boolean sequenceActive, BuildPipeline.BuildState pendingAction) {
+    /**
+     * Action-bar count/dims + placement tick sound. Called by the preview cache.
+     *
+     * @param overLimit when true the count cap cut blocks out of this shape, so
+     *                  the line renders red: the whole thing won't get built.
+     */
+    public static void updateFeedback(List<BlockPos> positions, boolean sequenceActive, BuildPipeline.BuildState pendingAction, boolean overLimit) {
       Minecraft mc = Minecraft.getInstance();
       if (mc.player != null && mc.level != null) {
          boolean isBreaking = pendingAction == BuildPipeline.BuildState.BREAKING;
@@ -121,7 +126,8 @@ public class RenderHandler {
                msg = sb.toString();
             }
 
-            mc.player.displayClientMessage(Component.literal(msg), true);
+            mc.player.displayClientMessage(overLimit
+                    ? Component.literal(msg).withStyle(ChatFormatting.RED) : Component.literal(msg), true);
          }
 
       }

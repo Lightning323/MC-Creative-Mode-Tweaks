@@ -60,9 +60,10 @@ public class BlockPreviewRenderer {
 
       if (cache.hasPreview()) {
          // Count/dims line + placement sound. Reads the cached list (no
-         // allocation); the min/max scan only runs mid-sequence.
+         // allocation); the min/max scan only runs mid-sequence. Red when the
+         // count cap cut the shape (see PreviewRenderCache.isOverLimit).
          BuildPipeline.BuildState pendingAction = BuildPipelineClient.getBuildState();
-         RenderHandler.updateFeedback(cache.allPositions(), pendingAction != null, pendingAction);
+         RenderHandler.updateFeedback(cache.allPositions(), pendingAction != null, pendingAction, cache.isOverLimit());
 
          // Ghost blocks: pure GPU re-draw of the cached sections.
          cache.renderBlocks(mc.level, camX, camY, camZ, modelViewMatrix, projectionMatrix);
