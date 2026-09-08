@@ -40,7 +40,8 @@ public class RenderHandler {
       drawStacks(graphics);
    }
 
-   static void updateFeedback(List<BlockPos> positions, boolean sequenceActive, BuildPipeline.BuildState pendingAction) {
+    /** Action-bar count/dims + placement tick sound. Called by the preview cache. */
+    public static void updateFeedback(List<BlockPos> positions, boolean sequenceActive, BuildPipeline.BuildState pendingAction) {
       Minecraft mc = Minecraft.getInstance();
       if (mc.player != null && mc.level != null) {
          boolean isBreaking = pendingAction == BuildPipeline.BuildState.BREAKING;
@@ -126,7 +127,8 @@ public class RenderHandler {
       }
    }
 
-   static void resetPreviewSize() {
+    /** Resets the placement-tick baseline (mode off, preview empty). */
+    public static void resetPreviewSize() {
       lastPreviewSize = 0;
    }
 

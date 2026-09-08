@@ -64,9 +64,14 @@ public class BuildPipelineClient {
       return buildState;
    }
 
-   public static @Nullable BlockHitResult getFirstClickHit() {
-      return firstClickHit;
-   }
+    public static @Nullable BlockHitResult getFirstClickHit() {
+       return firstClickHit;
+    }
+
+    /** Anchor of the in-progress selection (first click), if any. */
+    public static @Nullable BlockPos getSelectionOrigin() {
+       return selectionOrigin;
+    }
 
    public static boolean isAngelPlacementActive(Player player) {
       return BuildSettings.CLIENT.isAngelPlacementEnabled() && Config.isAngelPlacementAllowed(player);
@@ -266,7 +271,12 @@ public class BuildPipelineClient {
       }
    }
 
-   public static BlockSet getPreviewBlocks(Minecraft mc) {
+    /**
+     * Legacy per-frame preview builder. Kept working, but the renderer no
+     * longer calls it — {@code PreviewRenderCache} runs this same pipeline
+     * only when its shape key changes, then reuses the cached GPU meshes.
+     */
+    public static BlockSet getPreviewBlocks(Minecraft mc) {
       Player player = mc.player;
       if (player != null && mc.level != null) {
          BuildModeEnum mode = BuildModes.CLIENT.getBuildMode();
