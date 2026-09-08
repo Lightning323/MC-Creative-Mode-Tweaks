@@ -313,7 +313,7 @@ public abstract class ThreeClicksBuildMode extends BaseBuildMode {
 
    protected abstract List<BlockPos> getFinalBlocks(Player var1, int var2, int var3, int var4, int var5, int var6, int var7, int var8, int var9, int var10);
 
-   public void setPreviewSecondPoint(@Nullable BlockPos pos) {
+   public void setPreviewPoint(@Nullable BlockPos pos) {
       this.previewSecondPoint = pos;
    }
 

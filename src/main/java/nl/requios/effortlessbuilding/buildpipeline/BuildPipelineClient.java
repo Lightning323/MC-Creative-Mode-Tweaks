@@ -32,16 +32,12 @@ import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.BucketItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.ClipContext.Block;
-import net.minecraft.world.level.ClipContext.Fluid;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
-import net.minecraft.world.phys.HitResult.Type;
 import org.jetbrains.annotations.Nullable;
 
 public class BuildPipelineClient {
@@ -276,15 +272,23 @@ public class BuildPipelineClient {
             try (SableCompat.SelectionScope ignored = SableCompat.pushSelection(mc.level, selectionAnchor)) {
                BlockSet previewBlocks = new BlockSet();
                if (mode.instance.usesDirectSecondPoint()) {
-                  BlockHitResult hit = getCurrentTargetHit(mc);
+
                   BuildPipeline.BuildState action = buildState != null ? buildState : BuildPipeline.BuildState.PLACING;
-                  BlockPos previewPoint = hit != null ? resolveFirstClickPos(hit, action, mc.level) : null;
+
+                  BlockPos previewPoint = null;
+
+                  BlockHitResult hit = getCurrentTargetHit(mc);
+                  if (hit != null) { //Snap preview point to selection marker if we have one
+                     BlockPos markerPos = mode.instance.getSelectionMarker(hit.getBlockPos());
+                     previewPoint = markerPos != null ? markerPos : resolveFirstClickPos(hit, action, mc.level);
+                  }
+
                   if (previewPoint != null && !SableCompat.isInSameSelection(mc.level, selectionAnchor, previewPoint)) {
-                     mode.instance.setPreviewSecondPoint(null);
+                     mode.instance.setPreviewPoint(null);
                      return null;
                   }
 
-                  mode.instance.setPreviewSecondPoint(previewPoint);
+                  mode.instance.setPreviewPoint(previewPoint);
                }
 
                mode.instance.findCoordinates(previewBlocks, player);

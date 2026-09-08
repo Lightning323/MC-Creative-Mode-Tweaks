@@ -202,9 +202,13 @@ public class BlockPreviewRenderer {
 
       RenderSystem.depthMask(false);
       VertexConsumer consumer = bufferSource.getBuffer(MESH_VERTEX_RENDER_TYPE);
+      BlockHitResult hit = BuildPipelineClient.getCurrentTargetHit(Minecraft.getInstance());
+      BlockPos hoveredMarker = hit != null ? mesh.getSelectionMarker(hit.getBlockPos()) : null;
 
       for (BlockPos vertex : vertices) {
-         boolean selected = mesh.isVertexSelected(vertex);
+         boolean selected = mesh.isVertexSelected(vertex)
+//                 || vertex.equals(mesh.getPreviewPoint())
+                 || vertex.equals(hoveredMarker);
          renderMeshVertexMarker(poseStack, consumer, level, vertex, camX, camY, camZ, selected ? 0 : 255, 255, selected ? 0 : 255);
       }
 

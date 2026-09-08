@@ -30,7 +30,7 @@ public interface IBuildMode {
     * selection is being previewed. Most modes determine later points from the
     * player's look vector, so they deliberately ignore this value.
     */
-   default void setPreviewSecondPoint(@Nullable BlockPos pos) {
+   default void setPreviewPoint(@Nullable BlockPos pos) {
    }
 
    /**

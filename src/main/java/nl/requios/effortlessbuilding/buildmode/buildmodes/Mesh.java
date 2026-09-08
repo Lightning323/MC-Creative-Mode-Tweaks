@@ -104,7 +104,7 @@ public class Mesh extends BaseBuildMode {
       return this.getMeshBlocks(this.limitToBuildRange(player, selectedPoints));
    }
 
-   public void setPreviewSecondPoint(@Nullable BlockPos pos) {
+   public void setPreviewPoint(@Nullable BlockPos pos) {
       this.previewPoint = pos;
    }
 
@@ -118,9 +118,13 @@ public class Mesh extends BaseBuildMode {
       return List.copyOf(this.vertexMarkers);
    }
 
-   public boolean isVertexSelected(BlockPos pos) {
-      return this.points.contains(pos);
-   }
+    public boolean isVertexSelected(BlockPos pos) {
+       return this.points.contains(pos);
+    }
+
+    public @Nullable BlockPos getPreviewPoint() {
+       return this.previewPoint;
+    }
 
    public boolean usesDirectSecondPoint() {
       return true;
