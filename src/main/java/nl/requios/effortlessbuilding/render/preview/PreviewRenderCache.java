@@ -56,10 +56,11 @@ import org.lightning323.creative_mode_tweaks.Config;
  * drawn immediately each frame — their models tick, so they can never cache.</p>
  *
  * <p>Validity split is preserved: over-limit / protected / out-of-reach blocks
- * stay in the set as <i>rejected</i> entries. The block mesh bakes only the
- * valid subset (naturally capped at max-blocks by the constraint system) while
- * the overlay draws the <i>exact tool shape</i> — white fill + outline for
- * placeable, red/grey for rejected.</p>
+ * stay flagged as <i>rejected</i> for the overlay, which draws the <i>exact
+ * tool shape</i> — white fill + outline for placeable, red/grey for rejected.
+ * The block mesh renders everything the shape will place, including blocks
+ * rejected only for the count cap (the server is authoritative over that cap,
+ * so trimming them here used to punch holes in big previews).</p>
  */
 public final class PreviewRenderCache {
     private static final PreviewRenderCache INSTANCE = new PreviewRenderCache();
@@ -284,12 +285,20 @@ public final class PreviewRenderCache {
             return;
         }
 
-        // Closest-first so max-block rejection keeps the nearest blocks.
-        blocks.sortByDistance();
+        // NOTE: no sorting before processBlocks — and that is deliberate.
+        // ConstraintSystem keeps the first N blocks in GENERATION order, and the
+        // server pipeline (BuildModeSystem -> ... -> ConstraintSystem, no sort)
+        // caps the exact same way. Sorting first would keep the N closest to
+        // the first click instead, carving a rounded blob out of big shapes
+        // while the server places a flat generation-ordered slice. The preview
+        // must show what will actually be placed, so membership matches.
         BuildPipeline.BuildState action = state != null ? state : BuildPipeline.BuildState.PLACING;
         try (SableCompat.SelectionScope ignored = SableCompat.pushSelection(level, anchor)) {
             BuildPipelineClient.CLIENT.processBlocks(blocks, player, action);
         }
+        // Display ordering only (deterministic lists); must not affect which
+        // blocks were kept valid above.
+        blocks.sortByDistance();
 
         List<BlockPos> ok = new ArrayList<>();
         List<BlockPos> bad = new ArrayList<>();
@@ -309,13 +318,30 @@ public final class PreviewRenderCache {
 
         // Resolve ghost states once per shape (was per frame). Trowel rolls
         // one random set per shape instead of shimmering every frame.
+        //
+        // The mesh covers EVERYTHING the tool shape will place: all valid
+        // blocks PLUS anything rejected only for MAX_BLOCKS_EXCEEDED. The
+        // count cap can differ between client and server (and the server is
+        // authoritative), so excluding over-cap blocks here is what used to
+        // leave holes in big previews. Other rejections (borders, tile
+        // protection, survival rules) genuinely won't be placed and stay out.
+        // When the whole selection is outside the active sublevel nothing
+        // will be placed at all, so the mesh stays empty then.
         List<PreviewBlock> meshBlocks = new ArrayList<>();
         List<PreviewBlock> animatedBlocks = new ArrayList<>();
-        if (wantBlocks) {
+        if (wantBlocks && !outsideSublevel) {
             BlockState base = resolveBaseState(mc, player);
             Map<Item, BlockState> trowelCache = new HashMap<>();
             boolean trowel = TrowelSystem.isTrowel(player.getMainHandItem());
-            for (BlockPos pos : ok) {
+            List<BlockPos> meshPositions = new ArrayList<>(ok.size() + bad.size());
+            meshPositions.addAll(ok);
+            for (BlockPos pos : bad) {
+                BlockEntry rejected = blocks.get(pos);
+                if (rejected != null && rejected.getStatus() == BlockStatus.MAX_BLOCKS_EXCEEDED) {
+                    meshPositions.add(pos);
+                }
+            }
+            for (BlockPos pos : meshPositions) {
                 BlockState s = base;
                 BlockEntry entry = blocks.get(pos);
                 if (trowel && entry != null && entry.item instanceof BlockItem randomBlock) {

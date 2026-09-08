@@ -298,17 +298,19 @@ public class BuildPipelineClient {
                }
 
                 mode.instance.findCoordinates(previewBlocks, player);
-                // Sort before constraining so the closest blocks are the ones kept valid;
-                // keep rejected entries (e.g. MAX_BLOCKS_EXCEEDED) so the overlay/outline
-                // can still resolve around the exact tool shape while the block mesh
-                // itself is built only from the valid subset.
-                previewBlocks.sortByDistance();
+                // No sorting before processBlocks: the constraint cap keeps the
+                // first N blocks in generation order, exactly like the server
+                // pipeline does. Sorting first would preview a different subset
+                // (closest-first blob) than what actually gets placed.
+                // Rejected entries are kept so overlays still resolve around
+                // the exact tool shape; the block mesh uses the valid subset.
                 BuildPipeline.BuildState action = buildState != null ? buildState : BuildPipeline.BuildState.PLACING;
                 CLIENT.processBlocks(previewBlocks, player, action);
                 if (previewBlocks.isEmpty()) {
                    return null;
                 }
 
+                previewBlocks.sortByDistance();
                 result = previewBlocks;
             }
          } else {
