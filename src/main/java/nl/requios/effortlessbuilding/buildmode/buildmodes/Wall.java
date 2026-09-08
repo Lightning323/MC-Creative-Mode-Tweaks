@@ -20,7 +20,7 @@ public class Wall extends TwoClicksBuildMode {
       criteriaList.add(new Criteria(xBound, firstPos, start, look));
       Vec3 zBound = BuildModes.findZBound((double)firstPos.getZ(), start, look);
       criteriaList.add(new Criteria(zBound, firstPos, start, look));
-      double reach = Config.getReach(player);
+      double reach = Config.getBuildingReach(player);
       criteriaList.removeIf((criteriax) -> !criteriax.isValid(start, look, reach, player, skipRaytrace));
       if (criteriaList.isEmpty()) {
          return null;

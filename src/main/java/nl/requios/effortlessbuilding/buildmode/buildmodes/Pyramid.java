@@ -38,7 +38,7 @@ public class Pyramid extends ThreeClicksBuildMode {
          case Z -> BuildModes.findZBound(firstPos.getZ(), start, look);
       };
       double distanceToPlayerSq = planeBound.subtract(start).lengthSqr();
-      return BuildModes.isCriteriaValid(start, look, Config.getReach(player), player, skipRaytrace, planeBound, planeBound, distanceToPlayerSq)
+      return BuildModes.isCriteriaValid(start, look, Config.getBuildingReach(player), player, skipRaytrace, planeBound, planeBound, distanceToPlayerSq)
          ? BlockPos.containing(planeBound)
          : null;
    }
@@ -55,7 +55,7 @@ public class Pyramid extends ThreeClicksBuildMode {
          candidates.add(new HeightCandidate(planeBound, lineBound, start));
       }
 
-      double reach = Config.getReach(player);
+      double reach = Config.getBuildingReach(player);
       candidates.removeIf(candidate -> !BuildModes.isCriteriaValid(start, look, reach, player, skipRaytrace, candidate.lineBound, candidate.planeBound, candidate.distanceToPlayerSq));
       if (candidates.isEmpty()) {
          return null;

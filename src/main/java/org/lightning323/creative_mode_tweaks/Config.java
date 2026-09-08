@@ -41,9 +41,13 @@ public class Config {
             CLIENT_BUILDER.comment("Maximum number of preview slots on either side when scrolling (setting this to the max value will always keep the selector in the center)")
                     .defineInRange("hotbar.hotbar_max_scroll_margin", 4, 0, 100);
 
-    public static final ModConfigSpec.IntValue CREATIVE_REACH =
-            COMMON_BUILDER.comment("How far creative players can place and break blocks.")
-                    .defineInRange("reach.creative_reach", 64, 1, 256);
+    public static final ModConfigSpec.IntValue CREATIVE_BUILDING_REACH =
+            COMMON_BUILDER.comment("How far creative players can place and break blocks with build modes.")
+                    .defineInRange("reach.creative_building_reach", 56, 1, 256);
+
+    public static final ModConfigSpec.IntValue CREATIVE_SINGLE_REACH =
+            COMMON_BUILDER.comment("How far creative players can place and break blocks in single building mode.")
+                    .defineInRange("reach.creative_reach", 46, 1, 256);
 
     public static final ModConfigSpec.IntValue SURVIVAL_REACH =
             COMMON_BUILDER.comment("How far survival players can place and break blocks with build modes.")
@@ -181,8 +185,8 @@ public class Config {
     private static boolean clientAngelPlacementAllowed;
     private static int clientAngelPlacementDistance = 8;
 
-    public static int getReach(Player player) {
-        return player.isCreative() ? CREATIVE_REACH.get() : SURVIVAL_REACH.get();
+    public static int getBuildingReach(Player player) {
+        return player.isCreative() ? CREATIVE_BUILDING_REACH.get() : SURVIVAL_REACH.get();
     }
 
     public static int getAngelPlacementDistance(Player player) {

@@ -37,7 +37,7 @@ public class CreativeModeTweaks {
     public static void serverGameModeChanged(ServerPlayer player, GameType gameType) {
         LOG.debug("Server game mode set to {}", gameType);
         if (gameType == GameType.CREATIVE) {
-            double dist = Config.CREATIVE_REACH.get();
+            double dist = Config.CREATIVE_SINGLE_REACH.get();
             ServerSettings.changeRangeModifier(player, dist);
         } else if (gameType == GameType.ADVENTURE || gameType == GameType.SURVIVAL) {
             ServerSettings.clearRangeModifier(player);

@@ -18,7 +18,7 @@ public class Floor extends TwoClicksBuildMode {
       List<Criteria> criteriaList = new ArrayList(3);
       Vec3 yBound = BuildModes.findYBound((double)firstPos.getY(), start, look);
       criteriaList.add(new Criteria(yBound, start));
-      double reach = Config.getReach(player);
+      double reach = Config.getBuildingReach(player);
       criteriaList.removeIf((criteria) -> !criteria.isValid(start, look, reach, player, skipRaytrace));
       if (criteriaList.isEmpty()) {
          return null;

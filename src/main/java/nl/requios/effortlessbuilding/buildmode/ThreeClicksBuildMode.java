@@ -278,7 +278,7 @@ public abstract class ThreeClicksBuildMode extends BaseBuildMode {
       criteriaList.add(new HeightCriteria(xBound, secondPos, start));
       Vec3 zBound = BuildModes.findZBound((double)secondPos.getZ(), start, look);
       criteriaList.add(new HeightCriteria(zBound, secondPos, start));
-      double reach = Config.getReach(player);
+      double reach = Config.getBuildingReach(player);
       criteriaList.removeIf((criteriax) -> !criteriax.isValid(start, look, reach, player, skipRaytrace));
       if (criteriaList.isEmpty()) {
          return null;

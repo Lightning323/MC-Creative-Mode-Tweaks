@@ -54,7 +54,7 @@ public class MixinGameRenderer {
 
                if (this.minecraft.hitResult == null || this.minecraft.hitResult.getType() != Type.BLOCK) {
                   Vec3 start = this.minecraft.player.getEyePosition(partialTicks);
-                  Vec3 end = start.add(this.minecraft.player.getViewVector(partialTicks).scale(Config.getReach(this.minecraft.player)));
+                  Vec3 end = start.add(this.minecraft.player.getViewVector(partialTicks).scale(Config.getBuildingReach(this.minecraft.player)));
                   ClipContext ctx = new ClipContext(start, end, Block.OUTLINE, Fluid.NONE, this.minecraft.player);
                   BlockHitResult hit = this.minecraft.level.clip(ctx);
                   if (hit.getType() == Type.BLOCK) {

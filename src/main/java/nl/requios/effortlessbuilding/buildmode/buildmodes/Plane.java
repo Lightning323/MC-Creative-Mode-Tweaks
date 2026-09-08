@@ -75,7 +75,7 @@ public class Plane extends TwoClicksBuildMode {
          ? BuildModes.findXBound(firstPos.getX(), start, look)
          : BuildModes.findZBound(firstPos.getZ(), start, look);
       double distanceToPlayerSq = planeBound.subtract(start).lengthSqr();
-      double reach = Config.getReach(player);
+      double reach = Config.getBuildingReach(player);
 
       return BuildModes.isCriteriaValid(start, look, reach, player, skipRaytrace, planeBound, planeBound, distanceToPlayerSq)
          ? BlockPos.containing(planeBound)

@@ -20,7 +20,7 @@ public final class AngelPlacement {
    }
 
    public static @Nullable Target findTarget(Level level, Player player, boolean allowAngelPlacement) {
-      double normalTargetDistance = allowAngelPlacement ? MIN_TARGET_DISTANCE : Config.getReach(player);
+      double normalTargetDistance = allowAngelPlacement ? MIN_TARGET_DISTANCE : Config.getBuildingReach(player);
       BlockHitResult blockHit = findBlockTarget(level, player, normalTargetDistance);
       if (blockHit != null) {
          return new Target(blockHit, false);
