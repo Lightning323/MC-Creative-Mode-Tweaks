@@ -26,6 +26,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.BucketItem;
@@ -218,7 +219,13 @@ public class BuildPipelineClient {
                   }
 
                   mc.level.playLocalSound(blocks.firstPos, soundType.getPlaceSound(), SoundSource.BLOCKS, soundType.getVolume(), soundType.getPitch(), false);
-               } else {
+                  if (TrowelSystem.isTrowel(player.getMainHandItem())) {
+                     // Trowel placements bypass the vanilla use path (which
+                     // would swing for us), so play the hand animation here,
+                     // exactly as an item placement should.
+                     player.swing(InteractionHand.MAIN_HAND);
+                  }
+                } else {
                   SoundType soundType = mc.level.getBlockState(blocks.firstPos).getSoundType();
                   mc.level.playLocalSound(blocks.firstPos, soundType.getBreakSound(), SoundSource.BLOCKS, soundType.getVolume(), soundType.getPitch(), false);
                }
@@ -282,134 +289,6 @@ public class BuildPipelineClient {
             }
          }
       }
-   }
-
-    /**
-     * Legacy per-frame preview builder. Kept working, but the renderer no
-     * longer calls it — {@code PreviewRenderCache} runs this same pipeline
-     * only when its shape key changes, then reuses the cached GPU meshes.
-     */
-    public static BlockSet getPreviewBlocks(Minecraft mc) {
-      Player player = mc.player;
-      if (player != null && mc.level != null) {
-         BuildModeEnum mode = BuildModes.CLIENT.getBuildMode();
-         BlockSet result;
-         if (!mode.instance.isFirstClick()) {
-            // New anchor/mode starts a fresh selection session for the legacy
-            // path as well; never gate it on the previous session's boundary.
-            if (lastLegacyMode != mode || !java.util.Objects.equals(lastLegacySessionOrigin, selectionOrigin)) {
-               BuildSelectionGuard.CLIENT.reset();
-               clearLegacyPreviewCache();
-               lastLegacyMode = mode;
-               lastLegacySessionOrigin = selectionOrigin != null ? selectionOrigin.immutable() : null;
-            }
-            BlockPos selectionAnchor = selectionOrigin != null ? selectionOrigin : player.blockPosition();
-            try (SableCompat.SelectionScope ignored = SableCompat.pushSelection(mc.level, selectionAnchor)) {
-               BlockSet previewBlocks = new BlockSet();
-               BlockPos previewPoint = null;
-               if (mode.instance.usesDirectSecondPoint()) {
-
-                  BuildPipeline.BuildState action = buildState != null ? buildState : BuildPipeline.BuildState.PLACING;
-
-
-                  BlockHitResult hit = getCurrentTargetHit(mc);
-                  if (hit != null) { //Snap preview point to selection marker if we have one
-                     BlockPos markerPos = mode.instance.getSelectionMarker(hit.getBlockPos());
-                     previewPoint = markerPos != null ? markerPos : resolveFirstClickPos(hit, action, mc.level);
-                  }
-
-                  if (previewPoint != null && !SableCompat.isInSameSelection(mc.level, selectionAnchor, previewPoint)) {
-                     mode.instance.setPreviewPoint(null);
-                     return null;
-                  }
-
-                  mode.instance.setPreviewPoint(previewPoint);
-               }
-
-                mode.instance.getClientBlocks(previewBlocks, player);
-                if (!previewBlocks.isEmpty()) {
-                   AABB candidateBoundary = mode.instance.getClientBoundary(player);
-                   int maxBlocks = Config.getBuildingMaxBlocksPlaced(player);
-                   if (!BuildSelectionGuard.CLIENT.updateSelection(
-                           candidateBoundary, previewBlocks.size(), maxBlocks)) {
-                      // Oversized and growing: keep the frozen selection.
-                      if (mode.instance.usesDirectSecondPoint()) {
-                         mode.instance.setPreviewPoint(lastLegacyHover);
-                      }
-                      if (lastLegacyPreview != null && !lastLegacyPreview.isEmpty()) {
-                         updateDisplayTrackers(player, lastLegacyPreview);
-                         return lastLegacyPreview;
-                      }
-                      return null;
-                   }
-                   lastLegacyHover = previewPoint != null ? previewPoint.immutable() : null;
-                }
-                // No sorting before processBlocks: the constraint cap keeps the
-                // first N blocks in generation order, exactly like the server
-                // pipeline does. Sorting first would preview a different subset
-                // (closest-first blob) than what actually gets placed.
-                // Rejected entries are kept so overlays still resolve around
-                // the exact tool shape; the block mesh uses the valid subset.
-                BuildPipeline.BuildState action = buildState != null ? buildState : BuildPipeline.BuildState.PLACING;
-                CLIENT.processBlocks(previewBlocks, player, action);
-                if (previewBlocks.isEmpty()) {
-                   return null;
-                }
-
-                previewBlocks.sortByDistance();
-                result = previewBlocks;
-                lastLegacyPreview = result;
-            }
-         } else {
-            BlockHitResult hit = getCurrentTargetHit(mc);
-            if (hit == null) {
-               return null;
-            }
-
-            BlockPos targetPos = resolveFirstClickPos(hit, BuildPipeline.BuildState.PLACING, mc.level);
-            BlockSet blockSet = new BlockSet();
-            blockSet.add(new BlockEntry(targetPos));
-            blockSet.firstPos = targetPos;
-            blockSet.lastPos = targetPos;
-            try (SableCompat.SelectionScope ignored = SableCompat.pushSelection(mc.level, targetPos)) {
-               CLIENT.processBlocks(blockSet, player, BuildPipeline.BuildState.PLACING);
-            }
-            result = blockSet;
-         }
-
-         updateDisplayTrackers(player, result);
-         return result;
-      } else {
-         return null;
-      }
-   }
-
-   private static void updateDisplayTrackers(Player player, BlockSet blockSet) {
-      BuildPipeline.BuildState action = buildState != null ? buildState : BuildPipeline.BuildState.PLACING;
-      if (action == BuildPipeline.BuildState.BREAKING) {
-         BREAK_DISPLAY.compute(player, blockSet);
-
-      } else {
-         ItemStack held = player.getMainHandItem();
-         Item heldItem = null;
-         if (held.getItem() instanceof BlockItem) {
-            heldItem = held.getItem();
-         } else {
-            Item var6 = held.getItem();
-            if (var6 instanceof BucketItem) {
-               BucketItem bucketItem = (BucketItem)var6;
-               net.minecraft.world.level.material.Fluid fluid = ((BucketItemAccessor)bucketItem).effortlessbuilding$getFluid();
-               if (!fluid.isSame(Fluids.EMPTY)) {
-                  heldItem = held.getItem();
-               }
-            }
-         }
-
-
-
-         BREAK_DISPLAY.initialize();
-      }
-
    }
 
    public static void cancelCurrentSequence() {

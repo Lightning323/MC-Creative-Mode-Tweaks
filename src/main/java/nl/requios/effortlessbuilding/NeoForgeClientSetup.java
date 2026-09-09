@@ -7,6 +7,7 @@ import nl.requios.effortlessbuilding.buildmode.BuildSettings;
 import nl.requios.effortlessbuilding.buildmode.buildmodes.Plane;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipeline;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipelineClient;
+import nl.requios.effortlessbuilding.item.TrowelItem;
 import nl.requios.effortlessbuilding.network.PacketHandler;
 import nl.requios.effortlessbuilding.network.RedoPacket;
 import nl.requios.effortlessbuilding.network.UndoPacket;
@@ -125,12 +126,17 @@ public class NeoForgeClientSetup {
                   }
                }
 
+               // Trowel hold-place repeats live on the item itself; the tick
+               // just feeds it the use-key state.
+               TrowelItem.handleHoldPlaceTick(mc, rightDown, rightJustPressed);
+
                prevRightDown = rightDown;
                prevLeftDown = leftDown;
             }
          } else {
             prevRightDown = false;
             prevLeftDown = false;
+            TrowelItem.resetHoldPlace();
          }
 
       }

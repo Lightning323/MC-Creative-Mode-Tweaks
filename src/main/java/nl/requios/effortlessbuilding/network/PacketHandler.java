@@ -130,9 +130,10 @@ public class PacketHandler {
             for (BlockEntry entry : blockSet.validEntries()) {
                BlockPos pos = entry.blockPos;
                Item var22 = entry.item;
-               if (var22 instanceof BlockItem) {
-                  BlockItem blockItem = (BlockItem)var22;
-                  if ((creative || used.getOrDefault(entry.item, 0) < available.getOrDefault(entry.item, 0)) && BuildSettings.canPlaceAt(level, pos, replaceMode, offHand)) {
+               if (!(var22 instanceof BlockItem blockItem)) {
+                  continue;
+               }
+               if ((creative || used.getOrDefault(entry.item, 0) < available.getOrDefault(entry.item, 0)) && BuildSettings.canPlaceAt(level, pos, replaceMode, offHand)) {
                      BlockState oldState = level.getBlockState(pos);
                      if (!creative && !oldState.canBeReplaced()) {
                         ItemStack toolForDrops = Config.BUILDING_SURVIVAL_REQUIRE_TOOLS.get() ? InventoryHelper.findCorrectTool(player, oldState) : player.getMainHandItem();
@@ -146,22 +147,31 @@ public class PacketHandler {
                         }
                      }
 
+                     // Random-block placement runs through the vanilla use
+                     // channel per block (placement rules, block-entity data,
+                     // setPlacedBy, stats, criteria) instead of a bare
+                     // setBlock. The stack is detached: survival consumption
+                     // stays on the manual hotbar accounting below.
                      ItemStack placementStack = new ItemStack(entry.item);
                      Vec3 localHit = new Vec3(packet.hitLocation().x, (double)pos.getY() + yFrac, packet.hitLocation().z);
                      BlockHitResult serverHit = new BlockHitResult(localHit, packet.hitFace(), pos, false);
-                     BlockPlaceContext ctx = new OpenBlockPlaceContext(level, player, InteractionHand.MAIN_HAND, placementStack, serverHit);
-                     BlockState state = blockItem.getBlock().getStateForPlacement(ctx);
-                     if (state == null) {
-                        state = blockItem.getBlock().defaultBlockState();
+                     UseOnContext useCtx = new OpenUseOnContext(level, player, InteractionHand.MAIN_HAND, placementStack, serverHit);
+                     InteractionResult result = blockItem.useOn(useCtx);
+                     if (!result.consumesAction()) {
+                        continue;
                      }
 
-                     state = entry.applyTransforms(state);
-                     level.setBlock(pos, state, 3);
-                     undoChanges.put(pos.immutable(), new UndoManager.BlockChange(oldState, state));
-                     used.merge(entry.item, 1, Integer::sum);
-                     ++placed;
+                     BlockState placedState = level.getBlockState(pos);
+                     BlockState finalState = entry.applyTransforms(placedState);
+                     if (!finalState.equals(placedState)) {
+                        level.setBlock(pos, finalState, 3);
+                     }
+                     if (!oldState.equals(finalState)) {
+                        undoChanges.put(pos.immutable(), new UndoManager.BlockChange(oldState, finalState));
+                        used.merge(entry.item, 1, Integer::sum);
+                        ++placed;
+                     }
                   }
-               }
             }
 
             if (!creative) {
