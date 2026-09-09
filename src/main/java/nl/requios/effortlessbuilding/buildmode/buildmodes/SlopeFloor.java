@@ -10,7 +10,6 @@ import net.minecraft.world.entity.player.Player;
 
 public class SlopeFloor extends ThreeClicksBuildMode {
    public static List<BlockPos> getSlopeFloorBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2, int x3, int y3, int z3) {
-      List<BlockPos> list = new ArrayList();
       int axisLimit = Config.getBuildingMaxBlocksPerAxis(player);
       boolean onXAxis = true;
       int xLength = Math.abs(x2 - x1);
@@ -30,12 +29,15 @@ public class SlopeFloor extends ThreeClicksBuildMode {
          if (highest - lowest >= axisLimit) {
             highest = lowest + axisLimit - 1;
          }
+         // Exact: the profile is extruded over the full width.
+         List<BlockPos> list = new ArrayList<>((int) Math.min((long) diagonalLineBlocks.size() * (highest - lowest + 1L), 131072));
 
          for(int z = lowest; z <= highest; ++z) {
             for(BlockPos blockPos : diagonalLineBlocks) {
                list.add(new BlockPos(blockPos.getX(), blockPos.getY(), z));
             }
          }
+         return list;
       } else {
          List<BlockPos> diagonalLineBlocks = DiagonalLine.getDiagonalLineBlocks(player, x1, y1, z1, x1, y3, z2, 1.0F);
          int lowest = Math.min(x1, x2);
@@ -43,15 +45,16 @@ public class SlopeFloor extends ThreeClicksBuildMode {
          if (highest - lowest >= axisLimit) {
             highest = lowest + axisLimit - 1;
          }
+         // Exact: the profile is extruded over the full width.
+         List<BlockPos> list = new ArrayList<>((int) Math.min((long) diagonalLineBlocks.size() * (highest - lowest + 1L), 131072));
 
          for(int x = lowest; x <= highest; ++x) {
             for(BlockPos blockPos : diagonalLineBlocks) {
                list.add(new BlockPos(x, blockPos.getY(), blockPos.getZ()));
             }
          }
+         return list;
       }
-
-      return list;
    }
 
    protected BlockPos findSecondPos(Player player, BlockPos firstPos, boolean skipRaytrace) {

@@ -40,16 +40,25 @@ public class Wall extends TwoClicksBuildMode {
    }
 
    public static List<BlockPos> getWallBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2) {
-      List<BlockPos> list = new ArrayList();
+      long dx = Math.abs((long) x2 - x1) + 1L;
+      long dy = Math.abs((long) y2 - y1) + 1L;
+      long dz = Math.abs((long) z2 - z1) + 1L;
+      boolean full = ModeOptions.getFill() == ModeOptions.ActionEnum.FULL;
+      List<BlockPos> list;
       if (x1 == x2) {
-         if (ModeOptions.getFill() == ModeOptions.ActionEnum.FULL) {
+         // Full walls fill the face; hollow ones only trace its edge.
+         long est = full ? dy * dz : 2L * (dy + dz);
+         list = new ArrayList<>((int) Math.min(est, 131072));
+         if (full) {
             addXWallBlocks(list, x1, y1, y2, z1, z2);
          } else {
             addXHollowWallBlocks(list, x1, y1, y2, z1, z2);
          }
-      } else if (ModeOptions.getFill() == ModeOptions.ActionEnum.FULL) {
+      } else if (full) {
+         list = new ArrayList<>((int) Math.min(dx * dy, 131072));
          addZWallBlocks(list, x1, x2, y1, y2, z1);
       } else {
+         list = new ArrayList<>((int) Math.min(2L * (dx + dy), 131072));
          addZHollowWallBlocks(list, x1, x2, y1, y2, z1);
       }
 

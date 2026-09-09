@@ -11,7 +11,11 @@ import net.minecraft.world.phys.AABB;
 
 public class Circle extends TwoClicksBuildMode {
    public static List<BlockPos> getCircleBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2) {
-      List<BlockPos> list = new ArrayList();
+      long dx = Math.abs((long) x2 - x1) + 1L;
+      long dz = Math.abs((long) z2 - z1) + 1L;
+      boolean full = ModeOptions.getFill() == ModeOptions.ActionEnum.FULL;
+      // Full discs fill the rect; hollow ones only trace the rim.
+      List<BlockPos> list = new ArrayList<>((int) Math.min(full ? dx * dz : 4L * (dx + dz), 131072));
       float centerX = (float)x1;
       float centerZ = (float)z1;
       if (ModeOptions.getCircleStart() == ModeOptions.ActionEnum.CIRCLE_START_CORNER) {
@@ -24,7 +28,7 @@ public class Circle extends TwoClicksBuildMode {
 
       float radiusX = Mth.abs((float)x2 - centerX);
       float radiusZ = Mth.abs((float)z2 - centerZ);
-      if (ModeOptions.getFill() == ModeOptions.ActionEnum.FULL) {
+      if (full) {
          addCircleBlocks(list, x1, y1, z1, x2, y2, z2, centerX, centerZ, radiusX, radiusZ);
       } else {
          addHollowCircleBlocks(list, x1, y1, z1, x2, y2, z2, centerX, centerZ, radiusX, radiusZ);

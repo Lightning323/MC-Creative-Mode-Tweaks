@@ -45,7 +45,9 @@ public class Line extends TwoClicksBuildMode {
    }
 
    public static List<BlockPos> getLineBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2) {
-      List<BlockPos> list = new ArrayList();
+      // Lines run along exactly one axis: length + 1 is the exact count.
+      long len = x1 != x2 ? Math.abs((long) x2 - x1) : y1 != y2 ? Math.abs((long) y2 - y1) : Math.abs((long) z2 - z1);
+      List<BlockPos> list = new ArrayList<>((int) Math.min(len + 1L, 131072));
       if (x1 != x2) {
          addXLineBlocks(list, x1, x2, y1, z1);
       } else if (y1 != y2) {

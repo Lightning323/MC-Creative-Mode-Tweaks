@@ -29,8 +29,13 @@ public class Floor extends TwoClicksBuildMode {
    }
 
    public static List<BlockPos> getFloorBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2) {
-      List<BlockPos> list = new ArrayList();
-      if (ModeOptions.getFill() == ModeOptions.ActionEnum.FULL) {
+      long dx = Math.abs((long) x2 - x1) + 1L;
+      long dz = Math.abs((long) z2 - z1) + 1L;
+      boolean full = ModeOptions.getFill() == ModeOptions.ActionEnum.FULL;
+      // Full floors fill the rect; hollow ones only trace its edge.
+      long est = full ? dx * dz : 2L * (dx + dz);
+      List<BlockPos> list = new ArrayList<>((int) Math.min(est, 131072));
+      if (full) {
          addFloorBlocks(list, x1, x2, y1, z1, z2);
       } else {
          addHollowFloorBlocks(list, x1, x2, y1, z1, z2);

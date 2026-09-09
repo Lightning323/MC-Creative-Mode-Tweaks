@@ -11,7 +11,6 @@ import net.minecraft.world.phys.AABB;
 
 public class Sphere extends ThreeClicksBuildMode {
    public static List<BlockPos> getSphereBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2, int x3, int y3, int z3) {
-      List<BlockPos> list = new ArrayList();
       float centerX = (float)x1;
       float centerY = (float)y1;
       float centerZ = (float)z1;
@@ -28,7 +27,14 @@ public class Sphere extends ThreeClicksBuildMode {
       float radiusX = Mth.abs((float)x2 - centerX);
       float radiusY = Mth.abs((float)y3 - centerY);
       float radiusZ = Mth.abs((float)z2 - centerZ);
-      if (ModeOptions.getFill() == ModeOptions.ActionEnum.FULL) {
+      long dx = Math.abs((long) x3 - x1) + 1L;
+      long dy = Math.abs((long) y3 - y1) + 1L;
+      long dz = Math.abs((long) z3 - z1) + 1L;
+      boolean full = ModeOptions.getFill() == ModeOptions.ActionEnum.FULL;
+      // Full balls fill the box; hollow ones only skin its surface.
+      long est = full ? dx * dy * dz : 2L * (dx * dy + dy * dz + dx * dz);
+      List<BlockPos> list = new ArrayList<>((int) Math.min(est, 131072));
+      if (full) {
          addSphereBlocks(list, x1, y1, z1, x3, y3, z3, centerX, centerY, centerZ, radiusX, radiusY, radiusZ);
       } else {
          addHollowSphereBlocks(list, x1, y1, z1, x3, y3, z3, centerX, centerY, centerZ, radiusX, radiusY, radiusZ);

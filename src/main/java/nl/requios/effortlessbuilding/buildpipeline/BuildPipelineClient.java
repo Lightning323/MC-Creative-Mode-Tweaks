@@ -50,7 +50,13 @@ public class BuildPipelineClient {
       BuildPipeline pipeline = new BuildPipeline();
       pipeline.addSystem(ModifierSystem.CLIENT);
       pipeline.addSystem(TrowelSystem.INSTANCE);
-      pipeline.addSystem(ConstraintSystem.INSTANCE);
+      // Client-only constraints: memoizes tile-entity verdicts across the
+      // shapes of one drag gesture. The server pipeline (and the
+      // single-target break check below) keep using ConstraintSystem.INSTANCE
+      // with the memo off, so placement validation always reads live state.
+      ConstraintSystem previewConstraints = new ConstraintSystem();
+      previewConstraints.setPreviewMemoEnabled(true);
+      pipeline.addSystem(previewConstraints);
       return pipeline;
    }
 

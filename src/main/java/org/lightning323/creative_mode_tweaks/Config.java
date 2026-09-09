@@ -82,10 +82,10 @@ public class Config {
 
     public static final ModConfigSpec.BooleanValue BUILDING_ASYNC_BOUNDARY =
             CLIENT_BUILDER.comment("Bake the preview border on the background thread along with the ghost blocks.",
-                            "Off: the border updates instantly on the main thread while ghost blocks catch up.",
-                            "On: both wait for the background build (smoother frames, slower border).")
+                            "On: smoother frames while dragging big shapes; the border lags the cursor by a bake.",
+                            "Off: the border updates instantly on the main thread while ghost blocks catch up.")
                     .translation("creative_mode_tweaks.config.async_boundary")
-                    .define("building.async_boundary", false);
+                    .define("building.async_boundary", true);
 
     public static final ModConfigSpec.BooleanValue BUILDING_SURVIVAL_ALLOW_ANGEL_PLACEMENT =
             COMMON_BUILDER.comment("Allow survival players to use Angel Placement to target air blocks at a distance.")

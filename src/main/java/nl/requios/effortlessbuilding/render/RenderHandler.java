@@ -3,7 +3,6 @@ package nl.requios.effortlessbuilding.render;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipeline;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipelineClient;
@@ -44,64 +43,13 @@ public class RenderHandler {
      /**
       * Action-bar count/dims + placement tick sound. Called by the preview cache
       * on shape change only — the result is cached for the per-frame redisplay.
+      * Bounds arrive precomputed from the shape pass, so this never rescans a
+      * position list.
       *
       * @param overLimit when true the count cap cut blocks out of this shape, so
       *                  the line renders red: the whole thing won't get built.
       */
-     public static void updateFeedback(List<BlockPos> positions, boolean sequenceActive, BuildPipeline.BuildState pendingAction, boolean overLimit) {
-       Minecraft mc = Minecraft.getInstance();
-       if (mc.player != null && mc.level != null) {
-          playTickSound(mc, positions, sequenceActive, pendingAction);
-
-          lastPreviewSize = positions.size();
-          cachedFeedback = null;
-          if (sequenceActive && !positions.isEmpty()) {
-             int minX = Integer.MAX_VALUE;
-             int minY = Integer.MAX_VALUE;
-             int minZ = Integer.MAX_VALUE;
-             int maxX = Integer.MIN_VALUE;
-             int maxY = Integer.MIN_VALUE;
-             int maxZ = Integer.MIN_VALUE;
-
-             for(BlockPos pos : positions) {
-                if (pos.getX() < minX) {
-                   minX = pos.getX();
-                }
-
-                if (pos.getX() > maxX) {
-                   maxX = pos.getX();
-                }
-
-                if (pos.getY() < minY) {
-                   minY = pos.getY();
-                }
-
-                if (pos.getY() > maxY) {
-                   maxY = pos.getY();
-                }
-
-                if (pos.getZ() < minZ) {
-                   minZ = pos.getZ();
-                }
-
-                if (pos.getZ() > maxZ) {
-                   maxZ = pos.getZ();
-                }
-             }
-
-             cachedFeedback = buildCountMessage(positions.size(),
-                     maxX - minX + 1, maxY - minY + 1, maxZ - minZ + 1, overLimit);
-             mc.player.displayClientMessage(cachedFeedback, true);
-          }
-
-       }
-    }
-
-    /**
-     * Same feedback for the huge-shape path, but the bounds are already known
-     * from the single min/max pass — no list rescan, no extra allocation.
-     */
-    public static void updateFeedbackSimple(int count, BlockPos min, BlockPos max,
+     public static void updateFeedbackSimple(int count, BlockPos min, BlockPos max,
                                             boolean sequenceActive, BuildPipeline.BuildState pendingAction,
                                             boolean overLimit) {
        Minecraft mc = Minecraft.getInstance();
@@ -132,14 +80,6 @@ public class RenderHandler {
        if (mc.player != null) {
           mc.player.displayClientMessage(cachedFeedback, true);
        }
-    }
-
-    private static void playTickSound(Minecraft mc, List<BlockPos> positions,
-                                      boolean sequenceActive, BuildPipeline.BuildState pendingAction) {
-       if (!sequenceActive || positions.isEmpty() || positions.size() == lastPreviewSize) {
-          return;
-       }
-       playTickSound(mc, positions.getFirst(), positions.size(), sequenceActive, pendingAction);
     }
 
     private static void playTickSound(Minecraft mc, BlockPos at, int count,

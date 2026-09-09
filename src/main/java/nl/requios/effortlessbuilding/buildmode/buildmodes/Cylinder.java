@@ -10,10 +10,11 @@ import net.minecraft.world.entity.player.Player;
 
 public class Cylinder extends ThreeClicksBuildMode {
    public static List<BlockPos> getCylinderBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2, int x3, int y3, int z3) {
-      List<BlockPos> list = new ArrayList();
       List<BlockPos> circleBlocks = Circle.getCircleBlocks(player, x1, y1, z1, x2, y2, z2);
       int lowest = Math.min(y1, y3);
       int highest = Math.max(y1, y3);
+      // Exact: every base disc is extruded over the full height.
+      List<BlockPos> list = new ArrayList<>((int) Math.min((long) circleBlocks.size() * (highest - lowest + 1L), 131072));
 
       for(int y = lowest; y <= highest; ++y) {
          for(BlockPos blockPos : circleBlocks) {

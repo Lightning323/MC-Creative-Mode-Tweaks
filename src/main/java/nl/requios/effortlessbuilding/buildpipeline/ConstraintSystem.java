@@ -1,5 +1,6 @@
 package nl.requios.effortlessbuilding.buildpipeline;
 
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import org.lightning323.creative_mode_tweaks.Config;
 import nl.requios.effortlessbuilding.utilities.BlockEntry;
 import nl.requios.effortlessbuilding.utilities.BlockSet;
@@ -14,6 +15,37 @@ import net.minecraft.world.level.block.state.BlockState;
 public class ConstraintSystem implements IBuildSystem {
    public static final ConstraintSystem INSTANCE = new ConstraintSystem();
    private static final ThreadLocal<PlacementContext> PLACEMENT_CTX = new ThreadLocal();
+
+   /**
+    * Cap for the preview tile-entity memo below: bounds the retained sets so
+    * one giant shape can't pin memory.
+    */
+   private static final int TILE_MEMO_CAP = 131072;
+   /**
+    * Memo validity window in ticks (~13s at 256 ticks). The memo survives
+    * across the shapes of one drag gesture but self-heals if the world
+    * changes underneath the preview. Preview staleness here is harmless:
+    * placement re-validates server-side at click time.
+    */
+   private static final long TILE_MEMO_BUCKET_TICKS = 256L;
+
+   // Client-preview tile-entity memo. Instance-scoped and opt-in: the server
+   // pipeline keeps using INSTANCE (memo off) so placement validation always
+   // reads live world state.
+   private boolean previewMemo;
+   private Level memoLevel;
+   private long memoBucket = Long.MIN_VALUE;
+   private boolean memoProtectTiles;
+   private final LongOpenHashSet memoScanned = new LongOpenHashSet();
+   private final LongOpenHashSet memoTileRejected = new LongOpenHashSet();
+
+   /** Enables the tile-scan memo. Call only for the client preview pipeline. */
+   public void setPreviewMemoEnabled(boolean enabled) {
+      this.previewMemo = enabled;
+      if (!enabled) {
+         this.clearTileMemo();
+      }
+   }
 
    public static void setPlacementContext(PlacementContext ctx) {
       PLACEMENT_CTX.set(ctx);
@@ -52,11 +84,47 @@ public class ConstraintSystem implements IBuildSystem {
 
       boolean protectTiles = this.getProtectTileEntities();
       if (protectTiles) {
-         for (BlockEntry entry : blocks.values()) {
-            if (entry.isValid() && level.getBlockEntity(entry.blockPos) != null) {
-               entry.markRejected(BlockStatus.PROTECTED_TILE_ENTITY);
+         if (this.useTileMemo(level, protectTiles)) {
+            // Same level, same setting, recent bucket: re-apply memoized
+            // verdicts and scan only positions never seen under this memo.
+            // Dragging mostly revisits positions, so this degrades to O(new).
+            for (BlockEntry entry : blocks.values()) {
+               long packed = entry.blockPos.asLong();
+               if (this.memoTileRejected.contains(packed)) {
+                  entry.markRejected(BlockStatus.PROTECTED_TILE_ENTITY);
+               } else if (!this.memoScanned.contains(packed) && entry.isValid()
+                       && level.getBlockEntity(entry.blockPos) != null) {
+                  this.memoScanned.add(packed);
+                  this.memoTileRejected.add(packed);
+                  entry.markRejected(BlockStatus.PROTECTED_TILE_ENTITY);
+               }
+            }
+            if (this.memoScanned.size() > TILE_MEMO_CAP) {
+               this.clearTileMemo();
+            }
+         } else {
+            if (this.previewMemo) {
+               this.memoLevel = level;
+               this.memoBucket = level.getGameTime() / TILE_MEMO_BUCKET_TICKS;
+               this.memoProtectTiles = protectTiles;
+               this.memoScanned.clear();
+               this.memoTileRejected.clear();
+            }
+            for (BlockEntry entry : blocks.values()) {
+               if (entry.isValid() && level.getBlockEntity(entry.blockPos) != null) {
+                  entry.markRejected(BlockStatus.PROTECTED_TILE_ENTITY);
+                  if (this.previewMemo) {
+                     long packed = entry.blockPos.asLong();
+                     this.memoScanned.add(packed);
+                     this.memoTileRejected.add(packed);
+                  }
+               } else if (this.previewMemo && entry.isValid()) {
+                  this.memoScanned.add(entry.blockPos.asLong());
+               }
             }
          }
+      } else if (this.previewMemo) {
+         this.clearTileMemo();
       }
 
       if (!player.getAbilities().instabuild) {
@@ -98,6 +166,20 @@ public class ConstraintSystem implements IBuildSystem {
 
          }
       }
+   }
+
+   private boolean useTileMemo(Level level, boolean protectTiles) {
+      return this.previewMemo && !this.memoScanned.isEmpty()
+            && level == this.memoLevel
+            && level.getGameTime() / TILE_MEMO_BUCKET_TICKS == this.memoBucket
+            && protectTiles == this.memoProtectTiles;
+   }
+
+   private void clearTileMemo() {
+      this.memoLevel = null;
+      this.memoBucket = Long.MIN_VALUE;
+      this.memoScanned.clear();
+      this.memoTileRejected.clear();
    }
 
    private boolean getProtectTileEntities() {

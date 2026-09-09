@@ -9,7 +9,11 @@ import net.minecraft.world.entity.player.Player;
 
 public class Cube extends ThreeClicksBuildMode {
    public static List<BlockPos> getFloorBlocksUsingCubeFill(Player player, int x1, int y1, int z1, int x2, int y2, int z2) {
-      List<BlockPos> list = new ArrayList();
+      long dx = Math.abs((long) x2 - x1) + 1L;
+      long dz = Math.abs((long) z2 - z1) + 1L;
+      // Skeleton only traces the floor edge; anything else fills it.
+      long est = ModeOptions.getCubeFill() == ModeOptions.ActionEnum.CUBE_SKELETON ? 2L * (dx + dz) : dx * dz;
+      List<BlockPos> list = new ArrayList<>((int) Math.min(est, 131072));
       if (ModeOptions.getCubeFill() == ModeOptions.ActionEnum.CUBE_SKELETON) {
          Floor.addHollowFloorBlocks(list, x1, x2, y1, z1, z2);
       } else {
@@ -20,12 +24,26 @@ public class Cube extends ThreeClicksBuildMode {
    }
 
    public static List<BlockPos> getCubeBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2) {
-      List<BlockPos> list = new ArrayList();
+      long dx = Math.abs((long) x2 - x1) + 1L;
+      long dy = Math.abs((long) y2 - y1) + 1L;
+      long dz = Math.abs((long) z2 - z1) + 1L;
+      List<BlockPos> list;
       switch (ModeOptions.getCubeFill()) {
-         case CUBE_FULL -> addCubeBlocks(list, x1, x2, y1, y2, z1, z2);
-         case CUBE_HOLLOW -> addHollowCubeBlocks(list, x1, x2, y1, y2, z1, z2);
-         case CUBE_SKELETON -> addSkeletonCubeBlocks(list, x1, x2, y1, y2, z1, z2);
-      }
+         // Full/hollow fill faces (upper bound); skeleton only traces edges.
+         case CUBE_FULL -> {
+            list = new ArrayList<>((int) Math.min(dx * dy * dz, 131072));
+            addCubeBlocks(list, x1, x2, y1, y2, z1, z2);
+         }
+         case CUBE_HOLLOW -> {
+            list = new ArrayList<>((int) Math.min(2L * (dx * dy + dy * dz + dx * dz), 131072));
+            addHollowCubeBlocks(list, x1, x2, y1, y2, z1, z2);
+         }
+         case CUBE_SKELETON -> {
+            list = new ArrayList<>((int) Math.min(4L * (dx + dy + dz), 131072));
+            addSkeletonCubeBlocks(list, x1, x2, y1, y2, z1, z2);
+         }
+         // Unreachable with today's fill modes; throws loudly if one is added.
+         default -> throw new IllegalStateException("Unknown cube fill: " + ModeOptions.getCubeFill());      }
 
       return list;
    }

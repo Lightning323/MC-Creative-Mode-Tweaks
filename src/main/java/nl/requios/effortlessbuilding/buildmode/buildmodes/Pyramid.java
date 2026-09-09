@@ -111,7 +111,11 @@ public class Pyramid extends ThreeClicksBuildMode {
 
    private List<BlockPos> getBaseBlocks(BlockPos firstPos, BlockPos secondPos) {
       PyramidBounds bounds = new PyramidBounds(firstPos, secondPos, firstPos, this.direction);
-      List<BlockPos> blocks = new ArrayList<>();
+      long du = (long) bounds.maxU - bounds.minU + 1L;
+      long dv = (long) bounds.maxV - bounds.minV + 1L;
+      boolean full = ModeOptions.getFill() == ModeOptions.ActionEnum.FULL;
+      // Full bases fill the rect; hollow ones only trace its edge.
+      List<BlockPos> blocks = new ArrayList<>((int) Math.min(full ? du * dv : 2L * (du + dv), 131072));
 
       for (int u = bounds.minU; u <= bounds.maxU; ++u) {
          for (int v = bounds.minV; v <= bounds.maxV; ++v) {
@@ -126,7 +130,13 @@ public class Pyramid extends ThreeClicksBuildMode {
 
    private List<BlockPos> getPyramidBlocks(BlockPos firstPos, BlockPos secondPos, BlockPos thirdPos) {
       PyramidBounds bounds = new PyramidBounds(firstPos, secondPos, thirdPos, this.direction);
-      List<BlockPos> blocks = new ArrayList<>();
+      long du = (long) bounds.maxU - bounds.minU + 1L;
+      long dv = (long) bounds.maxV - bounds.minV + 1L;
+      long dh = Math.abs((long) bounds.tip - bounds.base) + 1L;
+      boolean full = ModeOptions.getFill() == ModeOptions.ActionEnum.FULL;
+      // Full pyramids fill the box; hollow ones only skin its surface.
+      long est = full ? du * dv * dh : 2L * (du * dv + dv * dh + dh * du);
+      List<BlockPos> blocks = new ArrayList<>((int) Math.min(est, 131072));
       int normalStep = this.direction.getAxisDirection().getStep();
 
       for (int normal = bounds.base; normalStep > 0 ? normal <= bounds.tip : normal >= bounds.tip; normal += normalStep) {

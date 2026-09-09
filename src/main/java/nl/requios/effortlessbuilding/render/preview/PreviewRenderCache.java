@@ -25,6 +25,7 @@ import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import nl.requios.effortlessbuilding.buildmode.BuildModeEnum;
 import nl.requios.effortlessbuilding.buildmode.BuildModes;
@@ -49,17 +50,18 @@ import org.lightning323.creative_mode_tweaks.Config;
  * shape + border resolved synchronously on change, ghost-block tessellation
  * on {@link PreviewBuildWorker}.
  *
- * <p><b>Why the split is shaped this way:</b> the border must react the same
- * frame the crosshair moves onto a new block — no worker round-trip allowed —
- * while ghost tessellation (baked models, AO, thousands of quads) is the part
- * that hitches. So per key change the render thread does coordinates,
- * constraints, state resolution and the pure-math border bake immediately,
- * and only the model tessellation goes async. The previous ghost mesh keeps
- * drawing until the new one swaps in: seamless, no flicker.</p>
+ * <p><b>Why the split is shaped this way:</b> ghost tessellation (baked
+ * models, AO, thousands of quads) is the part that hitches, so only the model
+ * tessellation goes async — the previous ghost mesh keeps drawing until the
+ * new one swaps in: seamless, no flicker. Per key change the render thread
+ * does raycast, coordinates, constraints, state resolution and (unless
+ * async-boundary is on) the pure-math border bake immediately, so the overlay
+ * and feedback stay live even while ghosts still bake.</p>
  *
- * <p>Set {@code building.async_boundary} to bake the border on the worker too
- * (smoother shape-change frames, but the border then lags with the ghosts).
- * Off by default.</p>
+ * <p>On by default, the border bakes on the worker together with the ghosts
+ * (smoother shape-change frames, but the border lags with them). Set {@code
+ * building.async_boundary} to false for a same-frame border baked on the
+ * render thread.</p>
  *
  * <p><b>Huge shapes</b> (boundary volume past {@link #DETAILED_PREVIEW_BLOCK_LIMIT}
  * blocks, or past the configured max-blocks cap) skip all of that: the client
@@ -67,6 +69,10 @@ import org.lightning323.creative_mode_tweaks.Config;
  * never enumerated, ghosts stay off, and hover-only reshapes are throttled to
  * ~12Hz. Dims come from the boundary and the count is its volume (an upper
  * bound, red past the cap); placement itself was always server-authoritative.</p>
+ *
+ * <p>Hover-only reshapes (cursor moves, nothing structural) are throttled —
+ * ~12Hz for huge boxes, ~28Hz for detailed shapes — so dragging never
+ * regenerates every frame; clicks and option changes rebuild immediately.</p>
  *
  * <p>Validity split is preserved: over-limit / protected / out-of-reach blocks
  * stay flagged as <i>rejected</i> for the overlay, which draws the <i>exact
@@ -87,6 +93,24 @@ public final class PreviewRenderCache {
      * Clicks, mode/item/config changes always rebuild immediately.
      */
     private static final long HUGE_SHAPE_RESHAPE_MIN_NANOS = 80_000_000L;
+
+    /**
+     * Same throttle for detailed previews: dragging a multi-thousand-block
+     * shape regenerates coordinates, runs constraints and rebakes the overlay
+     * per frame otherwise. 35ms (~28Hz) costs at most a frame or two of border
+     * lag while dragging; structural changes bypass it via hoverOnlyChange.
+     */
+    private static final long DETAILED_SHAPE_RESHAPE_MIN_NANOS = 35_000_000L;
+
+    /**
+     * Upper bound for transient presizing (block sets, generator lists).
+     * Exact for filled boxes, an overestimate for hollow/sparse shapes; the
+     * cap keeps one pathological drag from ballooning eden.
+     */
+    private static final int PRESIZE_CAP = 1 << 16;
+
+    /** Refresh period for the config snapshot (see config fields below). */
+    private static final long CONFIG_CACHE_NANOS = 500_000_000L;
 
     public static PreviewRenderCache get() {
         return INSTANCE;
@@ -136,6 +160,24 @@ public final class PreviewRenderCache {
     private @Nullable Level dimensionLevel;
     private String dimensionId = "";
 
+    // 1-entry trowel cache: the held item rarely changes between frames, but
+    // TrowelSystem.isTrowel does a registry lookup on every miss.
+    private @Nullable Item trowelCacheItem;
+    private boolean trowelCacheValue;
+
+    // Config snapshot for the key path: the five reads below are volatile
+    // config lookups (plus try/catch) that never change mid-drag. Refreshed
+    // at most twice a second, or immediately when creative mode flips (which
+    // swaps the limit set).
+    private long configNanos;
+    private boolean configCreative;
+    private int configMaxBlocks;
+    private int configAxisLimit;
+    private double configReach;
+    private boolean configProtectTiles;
+    private int configBlockAlpha;
+    private boolean configAsyncBoundary;
+
     // Bumped on resource reload so pre-reload bakes can never go live.
     private int modelGeneration;
 
@@ -179,7 +221,8 @@ public final class PreviewRenderCache {
             return;
         }
 
-        BlockHitResult hit = BuildPipelineClient.getCurrentTargetHit(mc);
+        refreshConfigCache(player);
+        BlockHitResult hit = reuseVanillaHit(mc, player);
         this.currentHit = hit;
         PreviewShapeKey key = buildKey(player, level, mode, inProgress, state, hit);
         if (key == null) {
@@ -193,11 +236,16 @@ public final class PreviewRenderCache {
         this.frame++;
 
         if (!key.equals(this.shapedKey) || level != this.shapedLevel) {
-            if (this.simplePreview && hoverOnlyChange(this.shapedKey, key)
-                    && System.nanoTime() - this.lastShapeNanos < HUGE_SHAPE_RESHAPE_MIN_NANOS) {
-                // Huge box already on screen and only the cursor moved a
-                // moment ago: hold the stale box briefly instead of
-                // regenerating tens of thousands of blocks this frame.
+            // Hover drags reshape constantly: hold the live shape briefly
+            // instead of regenerating every frame. Huge boxes throttle harder
+            // (~12Hz); detailed shapes refresh at ~28Hz — a frame or two of
+            // border lag for much less hitch. Clicks, mode/item/config changes
+            // always rebuild immediately via hoverOnlyChange.
+            long throttleNanos = this.simplePreview ? HUGE_SHAPE_RESHAPE_MIN_NANOS : DETAILED_SHAPE_RESHAPE_MIN_NANOS;
+            if (level == this.shapedLevel && hoverOnlyChange(this.shapedKey, key)
+                    && System.nanoTime() - this.lastShapeNanos < throttleNanos) {
+                // Stale shape stays on screen; the next frame retries with a
+                // newer key, so the preview converges within the window.
             } else {
                 shapeOnRenderThread(mc, player, level, mode, state, hit, key);
             }
@@ -322,6 +370,8 @@ public final class PreviewRenderCache {
         this.lastShapeNanos = 0;
         this.currentHit = null;
         this.dimensionLevel = null;
+        this.trowelCacheItem = null;
+        this.configNanos = 0;
     }
 
     /**
@@ -362,7 +412,12 @@ public final class PreviewRenderCache {
         }
 
         int maxBlocks = key.maxBlocks();
-        BlockSet blocks = new BlockSet();
+        // Presize from the boundary volume (exact for filled boxes, an upper
+        // bound otherwise, capped): a fresh set at default capacity would
+        // rehash repeatedly on the way to thousands of entries.
+        long volume = boundaryVolume(previewBoundary);
+        int est = (int) Math.min(volume, (long) maxBlocks * 2L);
+        BlockSet blocks = new BlockSet(Math.max(16, Math.min(est, PRESIZE_CAP)));
         try (SableCompat.SelectionScope ignored = SableCompat.pushSelection(level, anchor)) {
             mode.instance.getClientBlocks(blocks, player); //Get the blocks from the selected anchor points, first pos, second pos, etc...
         }
@@ -488,22 +543,53 @@ public final class PreviewRenderCache {
         try (SableCompat.SelectionScope ignored = SableCompat.pushSelection(level, anchor)) {
             BuildPipelineClient.CLIENT.processBlocks(blocks, player, action);
         }
-        // Display ordering only (deterministic lists); never affects which
-        // blocks were kept valid above.
-        blocks.sortByDistance();
+        // Display ordering is generation order (already deterministic): the
+        // old distance sort + full re-put cost O(n log n) per shape change
+        // while nothing downstream needs it — the overlay bake is
+        // order-independent, ghosts are sectioned, and feedback needs only
+        // count + dims. Server placement keeps its own sort.
+        // (sortByDistance retained on BlockSet for the server/legacy paths.)
 
-        // Single entry-set pass: split + global flags together, no second
-        // hasEntriesWithStatus scan and no per-key map re-lookup. The
-        // outside-sublevel rule (everything rejected) folds in afterwards by
-        // moving the whole ok list at once — the common case stays one pass.
+        // Single pass: split + global flags + feedback bounds together, no
+        // second hasEntriesWithStatus scan, no per-key map re-lookup, and no
+        // separate min/max rescan in the feedback call. The outside-sublevel
+        // rule (everything rejected) folds in afterwards by moving the whole
+        // ok list at once — the common case stays one pass.
         List<BlockPos> ok = new ArrayList<>(blocks.size());
         List<BlockEntry> okEntries = new ArrayList<>(blocks.size());
         List<BlockPos> bad = new ArrayList<>();
         boolean outsideSublevel = false;
         boolean overCap = false;
+        int minX = Integer.MAX_VALUE;
+        int minY = Integer.MAX_VALUE;
+        int minZ = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE;
+        int maxY = Integer.MIN_VALUE;
+        int maxZ = Integer.MIN_VALUE;
         for (BlockEntry weighed : blocks.values()) {
             BlockPos pos = weighed.blockPos;
             BlockEntry entry = weighed;
+            int x = pos.getX();
+            int y = pos.getY();
+            int z = pos.getZ();
+            if (x < minX) {
+                minX = x;
+            }
+            if (x > maxX) {
+                maxX = x;
+            }
+            if (y < minY) {
+                minY = y;
+            }
+            if (y > maxY) {
+                maxY = y;
+            }
+            if (z < minZ) {
+                minZ = z;
+            }
+            if (z > maxZ) {
+                maxZ = z;
+            }
             if (entry == null || entry.isValid()) {
                 ok.add(pos);
                 okEntries.add(entry);
@@ -584,16 +670,20 @@ public final class PreviewRenderCache {
         this.simplePreview = false;
         this.lastShapeNanos = System.nanoTime();
 
-        // Border: synchronous by default so it lands the same frame as the
-        // shape. With async-boundary on, it rides the worker with the ghosts.
+        // Border: synchronous when async-boundary is off so it lands the same
+        // frame as the shape. With async-boundary on (the default), it rides
+        // the worker with the ghosts and swaps in a bake later.
         if (!key.asyncBoundary()) {
             this.overlayMesh.adopt(level, PreviewOverlayMesh.bake(ok, bad, this.isBreaking));
             this.hasOverlay = !this.overlayMesh.isEmpty();
         }
 
         // Sound + action-bar feedback, exactly like the old per-frame call —
-        // internally it only dings when the size actually changed.
-        RenderHandler.updateFeedback(this.all, state != null, state, this.overLimit);
+        // internally it only dings when the size actually changed. Bounds come
+        // from the split pass above: no second list rescan.
+        RenderHandler.updateFeedbackSimple(ok.size() + bad.size(),
+                new BlockPos(minX, minY, minZ), new BlockPos(maxX, maxY, maxZ),
+                state != null, state, this.overLimit);
 
         if (this.wantsBlocks) {
             this.pendingMeshBlocks = Collections.unmodifiableList(meshBlocks);
@@ -681,6 +771,44 @@ public final class PreviewRenderCache {
         this.meshKey = liveKey;
     }
 
+    // -- per-frame cost guards -------------------------------------------------
+
+    // Vanilla already raycast this frame into mc.hitResult: reuse it when
+    // Angel Placement is off instead of paying for a second clip. Falls back
+    // to the full targeting path when vanilla missed (mod reach can exceed
+    // vanilla's), when the hit is beyond mod reach, or while angel
+    // air-targeting is active.
+    private @Nullable BlockHitResult reuseVanillaHit(Minecraft mc, Player player) {
+        if (!BuildPipelineClient.isAngelPlacementActive(player)
+                && mc.hitResult instanceof BlockHitResult vanillaHit
+                && vanillaHit.getType() == HitResult.Type.BLOCK) {
+            double reach = this.configReach;
+            if (vanillaHit.getLocation().distanceToSqr(player.getEyePosition()) <= reach * reach) {
+                return vanillaHit;
+            }
+        }
+        return BuildPipelineClient.getCurrentTargetHit(mc);
+    }
+
+    // Snapshot of the config reads on the key path. All of these are volatile
+    // lookups that never change mid-drag; refresh at most twice a second, or
+    // immediately when creative mode flips (which swaps the limit set).
+    private void refreshConfigCache(Player player) {
+        boolean creative = player.getAbilities().instabuild;
+        long now = System.nanoTime();
+        if (now - this.configNanos < CONFIG_CACHE_NANOS && creative == this.configCreative) {
+            return;
+        }
+        this.configNanos = now;
+        this.configCreative = creative;
+        this.configMaxBlocks = Config.getBuildingMaxBlocksPlaced(player);
+        this.configAxisLimit = Config.getBuildingMaxBlocksPerAxis(player);
+        this.configReach = Config.getBuildingReach(player);
+        this.configProtectTiles = readProtectTiles();
+        this.configBlockAlpha = (int) (Config.getBuildingPreviewBlockTransparency() * 255.0F);
+        this.configAsyncBoundary = readAsyncBoundary();
+    }
+
     // -- key building (must stay cheap: raycast + getters only) -------------
 
     // Resolves the hovered block exactly like a click would land: reuse a
@@ -707,6 +835,17 @@ public final class PreviewRenderCache {
 
         BlockHitResult firstHit = BuildPipelineClient.getFirstClickHit();
         ItemStack held = player.getMainHandItem();
+        Item heldItem = held.getItem();
+        // 1-entry cache: the held item rarely changes between frames, but the
+        // registry lookup behind isTrowel runs on every miss.
+        boolean trowel;
+        if (heldItem == this.trowelCacheItem) {
+            trowel = this.trowelCacheValue;
+        } else {
+            trowel = TrowelSystem.isTrowel(held);
+            this.trowelCacheItem = heldItem;
+            this.trowelCacheValue = trowel;
+        }
         Vec3 eye = player.getEyePosition();
 
         return new PreviewShapeKey(
@@ -720,19 +859,19 @@ public final class PreviewRenderCache {
                 hoverFace,
                 hoverPoint != null ? hoverPoint.immutable() : null,
                 BlockPos.containing(eye),
-                held.getItem(),
-                TrowelSystem.isTrowel(held),
+                heldItem,
+                trowel,
                 BuildSettings.CLIENT.getReplaceMode(),
-                (int) (Config.getBuildingPreviewBlockTransparency() * 255.0F),
-                Config.getBuildingMaxBlocksPlaced(player),
-                Config.getBuildingMaxBlocksPerAxis(player),
-                readProtectTiles(),
+                this.configBlockAlpha,
+                this.configMaxBlocks,
+                this.configAxisLimit,
+                this.configProtectTiles,
                 ModeOptions.getFill(),
                 ModeOptions.getCubeFill(),
                 ModeOptions.getSides(),
                 ModeOptions.getPointBuild(),
                 player.getAbilities().instabuild,
-                readAsyncBoundary(),
+                this.configAsyncBoundary,
                 dimensionId(level));
     }
 
