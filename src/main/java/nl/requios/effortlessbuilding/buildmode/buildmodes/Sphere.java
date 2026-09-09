@@ -8,8 +8,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
-import nl.requios.effortlessbuilding.buildmode.ModeOptions;
-import nl.requios.effortlessbuilding.buildmode.ThreeClicksBuildMode;
 
 public class Sphere extends ThreeClicksBuildMode {
    public static List<BlockPos> getSphereBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2, int x3, int y3, int z3) {
@@ -22,9 +20,9 @@ public class Sphere extends ThreeClicksBuildMode {
          centerY = (float)y1 + (float)(y3 - y1) / 2.0F;
          centerZ = (float)z1 + (float)(z2 - z1) / 2.0F;
       } else {
-         x1 = (int)(centerX - ((float)x2 - centerX));
-         y1 = (int)(centerY - ((float)y3 - centerY));
-         z1 = (int)(centerZ - ((float)z2 - centerZ));
+         x1 = 2 * x1 - x2;
+         y1 = 2 * y1 - y3;
+         z1 = 2 * z1 - z2;
       }
 
       float radiusX = Mth.abs((float)x2 - centerX);
@@ -40,114 +38,73 @@ public class Sphere extends ThreeClicksBuildMode {
    }
 
    public static void addSphereBlocks(List<BlockPos> list, int x1, int y1, int z1, int x2, int y2, int z2, float centerX, float centerY, float centerZ, float radiusX, float radiusY, float radiusZ) {
-      int l = x1;
+      int minX = Math.min(x1, x2);
+      int maxX = Math.max(x1, x2);
+      int minY = Math.min(y1, y2);
+      int maxY = Math.max(y1, y2);
+      int minZ = Math.min(z1, z2);
+      int maxZ = Math.max(z1, z2);
+      // Voxel shells look round when the surface grabs a ~0.4 block fringe,
+      // same as the circle filler; expanding each radius keeps that fringe
+      // uniform in every direction.
+      float outerX = radiusX + 0.4F;
+      float outerY = radiusY + 0.4F;
+      float outerZ = radiusZ + 0.4F;
 
-      while(true) {
-         if (x1 < x2) {
-            if (l > x2) {
-               break;
+      for (int x = minX; x <= maxX; ++x) {
+         for (int z = minZ; z <= maxZ; ++z) {
+            for (int y = minY; y <= maxY; ++y) {
+               if (isInsideEllipsoid(x, y, z, centerX, centerY, centerZ, outerX, outerY, outerZ)) {
+                  list.add(new BlockPos(x, y, z));
+               }
             }
-         } else if (l < x2) {
-            break;
          }
-
-         int n = z1;
-
-         while(true) {
-            if (z1 < z2) {
-               if (n > z2) {
-                  break;
-               }
-            } else if (n < z2) {
-               break;
-            }
-
-            int m = y1;
-
-            while(true) {
-               if (y1 < y2) {
-                  if (m > y2) {
-                     break;
-                  }
-               } else if (m < y2) {
-                  break;
-               }
-
-               float distance = distance((float)l, (float)m, (float)n, centerX, centerY, centerZ);
-               float radius = calculateSpheroidRadius(centerX, centerY, centerZ, radiusX, radiusY, radiusZ, l, m, n);
-               if (distance < radius + 0.4F) {
-                  list.add(new BlockPos(l, m, n));
-               }
-
-               m += y1 < y2 ? 1 : -1;
-            }
-
-            n += z1 < z2 ? 1 : -1;
-         }
-
-         l += x1 < x2 ? 1 : -1;
       }
-
    }
 
    public static void addHollowSphereBlocks(List<BlockPos> list, int x1, int y1, int z1, int x2, int y2, int z2, float centerX, float centerY, float centerZ, float radiusX, float radiusY, float radiusZ) {
-      int l = x1;
+      int minX = Math.min(x1, x2);
+      int maxX = Math.max(x1, x2);
+      int minY = Math.min(y1, y2);
+      int maxY = Math.max(y1, y2);
+      int minZ = Math.min(z1, z2);
+      int maxZ = Math.max(z1, z2);
+      float outerX = radiusX + 0.4F;
+      float outerY = radiusY + 0.4F;
+      float outerZ = radiusZ + 0.4F;
+      float innerX = radiusX - 0.6F;
+      float innerY = radiusY - 0.6F;
+      float innerZ = radiusZ - 0.6F;
 
-      while(true) {
-         if (x1 < x2) {
-            if (l > x2) {
-               break;
+      for (int x = minX; x <= maxX; ++x) {
+         for (int z = minZ; z <= maxZ; ++z) {
+            for (int y = minY; y <= maxY; ++y) {
+               if (isInsideEllipsoid(x, y, z, centerX, centerY, centerZ, outerX, outerY, outerZ)
+                     && !isInsideEllipsoid(x, y, z, centerX, centerY, centerZ, innerX, innerY, innerZ)) {
+                  list.add(new BlockPos(x, y, z));
+               }
             }
-         } else if (l < x2) {
-            break;
          }
-
-         int n = z1;
-
-         while(true) {
-            if (z1 < z2) {
-               if (n > z2) {
-                  break;
-               }
-            } else if (n < z2) {
-               break;
-            }
-
-            int m = y1;
-
-            while(true) {
-               if (y1 < y2) {
-                  if (m > y2) {
-                     break;
-                  }
-               } else if (m < y2) {
-                  break;
-               }
-
-               float distance = distance((float)l, (float)m, (float)n, centerX, centerY, centerZ);
-               float radius = calculateSpheroidRadius(centerX, centerY, centerZ, radiusX, radiusY, radiusZ, l, m, n);
-               if (distance < radius + 0.4F && distance > radius - 0.6F) {
-                  list.add(new BlockPos(l, m, n));
-               }
-
-               m += y1 < y2 ? 1 : -1;
-            }
-
-            n += z1 < z2 ? 1 : -1;
-         }
-
-         l += x1 < x2 ? 1 : -1;
       }
-
    }
 
-   private static float distance(float x1, float y1, float z1, float x2, float y2, float z2) {
-      return Mth.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1) + (z2 - z1) * (z2 - z1));
+   /**
+    * Normalized ellipsoid test: {@code (dx/rx)^2 + (dy/ry)^2 + (dz/rz)^2 <= 1}.
+    * A zero/negative radius collapses that axis, so only the center plane can
+    * match on it (anything off-center is infinitely far away).
+    */
+   private static boolean isInsideEllipsoid(int x, int y, int z, float centerX, float centerY, float centerZ, float radiusX, float radiusY, float radiusZ) {
+      return normalizedComponent(centerX, radiusX, x)
+            + normalizedComponent(centerY, radiusY, y)
+            + normalizedComponent(centerZ, radiusZ, z) <= 1.0;
    }
 
-   public static float calculateSpheroidRadius(float centerX, float centerY, float centerZ, float radiusX, float radiusY, float radiusZ, int x, int y, int z) {
-      float radiusXZ = Circle.calculateEllipseRadius(centerX, centerZ, radiusX, radiusZ, x, z);
-      return Circle.calculateEllipseRadius(centerX, centerY, radiusXZ, radiusY, x, y);
+   private static double normalizedComponent(double center, double radius, int coordinate) {
+      if (radius <= 0.0) {
+         return coordinate == center ? 0.0 : Double.POSITIVE_INFINITY;
+      }
+      double distance = ((double)coordinate - center) / radius;
+      return distance * distance;
    }
 
    public BlockPos findSecondPos(Player player, BlockPos firstPos, boolean skipRaytrace) {
