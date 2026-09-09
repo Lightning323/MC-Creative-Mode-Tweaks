@@ -1,6 +1,5 @@
 package nl.requios.effortlessbuilding.modifier;
 
-import java.util.ArrayList;
 import java.util.List;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipeline;
 import org.lightning323.creative_mode_tweaks.Config;
@@ -28,20 +27,17 @@ public class ArrayModifier extends AbstractModifier {
          int effOffsetX = Math.clamp((long)this.offsetX, -maxOffset, maxOffset);
          int effOffsetY = Math.clamp((long)this.offsetY, -maxOffset, maxOffset);
          int effOffsetZ = Math.clamp((long)this.offsetZ, -maxOffset, maxOffset);
-         List<BlockPos> snapshot = new ArrayList(blocks.keySet());
+         List<BlockEntry> snapshot = blocks.snapshotEntries();
 
          for(int i = 1; i <= effectiveCount; ++i) {
             int dx = effOffsetX * i;
             int dy = effOffsetY * i;
             int dz = effOffsetZ * i;
 
-            for(BlockPos pos : snapshot) {
-               BlockPos copy = pos.offset(dx, dy, dz);
+            for (BlockEntry original : snapshot) {
+               BlockPos copy = original.blockPos.offset(dx, dy, dz);
                BlockEntry entry = new BlockEntry(copy);
-               BlockEntry original = (BlockEntry)blocks.get(pos);
-               if (original != null) {
-                  entry.copyRotationSettingsFrom(original);
-               }
+               entry.copyRotationSettingsFrom(original);
 
                blocks.add(entry);
             }

@@ -3,7 +3,6 @@ package nl.requios.effortlessbuilding.buildpipeline;
 import java.util.List;
 import nl.requios.effortlessbuilding.buildmode.BuildModeEnum;
 import nl.requios.effortlessbuilding.buildmode.ModeOptions;
-import nl.requios.effortlessbuilding.utilities.BlockEntry;
 import nl.requios.effortlessbuilding.utilities.BlockSet;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -29,15 +28,9 @@ public class BuildModeSystem implements IBuildSystem {
          ctx.mode().instance.setFirstClickFace(ctx.firstClickFace());
          List<BlockPos> rawPositions = ctx.mode().instance.getServerBlocks(player, ctx.firstPos(), ctx.secondPos(), ctx.thirdPos(), ctx.fourthPos());
          if (!rawPositions.isEmpty()) {
-            for(BlockPos pos : rawPositions) {
-               blocks.add(new BlockEntry(pos));
-            }
-
-            if (!rawPositions.isEmpty()) {
-               blocks.firstPos = (BlockPos)rawPositions.getFirst();
-               blocks.lastPos = (BlockPos)rawPositions.getLast();
-            }
-
+            blocks.addAllPositions(rawPositions);
+            blocks.firstPos = (BlockPos)rawPositions.getFirst();
+            blocks.lastPos = (BlockPos)rawPositions.getLast();
          }
       }
    }

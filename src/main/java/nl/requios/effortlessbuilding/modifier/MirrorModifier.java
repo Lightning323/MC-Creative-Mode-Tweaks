@@ -1,6 +1,5 @@
 package nl.requios.effortlessbuilding.modifier;
 
-import java.util.ArrayList;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipeline;
 import org.lightning323.creative_mode_tweaks.Config;
 import nl.requios.effortlessbuilding.utilities.BlockEntry;
@@ -41,7 +40,8 @@ public class MirrorModifier extends AbstractModifier {
    private void applyAxisMirror(BlockSet blocks, int axis, int effectiveSize) {
       double halfSize = (double)effectiveSize / (double)2.0F;
 
-      for (BlockPos pos : new ArrayList<>(blocks.keySet())) {
+      for (BlockEntry original : blocks.snapshotEntries()) {
+         BlockPos pos = original.blockPos;
          double mx = (double)pos.getX();
          double my = (double)pos.getY();
          double mz = (double)pos.getZ();
@@ -58,16 +58,13 @@ public class MirrorModifier extends AbstractModifier {
             double dz = Math.abs((double)mirrored.getZ() + (double)0.5F - this.originZ);
             if (!(dx > halfSize) && !(dy > halfSize) && !(dz > halfSize)) {
                BlockEntry entry = new BlockEntry(mirrored);
-               BlockEntry original = (BlockEntry)blocks.get(pos);
-               if (original != null) {
-                  entry.copyRotationSettingsFrom(original);
-                  if (axis == 0) {
-                     entry.mirrorX = !entry.mirrorX;
-                  } else if (axis == 1) {
-                     entry.mirrorY = !entry.mirrorY;
-                  } else {
-                     entry.mirrorZ = !entry.mirrorZ;
-                  }
+               entry.copyRotationSettingsFrom(original);
+               if (axis == 0) {
+                  entry.mirrorX = !entry.mirrorX;
+               } else if (axis == 1) {
+                  entry.mirrorY = !entry.mirrorY;
+               } else {
+                  entry.mirrorZ = !entry.mirrorZ;
                }
 
                blocks.add(entry);

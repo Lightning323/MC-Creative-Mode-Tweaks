@@ -1,7 +1,5 @@
 package nl.requios.effortlessbuilding.buildpipeline;
 
-import java.util.Map;
-
 import net.minecraft.ChatFormatting;
 import nl.requios.effortlessbuilding.Constants;
 import nl.requios.effortlessbuilding.buildmode.BuildModeEnum;
@@ -112,7 +110,7 @@ public class BuildPipelineClient {
                   BlockSet singleTarget = new BlockSet();
                   singleTarget.add(new BlockEntry(target));
                   ConstraintSystem.INSTANCE.processBlocks(singleTarget, player, BuildPipeline.BuildState.BREAKING);
-                  BlockEntry entry = (BlockEntry)singleTarget.get(target);
+                   BlockEntry entry = singleTarget.get(target);
                   if (entry != null && !entry.isValid()) {
                      return false;
                   }
@@ -185,7 +183,7 @@ public class BuildPipelineClient {
 
                if (action == BuildPipeline.BuildState.PLACING) {
                   ItemStack held = player.getMainHandItem();
-                  BlockEntry firstEntry = (BlockEntry)blocks.get(blocks.firstPos);
+                   BlockEntry firstEntry = blocks.get(blocks.firstPos);
                   SoundType soundType;
                   if (firstEntry != null && firstEntry.blockState != null) {
                      soundType = firstEntry.blockState.getSoundType();
@@ -215,8 +213,8 @@ public class BuildPipelineClient {
                BlockPos fourthPos = mode.instance.getFourthSelectionPos();
                ModeOptions.ActionEnum pointBuild = mode.instance.getPointBuildAction();
                if (action == BuildPipeline.BuildState.PLACING) {
-                  if (!blocks.rejectedEntries().isEmpty()) {
-                     BlockStatus firstRejection = ((BlockEntry)((Map.Entry)blocks.rejectedEntries().getFirst()).getValue()).getStatus();
+                   if (!blocks.rejectedEntries().isEmpty()) {
+                     BlockStatus firstRejection = blocks.rejectedEntries().getFirst().getStatus();
                      if (firstRejection == BlockStatus.WORLD_BORDER) {
                         player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.world_border"), true);
                      } else if (!player.getAbilities().instabuild) {
@@ -233,10 +231,10 @@ public class BuildPipelineClient {
                   Direction hitFace = firstClickHit != null ? firstClickHit.getDirection() : Direction.UP;
                   Vec3 hitLocation = firstClickHit != null ? firstClickHit.getLocation() : Vec3.atCenterOf(blocks.firstPos);
                   PacketHandler.sendToServer(new PlaceBuildModePacket(mode, blocks.firstPos, secondPos, thirdPos, fourthPos, hitFace, hitLocation, ModeOptions.getFill(), ModeOptions.getCubeFill(), ModeOptions.getRaisedEdge(), ModeOptions.getCircleStart(), pointBuild, ModeOptions.getSides(), BuildSettings.CLIENT.getReplaceMode(), Config.BUILDING_PROTECT_TILE_ENTITIES.get(), angelPlacementSequence));
-                  PlacedBlockTracker.clientTrackAll(mc.level.dimension(), blocks.keySet());
+                  PlacedBlockTracker.clientTrackAll(mc.level.dimension(), blocks.copyPositions());
                } else {
-                  if (!blocks.rejectedEntries().isEmpty()) {
-                     BlockStatus firstRejection = ((BlockEntry)((Map.Entry)blocks.rejectedEntries().getFirst()).getValue()).getStatus();
+                   if (!blocks.rejectedEntries().isEmpty()) {
+                     BlockStatus firstRejection = blocks.rejectedEntries().getFirst().getStatus();
                      if (firstRejection == BlockStatus.WORLD_BORDER) {
                         player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.world_border"), true);
                      } else if (!player.getAbilities().instabuild) {

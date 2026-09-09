@@ -501,9 +501,9 @@ public final class PreviewRenderCache {
         List<BlockPos> bad = new ArrayList<>();
         boolean outsideSublevel = false;
         boolean overCap = false;
-        for (Map.Entry<BlockPos, BlockEntry> weighed : blocks.entrySet()) {
-            BlockPos pos = weighed.getKey();
-            BlockEntry entry = weighed.getValue();
+        for (BlockEntry weighed : blocks.values()) {
+            BlockPos pos = weighed.blockPos;
+            BlockEntry entry = weighed;
             if (entry == null || entry.isValid()) {
                 ok.add(pos);
                 okEntries.add(entry);

@@ -1,6 +1,5 @@
 package nl.requios.effortlessbuilding.buildpipeline;
 
-import java.util.Map;
 import org.lightning323.creative_mode_tweaks.Config;
 import nl.requios.effortlessbuilding.utilities.BlockEntry;
 import nl.requios.effortlessbuilding.utilities.BlockSet;
@@ -28,10 +27,9 @@ public class ConstraintSystem implements IBuildSystem {
       Level level = player.level();
       boolean isBreaking = action == BuildPipeline.BuildState.BREAKING;
 
-      for(Map.Entry<BlockPos, BlockEntry> mapEntry : blocks.entrySet()) {
-         BlockEntry entry = (BlockEntry)mapEntry.getValue();
+      for (BlockEntry entry : blocks.values()) {
          if (entry.isValid()) {
-            BlockPos pos = (BlockPos)mapEntry.getKey();
+            BlockPos pos = entry.blockPos;
             if (!SableCompat.isWithinActiveSelection(level, pos)) {
                entry.markRejected(BlockStatus.OUTSIDE_REACH);
             } else if (!SableCompat.isWithinBuildBounds(level, pos)) {
@@ -54,9 +52,8 @@ public class ConstraintSystem implements IBuildSystem {
 
       boolean protectTiles = this.getProtectTileEntities();
       if (protectTiles) {
-         for(Map.Entry<BlockPos, BlockEntry> mapEntry : blocks.entrySet()) {
-            BlockEntry entry = (BlockEntry)mapEntry.getValue();
-            if (entry.isValid() && level.getBlockEntity((BlockPos)mapEntry.getKey()) != null) {
+         for (BlockEntry entry : blocks.values()) {
+            if (entry.isValid() && level.getBlockEntity(entry.blockPos) != null) {
                entry.markRejected(BlockStatus.PROTECTED_TILE_ENTITY);
             }
          }
@@ -69,10 +66,9 @@ public class ConstraintSystem implements IBuildSystem {
             }
 
          } else {
-            for(Map.Entry<BlockPos, BlockEntry> mapEntry : blocks.entrySet()) {
-               BlockEntry entry = (BlockEntry)mapEntry.getValue();
+            for (BlockEntry entry : blocks.values()) {
                if (entry.isValid()) {
-                  BlockPos pos = (BlockPos)mapEntry.getKey();
+                  BlockPos pos = entry.blockPos;
                   BlockState state = level.getBlockState(pos);
                   if (isBreaking) {
                      if (state.isAir()) {

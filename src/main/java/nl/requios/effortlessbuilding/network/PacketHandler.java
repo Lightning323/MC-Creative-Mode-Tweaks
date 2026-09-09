@@ -127,9 +127,8 @@ public class PacketHandler {
             Map<Item, Integer> used = new HashMap();
             double yFrac = packet.hitLocation().y - Math.floor(packet.hitLocation().y);
 
-            for(Map.Entry<BlockPos, BlockEntry> mapEntry : blockSet.validEntries()) {
-               BlockPos pos = (BlockPos)mapEntry.getKey();
-               BlockEntry entry = (BlockEntry)mapEntry.getValue();
+            for (BlockEntry entry : blockSet.validEntries()) {
+               BlockPos pos = entry.blockPos;
                Item var22 = entry.item;
                if (var22 instanceof BlockItem) {
                   BlockItem blockItem = (BlockItem)var22;
@@ -191,8 +190,8 @@ public class PacketHandler {
 
                double yFrac = packet.hitLocation().y - Math.floor(packet.hitLocation().y);
 
-               for(Map.Entry<BlockPos, BlockEntry> mapEntry : blockSet.validEntries()) {
-                  BlockPos pos = (BlockPos)mapEntry.getKey();
+               for (BlockEntry entry : blockSet.validEntries()) {
+                  BlockPos pos = entry.blockPos;
                   if (!creative && placed >= available) {
                      break;
                   }
@@ -219,10 +218,7 @@ public class PacketHandler {
                         state = blockItem.getBlock().defaultBlockState();
                      }
 
-                     BlockEntry entry = (BlockEntry)blockSet.get(pos);
-                     if (entry != null) {
-                        state = entry.applyTransforms(state);
-                     }
+                     state = entry.applyTransforms(state);
 
                      level.setBlock(pos, state, 3);
                      transferBlockItemData(level, player, pos, held);
@@ -248,8 +244,8 @@ public class PacketHandler {
                      BlockState fluidState = fluid.defaultFluidState().createLegacyBlock();
                      int maxPlace = creative ? Integer.MAX_VALUE : 1;
 
-                     for(Map.Entry<BlockPos, BlockEntry> mapEntry : blockSet.validEntries()) {
-                        BlockPos pos = (BlockPos)mapEntry.getKey();
+                     for (BlockEntry entry : blockSet.validEntries()) {
+                        BlockPos pos = entry.blockPos;
                         if (placed >= maxPlace) {
                            break;
                         }
@@ -285,8 +281,8 @@ public class PacketHandler {
 
                   Level worldLevel = level;
 
-                  for(Map.Entry<BlockPos, BlockEntry> mapEntry : blockSet.validEntries()) {
-                     BlockPos pos = (BlockPos)mapEntry.getKey();
+                  for (BlockEntry entry : blockSet.validEntries()) {
+                     BlockPos pos = entry.blockPos;
                      BlockState oldState = level.getBlockState(pos);
                      Vec3 localHit = new Vec3((double)pos.getX() + (double)0.5F, (double)pos.getY() + (double)1.0F, (double)pos.getZ() + (double)0.5F);
                      BlockHitResult serverHit = new BlockHitResult(localHit, packet.hitFace(), pos, false);
@@ -360,8 +356,8 @@ public class PacketHandler {
             BlockState airState = Blocks.AIR.defaultBlockState();
             int broken = 0;
 
-            for(Map.Entry<BlockPos, BlockEntry> mapEntry : blockSet.validEntries()) {
-               BlockPos pos = (BlockPos)mapEntry.getKey();
+            for (BlockEntry entry : blockSet.validEntries()) {
+               BlockPos pos = entry.blockPos;
                BlockState oldState = level.getBlockState(pos);
                if (!oldState.isAir()) {
                   if (creative) {

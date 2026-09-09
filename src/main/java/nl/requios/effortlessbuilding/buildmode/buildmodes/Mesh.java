@@ -8,7 +8,6 @@ import java.util.Set;
 import net.minecraft.world.phys.AABB;
 import nl.requios.effortlessbuilding.buildmode.BaseBuildMode;
 import nl.requios.effortlessbuilding.buildmode.ModeOptions;
-import nl.requios.effortlessbuilding.utilities.BlockEntry;
 import nl.requios.effortlessbuilding.utilities.BlockSet;
 import org.lightning323.creative_mode_tweaks.Config;
 import net.minecraft.core.BlockPos;
@@ -109,12 +108,7 @@ public class Mesh extends BaseBuildMode {
       List<BlockPos> boundedPoints = this.limitToBuildRange(player, selectedPoints);
       List<BlockPos> meshBlocks = this.getMeshBlocks(boundedPoints);
       blocks.clear();
-
-      for(BlockPos pos : meshBlocks) {
-         if (!blocks.containsKey(pos)) {
-            blocks.add(new BlockEntry(pos));
-         }
-      }
+      blocks.addAllPositions(meshBlocks);
 
       blocks.firstPos = (BlockPos)boundedPoints.getFirst();
       blocks.lastPos = (BlockPos)boundedPoints.getLast();

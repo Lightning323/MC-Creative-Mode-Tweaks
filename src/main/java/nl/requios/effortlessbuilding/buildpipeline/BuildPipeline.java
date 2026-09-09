@@ -141,11 +141,8 @@ public class BuildPipeline {
    }
 
    public static BlockSet toBlockSet(List<BlockPos> positions) {
-      BlockSet blockSet = new BlockSet();
-
-      for(BlockPos pos : positions) {
-         blockSet.add(new BlockEntry(pos));
-      }
+      BlockSet blockSet = new BlockSet(positions.size());
+      blockSet.addAllPositions(positions);
 
       if (!positions.isEmpty()) {
          blockSet.firstPos = (BlockPos)positions.getFirst();

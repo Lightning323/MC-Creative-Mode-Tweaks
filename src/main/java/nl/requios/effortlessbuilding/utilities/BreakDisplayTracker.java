@@ -27,9 +27,8 @@ public class BreakDisplayTracker {
       this.initialize();
       Level level = player.level();
       if (level != null) {
-         for(Map.Entry<BlockPos, BlockEntry> mapEntry : blockSet.entrySet()) {
-            BlockPos pos = (BlockPos)mapEntry.getKey();
-            BlockEntry entry = (BlockEntry)mapEntry.getValue();
+         for (BlockEntry entry : blockSet.values()) {
+            BlockPos pos = entry.blockPos;
             BlockState state = level.getBlockState(pos);
             if (!state.isAir()) {
                Item blockItem = state.getBlock().asItem();

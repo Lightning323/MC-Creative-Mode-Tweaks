@@ -94,13 +94,9 @@ public abstract class TwoClicksBuildMode extends BaseBuildMode {
             // Preserve endpoint order: circle starting modes treat the first
             // point as the center/corner anchor, so min/max reordering here
             // would mirror around the wrong point.
-            for (BlockPos pos : this.getAllBlocks(player,
+            blocks.addAllPositions(this.getAllBlocks(player,
                     firstPos.getX(), firstPos.getY(), firstPos.getZ(),
-                    clampedSecond.getX(), clampedSecond.getY(), clampedSecond.getZ())) {
-                if (!blocks.containsKey(pos)) {
-                    blocks.add(new BlockEntry(pos));
-                }
-            }
+                    clampedSecond.getX(), clampedSecond.getY(), clampedSecond.getZ()));
 
             blocks.firstPos = firstPos;
             blocks.lastPos = secondPos;

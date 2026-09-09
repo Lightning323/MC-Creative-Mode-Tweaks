@@ -164,14 +164,10 @@ public abstract class ThreeClicksBuildMode extends BaseBuildMode {
             BlockPos clampedSecond = clampPos(firstPos, secondPos, axisLimit);
 
             blocks.clear();
-            for (BlockPos pos : this.getIntermediateBlocks(
+            blocks.addAllPositions(this.getIntermediateBlocks(
                     player,
                     firstPos.getX(), firstPos.getY(), firstPos.getZ(),
-                    clampedSecond.getX(), clampedSecond.getY(), clampedSecond.getZ())) {
-                if (!blocks.containsKey(pos)) {
-                    blocks.add(new BlockEntry(pos));
-                }
-            }
+                    clampedSecond.getX(), clampedSecond.getY(), clampedSecond.getZ()));
 
             blocks.firstPos = firstPos;
             blocks.lastPos = secondPos;
@@ -189,15 +185,11 @@ public abstract class ThreeClicksBuildMode extends BaseBuildMode {
             BlockPos clampedThird = clampPos(firstPos, thirdPos, axisLimit);
 
             blocks.clear();
-            for (BlockPos pos : this.getFinalBlocks(
+            blocks.addAllPositions(this.getFinalBlocks(
                     player,
                     firstPos.getX(), firstPos.getY(), firstPos.getZ(),
                     clampedSecond.getX(), clampedSecond.getY(), clampedSecond.getZ(),
-                    clampedThird.getX(), clampedThird.getY(), clampedThird.getZ())) {
-                if (!blocks.containsKey(pos)) {
-                    blocks.add(new BlockEntry(pos));
-                }
-            }
+                    clampedThird.getX(), clampedThird.getY(), clampedThird.getZ()));
 
             blocks.firstPos = firstPos;
             blocks.lastPos = thirdPos;
@@ -369,12 +361,7 @@ public abstract class ThreeClicksBuildMode extends BaseBuildMode {
         BlockPos firstPos = this.firstBlockEntry.blockPos;
         BlockPos boundedSecondPos = this.limitToBuildRange(player, firstPos, secondPos);
         blocks.clear();
-
-        for (BlockPos pos : this.getTwoPointBlocks(player, firstPos, boundedSecondPos)) {
-            if (!blocks.containsKey(pos)) {
-                blocks.add(new BlockEntry(pos));
-            }
-        }
+        blocks.addAllPositions(this.getTwoPointBlocks(player, firstPos, boundedSecondPos));
 
         blocks.firstPos = firstPos;
         blocks.lastPos = boundedSecondPos;
