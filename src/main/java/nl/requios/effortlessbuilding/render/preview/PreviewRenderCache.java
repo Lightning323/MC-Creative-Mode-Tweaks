@@ -77,14 +77,7 @@ import org.lightning323.creative_mode_tweaks.Config;
 public final class PreviewRenderCache {
     private static final PreviewRenderCache INSTANCE = new PreviewRenderCache();
 
-    /**
-     * Past this many blocks the preview degrades to the cheap path: one
-     * bounding-box overlay, no ghost tessellation, no sorting, no per-block
-     * validity scans. One full 16³ section holds 4096 blocks, so anything
-     * bigger was already paying multi-section costs on every shape change;
-     * survival's default cap (2000) stays fully detailed.
-     */
-    static final int DETAILED_PREVIEW_BLOCK_LIMIT = Integer.MAX_VALUE;
+
 
     /**
      * Minimum time between shape rebuilds while a huge preview is live and
@@ -372,8 +365,7 @@ public final class PreviewRenderCache {
         // is a cheap upper bound on the block count: a small volume guarantees
         // a small shape without enumerating anything.
         long boundaryVolume = boundaryVolume(previewBoundary);
-        if (boundaryVolume > DETAILED_PREVIEW_BLOCK_LIMIT
-                || boundaryVolume > (long) (maxBlocks * 1.5)) {
+        if (boundaryVolume > maxBlocks * 2) {
             // Too many blocks for per-block overlay + ghosts: bounding box,
             // without ever calculating client blocks.
             shapeSimple(level, state, key, previewBoundary, maxBlocks);
@@ -392,8 +384,7 @@ public final class PreviewRenderCache {
             return;
         }
 
-        if (blocks.size() > DETAILED_PREVIEW_BLOCK_LIMIT
-                || blocks.size() > maxBlocks * 1.5) {
+        if (blocks.size() > maxBlocks * 2) {
             // Safety net: boundary underestimated (should not happen now that
             // every mode expands mirrors/squares), fall back to the box.
             shapeSimple(level, state, key, previewBoundary, maxBlocks);
