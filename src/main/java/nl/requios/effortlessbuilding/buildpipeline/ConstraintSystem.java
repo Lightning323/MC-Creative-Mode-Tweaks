@@ -154,6 +154,14 @@ public class ConstraintSystem implements IBuildSystem {
                      if (state.isAir()) {
                         continue;
                      }
+                     // Soft blocks under the break-all threshold bypass
+                     // every survival breaking restriction (placed-only,
+                     // hardness cap, tool requirement). Unbreakable blocks
+                     // report -1, so they can never slip under the check.
+                     float softness = state.getDestroySpeed(level, pos);
+                     if (softness >= 0.0F && softness < Config.BUILDING_SURVIVAL_MAX_HARDNESS_TO_BREAK_ALL_BLOCKS.get()) {
+                        continue;
+                     }
                   } else if (state.canBeReplaced()) {
                      continue;
                   }

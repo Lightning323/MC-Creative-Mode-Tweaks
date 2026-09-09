@@ -137,6 +137,11 @@ public class Config {
                     .translation("creative_mode_tweaks.config.max_hardness")
                     .defineInRange("building.survival.max_hardness", -1.0D, -1.0D, Double.MAX_VALUE);
 
+    public static final ModConfigSpec.DoubleValue BUILDING_SURVIVAL_MAX_HARDNESS_TO_BREAK_ALL_BLOCKS =
+            COMMON_BUILDER.comment("Blocks softer than this hardness can always be broken with build modes in survival, ignoring the placed-only, hardness and tool restrictions. -1 disables it.")
+                    .translation("creative_mode_tweaks.config.max_hardness_to_break_all_blocks")
+                    .defineInRange("building.survival.max_hardness_to_break_all_blocks", 0.3D, -1.0D, Double.MAX_VALUE);
+
     public static final ModConfigSpec.BooleanValue BUILDING_SURVIVAL_REQUIRE_TOOLS =
             COMMON_BUILDER.comment("Require survival players to have the correct tools to break blocks with build modes.")
                     .translation("creative_mode_tweaks.config.require_tools")

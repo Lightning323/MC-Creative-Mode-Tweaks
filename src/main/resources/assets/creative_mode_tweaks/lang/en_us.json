@@ -152,6 +152,8 @@
   "creative_mode_tweaks.config.only_placed_blocks.tooltip": "If on, you can only break blocks that were placed this session.",
   "creative_mode_tweaks.config.max_hardness": "Max Hardness",
   "creative_mode_tweaks.config.max_hardness.tooltip": "Maximum block hardness that can be broken. -1 = no limit.\n\nExamples:\n  0.5 = Dirt, Sand\n  1.5 = Stone\n  2.0 = Wood Planks, Logs\n  4.5 = Ores\n  50 = Obsidian",
+  "creative_mode_tweaks.config.max_hardness_to_break_all_blocks": "Break-All Softness",
+  "creative_mode_tweaks.config.max_hardness_to_break_all_blocks.tooltip": "Blocks softer than this hardness can always be broken with build modes, ignoring the placed-only, hardness and tool restrictions. -1 = disabled.",
   "creative_mode_tweaks.config.require_tools": "Require Tools",
   "creative_mode_tweaks.config.require_tools.tooltip": "If on, you must have the correct tools in your inventory to break blocks.",
   "creative_mode_tweaks.config.use_durability": "Use Durability",

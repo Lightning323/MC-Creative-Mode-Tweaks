@@ -93,7 +93,7 @@ public final class PreviewRenderCache {
      * the box tracking the cursor at ~12Hz instead of hitching the game.
      * Clicks, mode/item/config changes always rebuild immediately.
      */
-    private static final long HUGE_SHAPE_RESHAPE_MIN_NANOS = 150_000_000L;
+    private static final long HUGE_SHAPE_RESHAPE_MIN_NANOS = 100_000_000L;
     private static final long SHAPE_RESHAPE_MIN_NANOS = 35_000_000L;
 
     /**
@@ -705,8 +705,10 @@ public final class PreviewRenderCache {
 
         // Border: synchronous when async-boundary is off so it lands the same
         // frame as the shape. With async-boundary on (the default), it rides
-        // the worker with the ghosts and swaps in a bake later.
-        if (!key.asyncBoundary()) {
+        // the worker with the ghosts and swaps in a bake later — but previews
+        // with no worker task (breaking, ghost-less) bake it inline, or the
+        // box would never appear at all.
+        if (!key.asyncBoundary() || !this.wantsBlocks) {
             this.overlayMesh.adopt(level, PreviewOverlayMesh.bake(ok, bad, this.isBreaking));
             this.hasOverlay = !this.overlayMesh.isEmpty();
         }
