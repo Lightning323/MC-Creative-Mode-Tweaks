@@ -79,7 +79,7 @@ public abstract class ThreeClicksBuildMode extends BaseBuildMode {
             }
             BlockPos boundedSecond = limitToBuildRange(player, firstPos, secondPos);
             // Two-point builds place getFinalBlocks(first, second, second).
-            return getFinalBoundary(firstPos, boundedSecond, boundedSecond);
+            return getTwoPointBoundary(firstPos, boundedSecond);
         }
 
         if (this.clicks == 1) {
@@ -117,6 +117,16 @@ public abstract class ThreeClicksBuildMode extends BaseBuildMode {
                 Math.max(firstPos.getX(), clampedSecond.getX()),
                 Math.max(firstPos.getY(), clampedSecond.getY()),
                 Math.max(firstPos.getZ(), clampedSecond.getZ()));
+    }
+
+    /**
+     * Boundary of a two-point selection. Defaults to the final boundary with
+     * the second point standing in for the third; modes whose two-point shape
+     * extends beyond the raw endpoints (e.g. spheres through both clicks)
+     * override this.
+     */
+    protected AABB getTwoPointBoundary(BlockPos firstPos, BlockPos boundedSecond) {
+        return getFinalBoundary(firstPos, boundedSecond, boundedSecond);
     }
 
     /**
@@ -367,12 +377,18 @@ public abstract class ThreeClicksBuildMode extends BaseBuildMode {
         blocks.lastPos = boundedSecondPos;
     }
 
-    private List<BlockPos> getTwoPointBlocks(Player player, BlockPos firstPos, BlockPos secondPos) {
+    /**
+     * Blocks for a two-point selection. Defaults to the final shape with the
+     * second point standing in for the third; modes with dedicated two-point
+     * geometry (e.g. spheres through both clicks) override this. The second
+     * point is already clamped to the build range by the callers.
+     */
+    protected List<BlockPos> getTwoPointBlocks(Player player, BlockPos firstPos, BlockPos secondPos) {
         BlockPos boundedSecondPos = this.limitToBuildRange(player, firstPos, secondPos);
         return this.getFinalBlocks(player, firstPos.getX(), firstPos.getY(), firstPos.getZ(), boundedSecondPos.getX(), boundedSecondPos.getY(), boundedSecondPos.getZ(), boundedSecondPos.getX(), boundedSecondPos.getY(), boundedSecondPos.getZ());
     }
 
-    private BlockPos limitToBuildRange(Player player, BlockPos firstPos, BlockPos secondPos) {
+    protected BlockPos limitToBuildRange(Player player, BlockPos firstPos, BlockPos secondPos) {
         int axisLimit = Config.getBuildingMaxBlocksPerAxis(player);
         int x1 = firstPos.getX();
         int y1 = firstPos.getY();

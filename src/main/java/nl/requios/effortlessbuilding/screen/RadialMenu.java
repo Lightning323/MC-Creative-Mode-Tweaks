@@ -125,21 +125,31 @@ public class RadialMenu extends Screen {
         angelPlacementBtn.iconOverride = angelPlacementEnabled ? AllIcons.ANGEL_PLACEMENT_ON : AllIcons.ANGEL_PLACEMENT_OFF;
         angelPlacementBtn.subtitle = I18n.get(angelPlacementEnabled ? "options.on" : "options.off", new Object[0]);
         angelPlacementBtn.enabled = this.minecraft.player == null || Config.isAngelPlacementAllowed(this.minecraft.player);
-        buttons.add(angelPlacementBtn);
+        // Untoggled in survival (unless the config allows it): hide instead of
+        // showing a dead button.
+        if (angelPlacementBtn.enabled) {
+            buttons.add(angelPlacementBtn);
+        }
 
         MenuButton nightVisionBtn = new MenuButton(ModeOptions.ActionEnum.TOGGLE_NIGHT_VISION, (double) -157.0F, (double) (OPTION_BUTTONS_Y_START + 52.0F), Direction.DOWN);
         boolean nightVisionEnabled = this.minecraft.player != null && ClientSettings.isNightVision();
         nightVisionBtn.iconOverride = nightVisionEnabled ? AllIcons.I_EYE_ON : AllIcons.I_EYE_OFF;
         nightVisionBtn.subtitle = I18n.get(nightVisionEnabled ? "options.on" : "options.off", new Object[0]);
         nightVisionBtn.enabled = this.minecraft.player != null && (this.minecraft.player.isCreative() || this.minecraft.player.isSpectator());
-        buttons.add(nightVisionBtn);
+        // Creative/spectator only: hidden in survival.
+        if (nightVisionBtn.enabled) {
+            buttons.add(nightVisionBtn);
+        }
 
         MenuButton noclipBtn = new MenuButton(ModeOptions.ActionEnum.TOGGLE_NOCLIP, (double) -131.0F, (double) (OPTION_BUTTONS_Y_START + 52.0F), Direction.DOWN);
         boolean noclipEnabled = this.minecraft.player != null && ClientSettings.isNoClip();
         noclipBtn.iconOverride = noclipEnabled ? AllIcons.I_NOCLIP_ON : AllIcons.I_NOCLIP_OFF;
         noclipBtn.subtitle = I18n.get(noclipEnabled ? "options.on" : "options.off", new Object[0]);
         noclipBtn.enabled = this.minecraft.player != null && this.minecraft.player.isCreative();
-        buttons.add(noclipBtn);
+        // Creative only: hidden in survival.
+        if (noclipBtn.enabled) {
+            buttons.add(noclipBtn);
+        }
         ModeOptions.OptionEnum[] options = currentBuildMode.options;
 
         for (int i = 0; i < options.length; ++i) {

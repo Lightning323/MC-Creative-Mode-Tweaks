@@ -117,6 +117,84 @@ public class Sphere extends ThreeClicksBuildMode {
       return Floor.findFloor(player, firstPos, skipRaytrace);
    }
 
+   @Override
+   protected boolean supportsTwoPointBuild() {
+      return true;
+   }
+
+   @Override
+   protected List<BlockPos> getTwoPointBlocks(Player player, BlockPos firstPos, BlockPos secondPos) {
+      BlockPos boundedSecond = limitToBuildRange(player, firstPos, secondPos);
+      return getTwoPointSphereBlocks(firstPos, boundedSecond);
+   }
+
+   @Override
+   protected AABB getTwoPointBoundary(BlockPos firstPos, BlockPos boundedSecond) {
+      double[] params = twoPointSphereParams(firstPos, boundedSecond);
+      double cx = params[0];
+      double cy = params[1];
+      double cz = params[2];
+      double r = params[3];
+      return new AABB(Math.floor(cx - r), Math.floor(cy - r), Math.floor(cz - r),
+              Math.ceil(cx + r), Math.ceil(cy + r), Math.ceil(cz + r));
+   }
+
+   /**
+    * Center and uniform radius of a two-point sphere.
+    * Center-start: the first click is the centerpoint and the second click
+    * sits on the surface, defining the radius. Corner-start: both clicks sit
+    * on the circumference with the centerpoint midway between them.
+    *
+    * @return {centerX, centerY, centerZ, radius}.
+    */
+   static double[] twoPointSphereParams(BlockPos firstPos, BlockPos secondPos) {
+      double dx = (double) secondPos.getX() - firstPos.getX();
+      double dy = (double) secondPos.getY() - firstPos.getY();
+      double dz = (double) secondPos.getZ() - firstPos.getZ();
+      double dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      if (ModeOptions.getCircleStart() == ModeOptions.ActionEnum.CIRCLE_START_CENTER) {
+         return new double[]{(double) firstPos.getX(), (double) firstPos.getY(), (double) firstPos.getZ(), dist};
+      }
+      return new double[]{
+              (firstPos.getX() + secondPos.getX()) / 2.0,
+              (firstPos.getY() + secondPos.getY()) / 2.0,
+              (firstPos.getZ() + secondPos.getZ()) / 2.0,
+              dist / 2.0};
+   }
+
+   static List<BlockPos> getTwoPointSphereBlocks(BlockPos firstPos, BlockPos secondPos) {
+      double[] params = twoPointSphereParams(firstPos, secondPos);
+      double cx = params[0];
+      double cy = params[1];
+      double cz = params[2];
+      float r = (float) params[3];
+      if (r <= 0.0F) {
+         return List.of(firstPos);
+      }
+      // The surface fringe reaches 0.4 past the radius, so pad by a block.
+      int minX = (int) Math.floor(cx - r - 1.0);
+      int minY = (int) Math.floor(cy - r - 1.0);
+      int minZ = (int) Math.floor(cz - r - 1.0);
+      int maxX = (int) Math.ceil(cx + r + 1.0);
+      int maxY = (int) Math.ceil(cy + r + 1.0);
+      int maxZ = (int) Math.ceil(cz + r + 1.0);
+      boolean full = ModeOptions.getFill() == ModeOptions.ActionEnum.FULL;
+      long dx = (long) maxX - minX + 1L;
+      long dy = (long) maxY - minY + 1L;
+      long dz = (long) maxZ - minZ + 1L;
+      long est = full ? dx * dy * dz : 2L * (dx * dy + dy * dz + dx * dz);
+      List<BlockPos> list = new ArrayList<>((int) Math.min(est, 131072));
+      float centerX = (float) cx;
+      float centerY = (float) cy;
+      float centerZ = (float) cz;
+      if (full) {
+         addSphereBlocks(list, minX, minY, minZ, maxX, maxY, maxZ, centerX, centerY, centerZ, r, r, r);
+      } else {
+         addHollowSphereBlocks(list, minX, minY, minZ, maxX, maxY, maxZ, centerX, centerY, centerZ, r, r, r);
+      }
+      return list;
+   }
+
    public BlockPos findThirdPos(Player player, BlockPos firstPos, BlockPos secondPos, boolean skipRaytrace) {
       return findHeight(player, secondPos, skipRaytrace);
    }
