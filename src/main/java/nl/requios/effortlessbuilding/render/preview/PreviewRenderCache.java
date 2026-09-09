@@ -427,11 +427,28 @@ public final class PreviewRenderCache {
         }
 
         int maxBlocks = key.maxBlocks();
+        long boundaryVol = boundaryVolume(previewBoundary);
+
+        // Oversized freeze without enumeration: while the guard is oversized,
+        // a non-shrinking boundary is rejected on volume alone — no
+        // getClientBlocks, no rebake, the frozen preview just keeps drawing.
+        if (BuildSelectionGuard.CLIENT.isOversized()) {
+            AABB lastBoundary = BuildSelectionGuard.CLIENT.getLastBoundary();
+            if (lastBoundary != null
+                    && boundaryVol >= BuildSelectionGuard.boundaryVolume(lastBoundary)) {
+                if (mode.instance.usesDirectSecondPoint()) {
+                    mode.instance.setPreviewPoint(
+                            this.shapedKey != null ? this.shapedKey.hoverPoint() : null);
+                }
+                return;
+            }
+        }
+
+
         // Presize from the boundary volume (exact for filled boxes, an upper
         // bound otherwise, capped): a fresh set at default capacity would
         // rehash repeatedly on the way to thousands of entries.
-        long volume = boundaryVolume(previewBoundary);
-        int est = (int) Math.min(volume, (long) maxBlocks * 2L);
+        int est = (int) Math.min(boundaryVol, (long) maxBlocks * 2L);
         BlockSet blocks = new BlockSet(Math.max(16, Math.min(est, PRESIZE_CAP)));
         try (SableCompat.SelectionScope ignored = SableCompat.pushSelection(level, anchor)) {
             mode.instance.getClientBlocks(blocks, player); //Get the blocks from the selected anchor points, first pos, second pos, etc...
