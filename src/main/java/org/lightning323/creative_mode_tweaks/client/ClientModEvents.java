@@ -17,6 +17,9 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.*;
 import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
 import nl.requios.effortlessbuilding.buildmode.BuildModeEnum;
+import nl.requios.effortlessbuilding.buildmode.BuildModes;
+import nl.requios.effortlessbuilding.buildmode.ModeOptions;
+import nl.requios.effortlessbuilding.buildpipeline.BuildPipelineClient;
 import nl.requios.effortlessbuilding.mixin.KeyMappingAccessor;
 import org.lightning323.creative_mode_tweaks.Config;
 import org.lightning323.creative_mode_tweaks.client.keys.*;
@@ -155,6 +158,13 @@ public class ClientModEvents {
     @SubscribeEvent
     public static void onPlayerLoggedIn(ClientPlayerNetworkEvent.LoggingIn event) {
         ClientSettings.setNoClip(Config.NOCLIP_ON_LOGIN.get()); //Set noclip when we login to true or false
+
+        // Entering a world always starts from the single-block tool with
+        // 2-point selections, never a leftover mode/option from a previous
+        // world or session.
+        BuildPipelineClient.cancelCurrentSequence();
+        BuildModes.CLIENT.setBuildMode(BuildModeEnum.DISABLED);
+        ModeOptions.resetPointBuildToDefault();
 
         if (Minecraft.getInstance().gameMode != null) {
             GameType currentMode = Minecraft.getInstance().gameMode.getPlayerMode();

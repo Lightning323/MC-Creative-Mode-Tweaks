@@ -51,6 +51,15 @@ public class ModeOptions {
       return pointBuild == ActionEnum.TWO_POINT_BUILD;
    }
 
+   /**
+    * Restores the default point-build option (2-point). Called on world enter
+    * so selections always start from 2-point unless the player opts into
+    * 3-point via the radial menu.
+    */
+   public static void resetPointBuildToDefault() {
+      pointBuild = ActionEnum.TWO_POINT_BUILD;
+   }
+
    public static ActionEnum getMeshFace() {
       return meshFace;
    }
@@ -176,7 +185,7 @@ public class ModeOptions {
       raisedEdge = ActionEnum.SHORT_EDGE;
       lineThickness = ActionEnum.THICKNESS_1;
       circleStart = ActionEnum.CIRCLE_START_CORNER;
-      pointBuild = ActionEnum.THREE_POINT_BUILD;
+      pointBuild = ActionEnum.TWO_POINT_BUILD;
       meshFace = ActionEnum.MESH_TRIANGLE;
       sides = ActionEnum.FOUR_SIDED;
    }

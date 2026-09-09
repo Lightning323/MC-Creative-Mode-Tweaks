@@ -165,7 +165,7 @@ public class Config {
     public static final ModConfigSpec.IntValue BUILDING_CREATIVE_MAX_ARRAY_OFFSET =
             COMMON_BUILDER.comment("Maximum offset distance for each creative array modifier axis.")
                     .translation("creative_mode_tweaks.config.max_array_offset")
-                    .defineInRange("building.creative.max_array_offset", 256, 1, 1000);
+                    .defineInRange("building.creative.max_array_offset", 256, 1, Integer.MAX_VALUE);
 
     // --- 2. Build the SPEC LAST ---
     static final ModConfigSpec COMMON_SPEC = COMMON_BUILDER.build();
