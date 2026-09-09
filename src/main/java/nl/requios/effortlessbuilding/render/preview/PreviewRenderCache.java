@@ -29,6 +29,7 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import nl.requios.effortlessbuilding.buildmode.BuildModeEnum;
 import nl.requios.effortlessbuilding.buildmode.BuildModes;
+import nl.requios.effortlessbuilding.buildmode.BuildSelectionGuard;
 import nl.requios.effortlessbuilding.buildmode.BuildSettings;
 import nl.requios.effortlessbuilding.buildmode.ModeOptions;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipeline;
@@ -352,6 +353,7 @@ public final class PreviewRenderCache {
      */
     public void clear() {
         PreviewBuildWorker.cancel();
+        BuildSelectionGuard.CLIENT.reset();
         this.blockMesh.clear();
         this.overlayMesh.clear();
         this.shapedKey = null;
@@ -391,6 +393,15 @@ public final class PreviewRenderCache {
     private void shapeOnRenderThread(Minecraft mc, Player player, Level level,
                                      BuildModeEnum mode, BuildPipeline.@Nullable BuildState state,
                                      @Nullable BlockHitResult hit, PreviewShapeKey key) {
+        // A new anchor/mode/first-click starts a fresh selection session: the
+        // oversize boundary from the previous session must not gate the new one.
+        if (this.shapedKey == null
+                || this.shapedKey.mode() != key.mode()
+                || !Objects.equals(this.shapedKey.selectionOrigin(), key.selectionOrigin())
+                || !Objects.equals(this.shapedKey.firstHitPos(), key.firstHitPos())) {
+            BuildSelectionGuard.CLIENT.reset();
+        }
+
         // Publish the hover point BEFORE generating coordinates —
         // findCoordinates reads it as the in-progress second/third point.
         if (mode.instance.usesDirectSecondPoint()) {
@@ -429,12 +440,25 @@ public final class PreviewRenderCache {
             return;
         }
 
-        if (blocks.size() > maxBlocks * 2) {
-            // Safety net: boundary underestimated (should not happen now that
-            // every mode expands mirrors/squares), fall back to the box.
-            shapeSimple(level, state, key, previewBoundary, maxBlocks);
+        // Oversize gate: when the raw block count exceeds the configured
+        // block-set limit the selection becomes oversized, after which only a
+        // strictly smaller boundary box may proceed. Growing (or same-size)
+        // updates are rejected so the player must shrink back down instead of
+        // dragging an ever-larger unplaceable shape.
+        if (!BuildSelectionGuard.CLIENT.updateSelection(previewBoundary, blocks.size(), maxBlocks)) {
+            if (mode.instance.usesDirectSecondPoint()) {
+                mode.instance.setPreviewPoint(
+                        this.shapedKey != null ? this.shapedKey.hoverPoint() : null);
+            }
             return;
         }
+
+//        if (blocks.size() > maxBlocks * 2) {
+//            // Safety net: boundary underestimated (should not happen now that
+//            // every mode expands mirrors/squares), fall back to the box.
+//            shapeSimple(level, state, key, previewBoundary, maxBlocks);
+//            return;
+//        }
         shapeDetailed(mc, player, level, state, hit, key, blocks, anchor);
     }
 

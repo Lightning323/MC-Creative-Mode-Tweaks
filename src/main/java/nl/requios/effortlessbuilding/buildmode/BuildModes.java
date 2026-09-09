@@ -23,10 +23,6 @@ public class BuildModes {
       };
    }
 
-   public void findCoordinates(BlockSet blocks, Player player) {
-      this.buildMode.instance.getClientBlocks(blocks, player);
-   }
-
    public BuildModeEnum getBuildMode() {
       return this.buildMode;
    }
@@ -34,6 +30,7 @@ public class BuildModes {
    public void setBuildMode(BuildModeEnum buildMode) {
       if (this.buildMode != buildMode) {
          this.buildMode.instance.onBuildModeDeselected();
+         BuildSelectionGuard.CLIENT.reset();
       }
 
       if (this.buildMode != BuildModeEnum.DISABLED && buildMode == BuildModeEnum.DISABLED) {
@@ -65,6 +62,7 @@ public class BuildModes {
 
    public void onCancel() {
       this.getBuildMode().instance.onCancel();
+      BuildSelectionGuard.CLIENT.reset();
    }
 
    public static Vec3 findXBound(double x, Vec3 start, Vec3 look) {

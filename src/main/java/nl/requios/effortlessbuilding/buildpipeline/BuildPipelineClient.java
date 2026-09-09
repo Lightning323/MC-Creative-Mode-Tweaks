@@ -4,6 +4,7 @@ import net.minecraft.ChatFormatting;
 import nl.requios.effortlessbuilding.Constants;
 import nl.requios.effortlessbuilding.buildmode.BuildModeEnum;
 import nl.requios.effortlessbuilding.buildmode.BuildModes;
+import nl.requios.effortlessbuilding.buildmode.BuildSelectionGuard;
 import nl.requios.effortlessbuilding.buildmode.BuildSettings;
 import nl.requios.effortlessbuilding.buildmode.ModeOptions;
 import org.lightning323.creative_mode_tweaks.Config;
@@ -36,6 +37,7 @@ import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.AABB;
 import org.jetbrains.annotations.Nullable;
 
 public class BuildPipelineClient {
@@ -45,6 +47,13 @@ public class BuildPipelineClient {
    private static @Nullable BlockHitResult firstClickHit = null;
    private static @Nullable BlockPos selectionOrigin = null;
    private static boolean angelPlacementSequence = false;
+   // Last accepted legacy preview (see getPreviewBlocks): returned verbatim
+   // while oversized so a rejected grow keeps showing the frozen selection
+   // instead of vanishing.
+   private static @Nullable BlockSet lastLegacyPreview = null;
+   private static @Nullable BlockPos lastLegacyHover = null;
+   private static @Nullable BlockPos lastLegacySessionOrigin = null;
+   private static @Nullable BuildModeEnum lastLegacyMode = null;
 
    private static BuildPipeline createClientPipeline() {
       BuildPipeline pipeline = new BuildPipeline();
@@ -157,6 +166,8 @@ public class BuildPipelineClient {
             angelPlacementSequence = target.isAngelTarget();
             mode.instance.setFirstClickFace(hit.getDirection());
             selectionOrigin = clickedPos;
+            BuildSelectionGuard.CLIENT.reset();
+            clearLegacyPreviewCache();
          } else if (mode.instance.usesDirectSecondPoint()) {
             AngelPlacement.Target target = getCurrentTarget(mc);
             if (target == null) {
@@ -266,6 +277,8 @@ public class BuildPipelineClient {
                firstClickHit = null;
                selectionOrigin = null;
                angelPlacementSequence = false;
+               BuildSelectionGuard.CLIENT.reset();
+               clearLegacyPreviewCache();
             }
          }
       }
@@ -282,14 +295,22 @@ public class BuildPipelineClient {
          BuildModeEnum mode = BuildModes.CLIENT.getBuildMode();
          BlockSet result;
          if (!mode.instance.isFirstClick()) {
+            // New anchor/mode starts a fresh selection session for the legacy
+            // path as well; never gate it on the previous session's boundary.
+            if (lastLegacyMode != mode || !java.util.Objects.equals(lastLegacySessionOrigin, selectionOrigin)) {
+               BuildSelectionGuard.CLIENT.reset();
+               clearLegacyPreviewCache();
+               lastLegacyMode = mode;
+               lastLegacySessionOrigin = selectionOrigin != null ? selectionOrigin.immutable() : null;
+            }
             BlockPos selectionAnchor = selectionOrigin != null ? selectionOrigin : player.blockPosition();
             try (SableCompat.SelectionScope ignored = SableCompat.pushSelection(mc.level, selectionAnchor)) {
                BlockSet previewBlocks = new BlockSet();
+               BlockPos previewPoint = null;
                if (mode.instance.usesDirectSecondPoint()) {
 
                   BuildPipeline.BuildState action = buildState != null ? buildState : BuildPipeline.BuildState.PLACING;
 
-                  BlockPos previewPoint = null;
 
                   BlockHitResult hit = getCurrentTargetHit(mc);
                   if (hit != null) { //Snap preview point to selection marker if we have one
@@ -306,6 +327,23 @@ public class BuildPipelineClient {
                }
 
                 mode.instance.getClientBlocks(previewBlocks, player);
+                if (!previewBlocks.isEmpty()) {
+                   AABB candidateBoundary = mode.instance.getClientBoundary(player);
+                   int maxBlocks = Config.getBuildingMaxBlocksPlaced(player);
+                   if (!BuildSelectionGuard.CLIENT.updateSelection(
+                           candidateBoundary, previewBlocks.size(), maxBlocks)) {
+                      // Oversized and growing: keep the frozen selection.
+                      if (mode.instance.usesDirectSecondPoint()) {
+                         mode.instance.setPreviewPoint(lastLegacyHover);
+                      }
+                      if (lastLegacyPreview != null && !lastLegacyPreview.isEmpty()) {
+                         updateDisplayTrackers(player, lastLegacyPreview);
+                         return lastLegacyPreview;
+                      }
+                      return null;
+                   }
+                   lastLegacyHover = previewPoint != null ? previewPoint.immutable() : null;
+                }
                 // No sorting before processBlocks: the constraint cap keeps the
                 // first N blocks in generation order, exactly like the server
                 // pipeline does. Sorting first would preview a different subset
@@ -320,6 +358,7 @@ public class BuildPipelineClient {
 
                 previewBlocks.sortByDistance();
                 result = previewBlocks;
+                lastLegacyPreview = result;
             }
          } else {
             BlockHitResult hit = getCurrentTargetHit(mc);
@@ -383,6 +422,15 @@ public class BuildPipelineClient {
       firstClickHit = null;
       selectionOrigin = null;
       angelPlacementSequence = false;
+      BuildSelectionGuard.CLIENT.reset();
+      clearLegacyPreviewCache();
+   }
+
+   private static void clearLegacyPreviewCache() {
+      lastLegacyPreview = null;
+      lastLegacyHover = null;
+      lastLegacySessionOrigin = null;
+      lastLegacyMode = null;
    }
 
    private static void rejectMixedSelection(Player player) {
