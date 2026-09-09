@@ -23,6 +23,7 @@ import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import nl.requios.effortlessbuilding.buildmode.BuildModeEnum;
@@ -60,11 +61,12 @@ import org.lightning323.creative_mode_tweaks.Config;
  * (smoother shape-change frames, but the border then lags with the ghosts).
  * Off by default.</p>
  *
- * <p><b>Huge shapes</b> (past {@link #DETAILED_PREVIEW_BLOCK_LIMIT} blocks,
- * or past the configured max-blocks cap) skip all of that: one min/max pass
- * feeds a single bounding-box overlay, ghosts stay off, and hover-only
- * reshapes are throttled to ~12Hz. The count/dims line stays exact (red past
- * the cap); placement itself was always server-authoritative.</p>
+ * <p><b>Huge shapes</b> (boundary volume past {@link #DETAILED_PREVIEW_BLOCK_LIMIT}
+ * blocks, or past the configured max-blocks cap) skip all of that: the client
+ * boundary feeds a single bounding-box overlay directly, client blocks are
+ * never enumerated, ghosts stay off, and hover-only reshapes are throttled to
+ * ~12Hz. Dims come from the boundary and the count is its volume (an upper
+ * bound, red past the cap); placement itself was always server-authoritative.</p>
  *
  * <p>Validity split is preserved: over-limit / protected / out-of-reach blocks
  * stay flagged as <i>rejected</i> for the overlay, which draws the <i>exact
@@ -282,7 +284,9 @@ public final class PreviewRenderCache {
         return !this.breakable.isEmpty() || !this.unbreakable.isEmpty();
     }
 
-    /** True while the live preview is the huge-shape bounding box (no ghosts). */
+    /**
+     * True while the live preview is the huge-shape bounding box (no ghosts).
+     */
     public boolean isSimplePreview() {
         return this.simplePreview;
     }
@@ -295,7 +299,9 @@ public final class PreviewRenderCache {
         return this.currentHit;
     }
 
-    /** True when nothing is cached, submitted or shaped: clear() would be a no-op. */
+    /**
+     * True when nothing is cached, submitted or shaped: clear() would be a no-op.
+     */
     public boolean isIdle() {
         return this.shapedKey == null && this.submittedKey == null && !hasPreview();
     }
@@ -348,10 +354,35 @@ public final class PreviewRenderCache {
             mode.instance.setPreviewPoint(key.hoverPoint());
         }
 
+
         BlockPos anchor = key.selectionOrigin() != null ? key.selectionOrigin() : player.blockPosition();
+        // Boundary first: pure coordinate math (first/second/third points +
+        // clamps + mode-specific expansion), no block enumeration. Huge shapes
+        // render from this alone and never pay for getClientBlocks.
+        AABB previewBoundary = mode.instance.getClientBoundary(player);
+        if (previewBoundary == null) {
+            clear();
+            RenderHandler.resetPreviewSize();
+            this.shapedKey = key;
+            this.shapedLevel = level;
+            return;
+        }
+        int maxBlocks = key.maxBlocks();
+        // Blocks are always a subset of the boundary, so the boundary volume
+        // is a cheap upper bound on the block count: a small volume guarantees
+        // a small shape without enumerating anything.
+        long boundaryVolume = boundaryVolume(previewBoundary);
+        if (boundaryVolume > DETAILED_PREVIEW_BLOCK_LIMIT
+                || boundaryVolume > (long) (maxBlocks * 1.5)) {
+            // Too many blocks for per-block overlay + ghosts: bounding box,
+            // without ever calculating client blocks.
+            shapeSimple(level, state, key, previewBoundary, maxBlocks);
+            return;
+        }
+
         BlockSet blocks = new BlockSet();
         try (SableCompat.SelectionScope ignored = SableCompat.pushSelection(level, anchor)) {
-            mode.instance.getClientBlocks(blocks, player);
+            mode.instance.getClientBlocks(blocks, player); //Get the blocks from the selected anchor points, first pos, second pos, etc...
         }
         if (blocks.isEmpty()) {
             clear();
@@ -361,65 +392,79 @@ public final class PreviewRenderCache {
             return;
         }
 
-        int maxBlocks = key.maxBlocks();
         if (blocks.size() > DETAILED_PREVIEW_BLOCK_LIMIT
-                || blocks.size() > Config.getBuildingMaxBlocksPlaced(player) * 1.5) {
-            // Too many blocks for per-block overlay + ghosts: bounding box.
-            shapeSimple(level, state, key, blocks, maxBlocks);
+                || blocks.size() > maxBlocks * 1.5) {
+            // Safety net: boundary underestimated (should not happen now that
+            // every mode expands mirrors/squares), fall back to the box.
+            shapeSimple(level, state, key, previewBoundary, maxBlocks);
             return;
         }
         shapeDetailed(mc, player, level, state, hit, key, blocks, anchor);
     }
 
     /**
-     * Huge-shape fast path: one min/max pass over the coordinates, one
-     * 6-quad box overlay, no ghosts. Skips constraints, sorting, state
-     * resolution and per-block validity — placement stays
-     * server-authoritative, so a box + exact count is the honest cheap
-     * preview. Constant overlay cost no matter how many blocks.
+     * Volume (block count upper bound) of a full-block boundary AABB. The
+     * boundary uses block-aligned corners with an exclusive max, so the
+     * inclusive block extents are floor(min)..ceil(max)-1 per axis.
+     */
+    private static long boundaryVolume(AABB boundary) {
+        long dx = (long) Math.ceil(boundary.maxX) - (long) Math.floor(boundary.minX);
+        long dy = (long) Math.ceil(boundary.maxY) - (long) Math.floor(boundary.minY);
+        long dz = (long) Math.ceil(boundary.maxZ) - (long) Math.floor(boundary.minZ);
+        if (dx <= 0 || dy <= 0 || dz <= 0) {
+            return 0;
+        }
+        return dx * dy * dz;
+    }
+
+    /**
+     * Inclusive block corners of a full-block boundary AABB. Uses floor for
+     * the min corner and ceil-1 for the exclusive max corner, so negative
+     * coordinates (truncation bugs with plain casts) stay correct.
+     */
+    private static BlockPos boundaryMin(AABB boundary) {
+        return new BlockPos(
+                (int) Math.floor(boundary.minX),
+                (int) Math.floor(boundary.minY),
+                (int) Math.floor(boundary.minZ));
+    }
+
+    private static BlockPos boundaryMax(AABB boundary) {
+        return new BlockPos(
+                (int) Math.ceil(boundary.maxX) - 1,
+                (int) Math.ceil(boundary.maxY) - 1,
+                (int) Math.ceil(boundary.maxZ) - 1);
+    }
+
+    /**
+     * Huge-shape fast path: one bounding-box overlay from the client boundary,
+     * no ghosts, no block enumeration. Skips coordinates, constraints,
+     * sorting, state resolution and per-block validity — placement stays
+     * server-authoritative, so a box + volume-based count/dims is the honest
+     * cheap preview. Constant cost no matter how many blocks: this is what
+     * keeps multi-thousand-block drags interactive without generating tens of
+     * thousands of coordinates every frame.
+     *
+     * <p>The count is the boundary volume (an upper bound, exact for filled
+     * boxes, an overestimate for hollow/sparse shapes); dims come from the
+     * boundary itself. breakable/all hold only the box corners so
+     * {@link #hasPreview()} stays true — exact per-block lists are
+     * unavailable on this path by design.</p>
      */
     private void shapeSimple(Level level, BuildPipeline.@Nullable BuildState state,
-                             PreviewShapeKey key, BlockSet blocks, int maxBlocks) {
-        int minX = Integer.MAX_VALUE;
-        int minY = Integer.MAX_VALUE;
-        int minZ = Integer.MAX_VALUE;
-        int maxX = Integer.MIN_VALUE;
-        int maxY = Integer.MIN_VALUE;
-        int maxZ = Integer.MIN_VALUE;
-        List<BlockPos> ok = new ArrayList<>(blocks.size());
-        for (BlockPos pos : blocks.keySet()) {
-            int x = pos.getX();
-            int y = pos.getY();
-            int z = pos.getZ();
-            if (x < minX) {
-                minX = x;
-            }
-            if (x > maxX) {
-                maxX = x;
-            }
-            if (y < minY) {
-                minY = y;
-            }
-            if (y > maxY) {
-                maxY = y;
-            }
-            if (z < minZ) {
-                minZ = z;
-            }
-            if (z > maxZ) {
-                maxZ = z;
-            }
-            ok.add(pos);
-        }
-
-        BlockPos min = new BlockPos(minX, minY, minZ);
-        BlockPos max = new BlockPos(maxX, maxY, maxZ);
-        boolean overCap = ok.size() > maxBlocks;
+                             PreviewShapeKey key, AABB previewBoundary, int maxBlocks) {
+        BlockPos min = boundaryMin(previewBoundary);
+        BlockPos max = boundaryMax(previewBoundary);
+        long volume = boundaryVolume(previewBoundary);
+        int estimatedCount = volume > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) volume;
+        boolean overCap = volume > maxBlocks;
         this.isBreaking = (state != null ? state : BuildPipeline.BuildState.PLACING)
                 == BuildPipeline.BuildState.BREAKING;
-        // Nothing rejected individually on this path, so the breakable list
-        // doubles as the combined count/dims view: one list, zero extra copy.
-        this.breakable = Collections.unmodifiableList(ok);
+        // Corners only: keeps hasPreview() true without enumerating blocks.
+        // Deduplicate the single-block case so the lists never hold the same
+        // corner twice.
+        List<BlockPos> corners = min.equals(max) ? List.of(min) : List.of(min, max);
+        this.breakable = corners;
         this.unbreakable = List.of();
         this.all = this.breakable;
         this.animated = List.of();
@@ -443,7 +488,7 @@ public final class PreviewRenderCache {
         this.pendingMeshBlocks = List.of();
 
         // Count + dims from the already-known bounds: no list rescan.
-        RenderHandler.updateFeedbackSimple(ok.size(), min, max, state != null, state, overCap);
+        RenderHandler.updateFeedbackSimple(estimatedCount, min, max, state != null, state, overCap);
     }
 
     // Full-fidelity path for sensibly-sized shapes: constraints, ghosts,
@@ -661,9 +706,9 @@ public final class PreviewRenderCache {
     // persistent Mesh vertex when hovering one, otherwise offset to air.
     // Returns null only when hovering across a Sable boundary (no preview).
     private @Nullable PreviewShapeKey buildKey(Player player, Level level,
-                                                  BuildModeEnum mode, boolean inProgress,
-                                                  BuildPipeline.@Nullable BuildState state,
-                                                  @Nullable BlockHitResult hit) {
+                                               BuildModeEnum mode, boolean inProgress,
+                                               BuildPipeline.@Nullable BuildState state,
+                                               @Nullable BlockHitResult hit) {
         BlockPos hoverPos = hit != null ? hit.getBlockPos() : null;
         Direction hoverFace = hit != null ? hit.getDirection() : null;
 

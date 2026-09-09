@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+
+import net.minecraft.world.phys.AABB;
 import nl.requios.effortlessbuilding.buildmode.BaseBuildMode;
 import nl.requios.effortlessbuilding.buildmode.ModeOptions;
 import nl.requios.effortlessbuilding.utilities.BlockEntry;
@@ -62,6 +64,36 @@ public class Mesh extends BaseBuildMode {
          this.pendingVertexMarkers.add(clickedPos);
       }
       return this.points.size() == this.requiredPointCount();
+   }
+
+   @Override
+   public AABB getClientBoundary(Player player) {
+      List<BlockPos> selectedPoints = new ArrayList(this.points);
+      if (selectedPoints.size() < this.requiredPointCount() && this.previewPoint != null) {
+         selectedPoints.add(this.previewPoint);
+      }
+
+      if (selectedPoints.isEmpty()) {
+         return null;
+      }
+      List<BlockPos> boundedPoints = this.limitToBuildRange(player, selectedPoints);
+      int minX = Integer.MAX_VALUE;
+      int minY = Integer.MAX_VALUE;
+      int minZ = Integer.MAX_VALUE;
+      int maxX = Integer.MIN_VALUE;
+      int maxY = Integer.MIN_VALUE;
+      int maxZ = Integer.MIN_VALUE;
+
+      for (BlockPos point : boundedPoints) {
+         if (point.getX() < minX) minX = point.getX();
+         if (point.getY() < minY) minY = point.getY();
+         if (point.getZ() < minZ) minZ = point.getZ();
+         if (point.getX() > maxX) maxX = point.getX();
+         if (point.getY() > maxY) maxY = point.getY();
+         if (point.getZ() > maxZ) maxZ = point.getZ();
+      }
+      // Full-block box: max corner is exclusive, so +1 covers the max blocks.
+      return new AABB(minX, minY, minZ, maxX + 1, maxY + 1, maxZ + 1);
    }
 
    public void getClientBlocks(BlockSet blocks, Player player) {

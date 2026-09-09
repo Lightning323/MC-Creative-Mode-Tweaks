@@ -7,6 +7,7 @@ import nl.requios.effortlessbuilding.buildmode.TwoClicksBuildMode;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.phys.AABB;
 
 public class Circle extends TwoClicksBuildMode {
    public static List<BlockPos> getCircleBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2) {
@@ -117,9 +118,33 @@ public class Circle extends TwoClicksBuildMode {
       return radiusX * radiusZ / Mth.sqrt(part1 + part2);
    }
 
-   protected BlockPos findSecondPos(Player player, BlockPos firstPos, boolean skipRaytrace) {
-      return Floor.findFloor(player, firstPos, skipRaytrace);
-   }
+    protected BlockPos findSecondPos(Player player, BlockPos firstPos, boolean skipRaytrace) {
+       return Floor.findFloor(player, firstPos, skipRaytrace);
+    }
+
+    @Override
+    protected AABB boundaryForPoints(BlockPos firstPos, BlockPos clampedSecond) {
+       int minX;
+       int maxX;
+       int minZ;
+       int maxZ;
+       if (ModeOptions.getCircleStart() == ModeOptions.ActionEnum.CIRCLE_START_CENTER) {
+          // Center mode mirrors the hovered radius to the opposite side.
+          int mirroredX = 2 * firstPos.getX() - clampedSecond.getX();
+          int mirroredZ = 2 * firstPos.getZ() - clampedSecond.getZ();
+          minX = Math.min(clampedSecond.getX(), mirroredX);
+          maxX = Math.max(clampedSecond.getX(), mirroredX);
+          minZ = Math.min(clampedSecond.getZ(), mirroredZ);
+          maxZ = Math.max(clampedSecond.getZ(), mirroredZ);
+       } else {
+          minX = Math.min(firstPos.getX(), clampedSecond.getX());
+          maxX = Math.max(firstPos.getX(), clampedSecond.getX());
+          minZ = Math.min(firstPos.getZ(), clampedSecond.getZ());
+          maxZ = Math.max(firstPos.getZ(), clampedSecond.getZ());
+       }
+       int y = firstPos.getY();
+       return toFullBlockAABB(minX, y, minZ, maxX, y, maxZ);
+    }
 
    protected List<BlockPos> getAllBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2) {
       return getCircleBlocks(player, x1, y1, z1, x2, y2, z2);

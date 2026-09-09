@@ -1,6 +1,8 @@
 package nl.requios.effortlessbuilding.buildmode;
 
 import java.util.List;
+
+import net.minecraft.world.phys.AABB;
 import nl.requios.effortlessbuilding.utilities.BlockSet;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -79,4 +81,6 @@ public interface IBuildMode {
    default boolean isFirstClick() {
       return true;
    }
+
+   public AABB getClientBoundary(Player player);
 }

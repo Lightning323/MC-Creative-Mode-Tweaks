@@ -10,6 +10,7 @@ import org.lightning323.creative_mode_tweaks.Config;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 /** Builds a hemisphere extending away from the face selected on the first click. */
@@ -71,20 +72,70 @@ public class Dome extends ThreeClicksBuildMode {
       return BlockPos.containing(selected.lineBound);
    }
 
-   @Override
-   protected List<BlockPos> getIntermediateBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2) {
-      BlockPos firstPos = new BlockPos(x1, y1, z1);
-      BlockPos secondPos = new BlockPos(x2, y2, z2);
-      return getBaseBlocks(firstPos, secondPos);
-   }
+    @Override
+    protected List<BlockPos> getIntermediateBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2) {
+       BlockPos firstPos = new BlockPos(x1, y1, z1);
+       BlockPos secondPos = new BlockPos(x2, y2, z2);
+       return getBaseBlocks(firstPos, secondPos);
+    }
 
-   @Override
-   protected List<BlockPos> getFinalBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2, int x3, int y3, int z3) {
-      BlockPos firstPos = new BlockPos(x1, y1, z1);
-      BlockPos secondPos = new BlockPos(x2, y2, z2);
-      BlockPos thirdPos = new BlockPos(x3, y3, z3);
-      return getDomeBlocks(firstPos, secondPos, thirdPos);
-   }
+    @Override
+    protected List<BlockPos> getFinalBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2, int x3, int y3, int z3) {
+       BlockPos firstPos = new BlockPos(x1, y1, z1);
+       BlockPos secondPos = new BlockPos(x2, y2, z2);
+       BlockPos thirdPos = new BlockPos(x3, y3, z3);
+       return getDomeBlocks(firstPos, secondPos, thirdPos);
+    }
+
+    @Override
+    protected AABB getIntermediateBoundary(BlockPos firstPos, BlockPos clampedSecond) {
+       return domeBounds(firstPos, clampedSecond, firstPos);
+    }
+
+    @Override
+    protected AABB getFinalBoundary(BlockPos firstPos, BlockPos clampedSecond, BlockPos clampedThird) {
+       return domeBounds(firstPos, clampedSecond, clampedThird);
+    }
+
+    /**
+     * Mirrors DomeBounds' U/V handling: corner mode spans first..second,
+     * center mode mirrors second across first. The normal axis always spans
+     * base..tip.
+     */
+    private AABB domeBounds(BlockPos firstPos, BlockPos secondPos, BlockPos thirdPos) {
+       Direction.Axis normalAxis = this.direction.getAxis();
+       Direction.Axis[] axes = perpendicularAxes(normalAxis);
+       Direction.Axis uAxis = axes[0];
+       Direction.Axis vAxis = axes[1];
+       int base = coordinate(firstPos, normalAxis);
+       int tipCoord = coordinate(thirdPos, normalAxis);
+       int firstU = coordinate(firstPos, uAxis);
+       int secondU = coordinate(secondPos, uAxis);
+       int firstV = coordinate(firstPos, vAxis);
+       int secondV = coordinate(secondPos, vAxis);
+       int minU;
+       int maxU;
+       int minV;
+       int maxV;
+       if (ModeOptions.getCircleStart() == ModeOptions.ActionEnum.CIRCLE_START_CORNER) {
+          minU = Math.min(firstU, secondU);
+          maxU = Math.max(firstU, secondU);
+          minV = Math.min(firstV, secondV);
+          maxV = Math.max(firstV, secondV);
+       } else {
+          minU = Math.min(secondU, 2 * firstU - secondU);
+          maxU = Math.max(secondU, 2 * firstU - secondU);
+          minV = Math.min(secondV, 2 * firstV - secondV);
+          maxV = Math.max(secondV, 2 * firstV - secondV);
+       }
+       int minNormal = Math.min(base, tipCoord);
+       int maxNormal = Math.max(base, tipCoord);
+       return switch (normalAxis) {
+          case X -> toFullBlockAABB(minNormal, minU, minV, maxNormal, maxU, maxV);
+          case Y -> toFullBlockAABB(minU, minNormal, minV, maxU, maxNormal, maxV);
+          case Z -> toFullBlockAABB(minU, minV, minNormal, maxU, maxV, maxNormal);
+       };
+    }
 
    private List<BlockPos> getBaseBlocks(BlockPos firstPos, BlockPos secondPos) {
       DomeBounds bounds = new DomeBounds(firstPos, secondPos, firstPos, this.direction);

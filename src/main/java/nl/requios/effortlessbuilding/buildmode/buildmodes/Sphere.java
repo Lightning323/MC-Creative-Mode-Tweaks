@@ -7,6 +7,9 @@ import nl.requios.effortlessbuilding.buildmode.ThreeClicksBuildMode;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.phys.AABB;
+import nl.requios.effortlessbuilding.buildmode.ModeOptions;
+import nl.requios.effortlessbuilding.buildmode.ThreeClicksBuildMode;
 
 public class Sphere extends ThreeClicksBuildMode {
    public static List<BlockPos> getSphereBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2, int x3, int y3, int z3) {
@@ -155,11 +158,55 @@ public class Sphere extends ThreeClicksBuildMode {
       return findHeight(player, secondPos, skipRaytrace);
    }
 
-   public List<BlockPos> getIntermediateBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2) {
-      return Circle.getCircleBlocks(player, x1, y1, z1, x2, y2, z2);
-   }
+    public List<BlockPos> getIntermediateBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2) {
+       return Circle.getCircleBlocks(player, x1, y1, z1, x2, y2, z2);
+    }
 
-   public List<BlockPos> getFinalBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2, int x3, int y3, int z3) {
-      return getSphereBlocks(player, x1, y1, z1, x2, y2, z2, x3, y3, z3);
-   }
+    public List<BlockPos> getFinalBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2, int x3, int y3, int z3) {
+       return getSphereBlocks(player, x1, y1, z1, x2, y2, z2, x3, y3, z3);
+    }
+
+    @Override
+    protected AABB getIntermediateBoundary(BlockPos firstPos, BlockPos clampedSecond) {
+       return circleBounds(firstPos, clampedSecond);
+    }
+
+    @Override
+    protected AABB getFinalBoundary(BlockPos firstPos, BlockPos clampedSecond, BlockPos clampedThird) {
+       if (ModeOptions.getCircleStart() == ModeOptions.ActionEnum.CIRCLE_START_CENTER) {
+          int mirroredX = 2 * firstPos.getX() - clampedSecond.getX();
+          int mirroredY = 2 * firstPos.getY() - clampedThird.getY();
+          int mirroredZ = 2 * firstPos.getZ() - clampedSecond.getZ();
+          return toFullBlockAABB(
+                 Math.min(mirroredX, clampedSecond.getX()),
+                 Math.min(mirroredY, clampedThird.getY()),
+                 Math.min(mirroredZ, clampedSecond.getZ()),
+                 Math.max(mirroredX, clampedSecond.getX()),
+                 Math.max(mirroredY, clampedThird.getY()),
+                 Math.max(mirroredZ, clampedSecond.getZ()));
+       }
+       return super.getFinalBoundary(firstPos, clampedSecond, clampedThird);
+    }
+
+    static AABB circleBounds(BlockPos firstPos, BlockPos clampedSecond) {
+       int minX;
+       int maxX;
+       int minZ;
+       int maxZ;
+       if (ModeOptions.getCircleStart() == ModeOptions.ActionEnum.CIRCLE_START_CENTER) {
+          int mirroredX = 2 * firstPos.getX() - clampedSecond.getX();
+          int mirroredZ = 2 * firstPos.getZ() - clampedSecond.getZ();
+          minX = Math.min(clampedSecond.getX(), mirroredX);
+          maxX = Math.max(clampedSecond.getX(), mirroredX);
+          minZ = Math.min(clampedSecond.getZ(), mirroredZ);
+          maxZ = Math.max(clampedSecond.getZ(), mirroredZ);
+       } else {
+          minX = Math.min(firstPos.getX(), clampedSecond.getX());
+          maxX = Math.max(firstPos.getX(), clampedSecond.getX());
+          minZ = Math.min(firstPos.getZ(), clampedSecond.getZ());
+          maxZ = Math.max(firstPos.getZ(), clampedSecond.getZ());
+       }
+       int y = firstPos.getY();
+       return toFullBlockAABB(minX, y, minZ, maxX, y, maxZ);
+    }
 }

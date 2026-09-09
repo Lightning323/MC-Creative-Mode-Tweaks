@@ -9,6 +9,7 @@ import nl.requios.effortlessbuilding.buildpipeline.BuildPipeline;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.lightning323.creative_mode_tweaks.Config;
 
@@ -77,10 +78,36 @@ public class Pyramid extends ThreeClicksBuildMode {
       return getBaseBlocks(new BlockPos(x1, y1, z1), new BlockPos(x2, y2, z2));
    }
 
-   @Override
-   protected List<BlockPos> getFinalBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2, int x3, int y3, int z3) {
-      return getPyramidBlocks(new BlockPos(x1, y1, z1), new BlockPos(x2, y2, z2), new BlockPos(x3, y3, z3));
-   }
+    @Override
+    protected List<BlockPos> getFinalBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2, int x3, int y3, int z3) {
+       return getPyramidBlocks(new BlockPos(x1, y1, z1), new BlockPos(x2, y2, z2), new BlockPos(x3, y3, z3));
+    }
+
+    @Override
+    protected AABB getIntermediateBoundary(BlockPos firstPos, BlockPos clampedSecond) {
+       return pyramidBounds(firstPos, clampedSecond, firstPos);
+    }
+
+    @Override
+    protected AABB getFinalBoundary(BlockPos firstPos, BlockPos clampedSecond, BlockPos clampedThird) {
+       return pyramidBounds(firstPos, clampedSecond, clampedThird);
+    }
+
+    /**
+     * Reuses the real base-corner math (square vs triangle, corner vs center)
+     * so squared/triangular bases that extend beyond the raw second point are
+     * still inside the boundary. The normal axis spans base..tip.
+     */
+    private AABB pyramidBounds(BlockPos firstPos, BlockPos secondPos, BlockPos thirdPos) {
+       PyramidBounds bounds = new PyramidBounds(firstPos, secondPos, thirdPos, this.direction);
+       int minNormal = Math.min(bounds.base, bounds.tip);
+       int maxNormal = Math.max(bounds.base, bounds.tip);
+       return switch (bounds.normalAxis) {
+          case X -> toFullBlockAABB(minNormal, bounds.minU, bounds.minV, maxNormal, bounds.maxU, bounds.maxV);
+          case Y -> toFullBlockAABB(bounds.minU, minNormal, bounds.minV, bounds.maxU, maxNormal, bounds.maxV);
+          case Z -> toFullBlockAABB(bounds.minU, bounds.minV, minNormal, bounds.maxU, bounds.maxV, maxNormal);
+       };
+    }
 
    private List<BlockPos> getBaseBlocks(BlockPos firstPos, BlockPos secondPos) {
       PyramidBounds bounds = new PyramidBounds(firstPos, secondPos, firstPos, this.direction);
