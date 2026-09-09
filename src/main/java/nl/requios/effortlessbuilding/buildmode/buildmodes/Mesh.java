@@ -64,7 +64,7 @@ public class Mesh extends BaseBuildMode {
       return this.points.size() == this.requiredPointCount();
    }
 
-   public void findCoordinates(BlockSet blocks, Player player) {
+   public void getClientBlocks(BlockSet blocks, Player player) {
       List<BlockPos> selectedPoints = new ArrayList(this.points);
       if (selectedPoints.size() < this.requiredPointCount() && this.previewPoint != null) {
          selectedPoints.add(this.previewPoint);

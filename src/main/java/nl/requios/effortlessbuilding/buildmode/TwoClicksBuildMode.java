@@ -26,7 +26,7 @@ public abstract class TwoClicksBuildMode extends BaseBuildMode {
       }
    }
 
-   public void findCoordinates(BlockSet blocks, Player player) {
+   public void getClientBlocks(BlockSet blocks, Player player) {
       if (this.clicks != 0) {
          BlockPos firstPos = this.firstBlockEntry.blockPos;
          BlockPos secondPos = this.findSecondPos(player, this.firstBlockEntry.blockPos, true);

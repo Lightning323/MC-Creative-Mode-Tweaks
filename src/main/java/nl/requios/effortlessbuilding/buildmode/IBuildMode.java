@@ -20,7 +20,7 @@ public interface IBuildMode {
 
    boolean onClick(BlockSet var1, BlockPos var2, Player var3);
 
-   void findCoordinates(BlockSet var1, Player var2);
+   void getClientBlocks(BlockSet var1, Player var2);
 
    default void setFirstClickFace(Direction face) {
    }

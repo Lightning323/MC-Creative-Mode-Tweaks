@@ -21,7 +21,7 @@ public class Single extends BaseBuildMode {
       return true;
    }
 
-   public void findCoordinates(BlockSet blocks, Player player) {
+   public void getClientBlocks(BlockSet blocks, Player player) {
       if (this.pos != null) {
          blocks.setStartPos(new BlockEntry(this.pos));
       }

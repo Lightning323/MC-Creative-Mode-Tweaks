@@ -24,7 +24,7 @@ public class BuildModes {
    }
 
    public void findCoordinates(BlockSet blocks, Player player) {
-      this.buildMode.instance.findCoordinates(blocks, player);
+      this.buildMode.instance.getClientBlocks(blocks, player);
    }
 
    public BuildModeEnum getBuildMode() {

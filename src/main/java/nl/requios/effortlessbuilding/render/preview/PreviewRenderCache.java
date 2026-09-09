@@ -351,7 +351,7 @@ public final class PreviewRenderCache {
         BlockPos anchor = key.selectionOrigin() != null ? key.selectionOrigin() : player.blockPosition();
         BlockSet blocks = new BlockSet();
         try (SableCompat.SelectionScope ignored = SableCompat.pushSelection(level, anchor)) {
-            mode.instance.findCoordinates(blocks, player);
+            mode.instance.getClientBlocks(blocks, player);
         }
         if (blocks.isEmpty()) {
             clear();

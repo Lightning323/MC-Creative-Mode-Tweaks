@@ -175,7 +175,7 @@ public class BuildPipelineClient {
             BlockSet blocks = new BlockSet();
             boolean shouldPlace = mode.instance.onClick(blocks, clickedPos, player);
             if (shouldPlace) {
-               mode.instance.findCoordinates(blocks, player);
+               mode.instance.getClientBlocks(blocks, player);
                CLIENT.processBlocks(blocks, player, action);
                if (blocks.firstPos != null && blocks.lastPos != null) {
                if (blocks.hasEntriesWithStatus(BlockStatus.OUTSIDE_REACH)) {
@@ -301,7 +301,7 @@ public class BuildPipelineClient {
                   mode.instance.setPreviewPoint(previewPoint);
                }
 
-                mode.instance.findCoordinates(previewBlocks, player);
+                mode.instance.getClientBlocks(previewBlocks, player);
                 // No sorting before processBlocks: the constraint cap keeps the
                 // first N blocks in generation order, exactly like the server
                 // pipeline does. Sorting first would preview a different subset

@@ -61,7 +61,7 @@ public abstract class ThreeClicksBuildMode extends BaseBuildMode {
       return false;
    }
 
-   public void findCoordinates(BlockSet blocks, Player player) {
+   public void getClientBlocks(BlockSet blocks, Player player) {
       if (this.twoPointBuild) {
          this.findTwoPointCoordinates(blocks, player);
          return;
