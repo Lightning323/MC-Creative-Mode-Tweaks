@@ -80,12 +80,16 @@ public final class SectionMeshDraw {
                 return;
             }
             // Reused across sections: rebuilt only when the shape changes.
+            // A single pose stack + matrix serves every section (the upload
+            // consumes the matrix per draw, so reuse is safe) instead of one
+            // matrix allocation per section per frame.
             PoseStack sectionPose = new PoseStack();
+            Matrix4f sectionModelView = new Matrix4f();
             for (Section section : sections) {
                 sectionPose.pushPose();
                 try {
                     SableCompat.translateToBlock(sectionPose, level, section.origin(), camX, camY, camZ);
-                    Matrix4f sectionModelView = new Matrix4f(baseModelView).mul(sectionPose.last().pose());
+                    sectionModelView.set(baseModelView).mul(sectionPose.last().pose());
                     section.buffer().bind();
                     section.buffer().drawWithShader(sectionModelView, projectionMatrix, shader);
                 } finally {

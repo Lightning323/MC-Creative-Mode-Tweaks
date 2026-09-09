@@ -26,6 +26,7 @@ import org.jetbrains.annotations.Nullable;
 
 public class RenderHandler {
    private static int lastPreviewSize = 0;
+   private static Component cachedFeedback = null;
    private static final Component PLACING_TEXT;
    private static final Component INTERACTING_TEXT;
    private static final Component BREAKING_TEXT;
@@ -40,102 +41,156 @@ public class RenderHandler {
       drawStacks(graphics);
    }
 
+     /**
+      * Action-bar count/dims + placement tick sound. Called by the preview cache
+      * on shape change only — the result is cached for the per-frame redisplay.
+      *
+      * @param overLimit when true the count cap cut blocks out of this shape, so
+      *                  the line renders red: the whole thing won't get built.
+      */
+     public static void updateFeedback(List<BlockPos> positions, boolean sequenceActive, BuildPipeline.BuildState pendingAction, boolean overLimit) {
+       Minecraft mc = Minecraft.getInstance();
+       if (mc.player != null && mc.level != null) {
+          playTickSound(mc, positions, sequenceActive, pendingAction);
+
+          lastPreviewSize = positions.size();
+          cachedFeedback = null;
+          if (sequenceActive && !positions.isEmpty()) {
+             int minX = Integer.MAX_VALUE;
+             int minY = Integer.MAX_VALUE;
+             int minZ = Integer.MAX_VALUE;
+             int maxX = Integer.MIN_VALUE;
+             int maxY = Integer.MIN_VALUE;
+             int maxZ = Integer.MIN_VALUE;
+
+             for(BlockPos pos : positions) {
+                if (pos.getX() < minX) {
+                   minX = pos.getX();
+                }
+
+                if (pos.getX() > maxX) {
+                   maxX = pos.getX();
+                }
+
+                if (pos.getY() < minY) {
+                   minY = pos.getY();
+                }
+
+                if (pos.getY() > maxY) {
+                   maxY = pos.getY();
+                }
+
+                if (pos.getZ() < minZ) {
+                   minZ = pos.getZ();
+                }
+
+                if (pos.getZ() > maxZ) {
+                   maxZ = pos.getZ();
+                }
+             }
+
+             cachedFeedback = buildCountMessage(positions.size(),
+                     maxX - minX + 1, maxY - minY + 1, maxZ - minZ + 1, overLimit);
+             mc.player.displayClientMessage(cachedFeedback, true);
+          }
+
+       }
+    }
+
     /**
-     * Action-bar count/dims + placement tick sound. Called by the preview cache.
-     *
-     * @param overLimit when true the count cap cut blocks out of this shape, so
-     *                  the line renders red: the whole thing won't get built.
+     * Same feedback for the huge-shape path, but the bounds are already known
+     * from the single min/max pass — no list rescan, no extra allocation.
      */
-    public static void updateFeedback(List<BlockPos> positions, boolean sequenceActive, BuildPipeline.BuildState pendingAction, boolean overLimit) {
-      Minecraft mc = Minecraft.getInstance();
-      if (mc.player != null && mc.level != null) {
-         boolean isBreaking = pendingAction == BuildPipeline.BuildState.BREAKING;
-         if (sequenceActive && positions.size() != lastPreviewSize) {
-            SoundType var10000;
-            if (isBreaking) {
-               var10000 = mc.level.getBlockState((BlockPos)positions.getFirst()).getSoundType();
-            } else {
-               Item var7 = mc.player.getMainHandItem().getItem();
-               if (var7 instanceof BlockItem) {
-                  BlockItem blockItem = (BlockItem)var7;
-                  var10000 = blockItem.getBlock().defaultBlockState().getSoundType();
-               } else {
-                  var10000 = SoundType.STONE;
-               }
-            }
+    public static void updateFeedbackSimple(int count, BlockPos min, BlockPos max,
+                                            boolean sequenceActive, BuildPipeline.BuildState pendingAction,
+                                            boolean overLimit) {
+       Minecraft mc = Minecraft.getInstance();
+       if (mc.player != null && mc.level != null) {
+          playTickSound(mc, min, count, sequenceActive, pendingAction);
 
-            SoundType soundType = var10000;
-            SoundEvent sound = isBreaking ? soundType.getBreakSound() : soundType.getPlaceSound();
-            mc.level.playLocalSound((BlockPos)positions.getFirst(), sound, SoundSource.BLOCKS, soundType.getVolume() * 0.25F, soundType.getPitch(), false);
-         }
+          lastPreviewSize = count;
+          cachedFeedback = null;
+          if (sequenceActive) {
+             cachedFeedback = buildCountMessage(count,
+                     max.getX() - min.getX() + 1,
+                     max.getY() - min.getY() + 1,
+                     max.getZ() - min.getZ() + 1, overLimit);
+             mc.player.displayClientMessage(cachedFeedback, true);
+          }
+       }
+    }
 
-         lastPreviewSize = positions.size();
-         if (sequenceActive) {
-            int minX = Integer.MAX_VALUE;
-            int minY = Integer.MAX_VALUE;
-            int minZ = Integer.MAX_VALUE;
-            int maxX = Integer.MIN_VALUE;
-            int maxY = Integer.MIN_VALUE;
-            int maxZ = Integer.MIN_VALUE;
+    /**
+     * Per-frame redisplay of the cached count/dims line. Zero scans, zero
+     * string building — just re-shows the component the shape change computed.
+     */
+    public static void showCachedFeedback(boolean sequenceActive, BuildPipeline.BuildState pendingAction) {
+       if (!sequenceActive || cachedFeedback == null) {
+          return;
+       }
+       Minecraft mc = Minecraft.getInstance();
+       if (mc.player != null) {
+          mc.player.displayClientMessage(cachedFeedback, true);
+       }
+    }
 
-            for(BlockPos pos : positions) {
-               if (pos.getX() < minX) {
-                  minX = pos.getX();
-               }
+    private static void playTickSound(Minecraft mc, List<BlockPos> positions,
+                                      boolean sequenceActive, BuildPipeline.BuildState pendingAction) {
+       if (!sequenceActive || positions.isEmpty() || positions.size() == lastPreviewSize) {
+          return;
+       }
+       playTickSound(mc, positions.getFirst(), positions.size(), sequenceActive, pendingAction);
+    }
 
-               if (pos.getX() > maxX) {
-                  maxX = pos.getX();
-               }
+    private static void playTickSound(Minecraft mc, BlockPos at, int count,
+                                      boolean sequenceActive, BuildPipeline.BuildState pendingAction) {
+       if (!sequenceActive || count == lastPreviewSize) {
+          return;
+       }
+       boolean isBreaking = pendingAction == BuildPipeline.BuildState.BREAKING;
+       SoundType soundType;
+       if (isBreaking) {
+          soundType = mc.level.getBlockState(at).getSoundType();
+       } else {
+          Item held = mc.player.getMainHandItem().getItem();
+          if (held instanceof BlockItem blockItem) {
+             soundType = blockItem.getBlock().defaultBlockState().getSoundType();
+          } else {
+             soundType = SoundType.STONE;
+          }
+       }
 
-               if (pos.getY() < minY) {
-                  minY = pos.getY();
-               }
+       SoundEvent sound = isBreaking ? soundType.getBreakSound() : soundType.getPlaceSound();
+       mc.level.playLocalSound(at, sound, SoundSource.BLOCKS, soundType.getVolume() * 0.25F, soundType.getPitch(), false);
+    }
 
-               if (pos.getY() > maxY) {
-                  maxY = pos.getY();
-               }
+    private static Component buildCountMessage(int count, int dx, int dy, int dz, boolean overLimit) {
+       int[] dims = Arrays.stream(new int[]{dx, dy, dz}).filter((d) -> d > 1).toArray();
+       String msg;
+       if (dims.length <= 1) {
+          msg = String.valueOf(count);
+       } else {
+          StringBuilder sb = (new StringBuilder()).append(count).append(" (");
 
-               if (pos.getZ() < minZ) {
-                  minZ = pos.getZ();
-               }
+          for(int i = 0; i < dims.length; ++i) {
+             if (i > 0) {
+                sb.append('×');
+             }
 
-               if (pos.getZ() > maxZ) {
-                  maxZ = pos.getZ();
-               }
-            }
+             sb.append(dims[i]);
+          }
 
-            int dx = maxX - minX + 1;
-            int dy = maxY - minY + 1;
-            int dz = maxZ - minZ + 1;
-            int[] dims = Arrays.stream(new int[]{dx, dy, dz}).filter((d) -> d > 1).toArray();
-            String msg;
-            if (dims.length <= 1) {
-               msg = String.valueOf(positions.size());
-            } else {
-               StringBuilder sb = (new StringBuilder()).append(positions.size()).append(" (");
+          sb.append(')');
+          msg = sb.toString();
+       }
 
-               for(int i = 0; i < dims.length; ++i) {
-                  if (i > 0) {
-                     sb.append('×');
-                  }
-
-                  sb.append(dims[i]);
-               }
-
-               sb.append(')');
-               msg = sb.toString();
-            }
-
-            mc.player.displayClientMessage(overLimit
-                    ? Component.literal(msg).withStyle(ChatFormatting.RED) : Component.literal(msg), true);
-         }
-
-      }
-   }
+       return overLimit ? Component.literal(msg).withStyle(ChatFormatting.RED) : Component.literal(msg);
+    }
 
     /** Resets the placement-tick baseline (mode off, preview empty). */
     public static void resetPreviewSize() {
       lastPreviewSize = 0;
+      cachedFeedback = null;
    }
 
    private static void drawStacks(GuiGraphics guiGraphics) {

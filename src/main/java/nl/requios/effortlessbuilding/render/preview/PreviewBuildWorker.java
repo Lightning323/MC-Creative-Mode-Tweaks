@@ -104,7 +104,12 @@ public final class PreviewBuildWorker {
                 return;
             }
             List<SectionMeshDraw.PendingSection> sections =
-                    PreviewBlockMesh.bake(task.dispatcher(), task.level(), task.meshBlocks(), task.alpha());
+                    PreviewBlockMesh.bake(task.dispatcher(), task.level(), task.meshBlocks(), task.alpha(),
+                            () -> task.seq() == LATEST_SEQ.get());
+            if (sections == null) {
+                // Aborted mid-bake: a newer shape already superseded us.
+                return;
+            }
             if (task.seq() != LATEST_SEQ.get()) {
                 SectionMeshDraw.discardAllPending(sections);
                 return;

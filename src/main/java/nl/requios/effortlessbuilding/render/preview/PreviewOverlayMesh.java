@@ -6,12 +6,12 @@ import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.MeshData;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexFormat;
+import it.unimi.dsi.fastutil.longs.LongIterator;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.BlockPos;
@@ -33,13 +33,17 @@ import org.joml.Matrix4f;
  * <p><b>When it rebuilds:</b> only from {@link PreviewRenderCache} when the
  * shape key changes. That moves three per-frame costs off the hot path:</p>
  * <ul>
- *   <li>the {@code HashSet} of all positions + 6 neighbor lookups per block
- *       for fill culling,</li>
- *   <li>the 12 edge toggles per block ({@code computeBorderEdges}) plus all
- *       those short-lived edge-key objects,</li>
+ *   <li>6 neighbor lookups per block for fill culling (packed-long set,
+ *       no per-block allocations),</li>
+ *   <li>the 12 edge toggles per block into primitive long sets (no edge-key
+ *       objects),</li>
  *   <li>the per-block {@code pushPose/translate} and immediate-mode quad
  *       emission (up to ~6 quads x 50k blocks per frame before).</li>
  * </ul>
+ *
+ * <p>Shapes past the detailed limit skip this entirely via
+ * {@link #bakeBoundingBox}: one 6-quad fill plus 12 edge strips, constant
+ * cost regardless of block count.</p>
  *
  * <p>Colors are baked into the vertices (white for placeable, red/grey for
  * rejected, red tint when breaking), so a breaking↔placing switch is part of
@@ -73,6 +77,12 @@ public final class PreviewOverlayMesh {
      * thread — pure math on the position lists, no level reads, no GL.
      * {@code breakable} draws white (red when breaking), {@code unbreakable}
      * draws red fill + grey outline.
+     *
+     * <p>Allocation discipline (hot path for multi-thousand-block shapes):
+     * neighbor checks use packed {@code long} positions — no
+     * {@code below()/above()/…} temporaries — and border edges toggle in
+     * primitive {@code long} sets, so a bake allocates O(sections) buffers
+     * plus the output meshes and nothing per block.</p>
      */
     public static Baked bake(List<BlockPos> breakable, List<BlockPos> unbreakable, boolean isBreaking) {
         List<SectionMeshDraw.PendingSection> fill = new ArrayList<>();
@@ -89,8 +99,8 @@ public final class PreviewOverlayMesh {
             // Each list culls against itself only — same as the old per-list
             // box calls, so shared faces between the two lists still draw
             // (preserves old look, avoids cross-list logic).
-            emitFill(fillBuilders, fillBacking, breakable, new HashSet<>(breakable), fillR, fillG, fillB, fillA);
-            emitFill(fillBuilders, fillBacking, unbreakable, new HashSet<>(unbreakable), 255, 80, 80, 100);
+            emitFill(fillBuilders, fillBacking, breakable, fillR, fillG, fillB, fillA);
+            emitFill(fillBuilders, fillBacking, unbreakable, 255, 80, 80, 100);
             collectAll(fillBuilders, fillBacking, fill);
         } catch (RuntimeException failure) {
             // Bake failed partway: free everything built so far (both closes
@@ -106,13 +116,78 @@ public final class PreviewOverlayMesh {
         Map<Long, BufferBuilder> lineBuilders = new LinkedHashMap<>();
         Map<Long, ByteBufferBuilder> lineBacking = new LinkedHashMap<>();
         try {
-            emitOutline(lineBuilders, lineBacking, computeBorderEdges(breakable), lineR, lineG, lineB, 255);
-            emitOutline(lineBuilders, lineBacking, computeBorderEdges(unbreakable), 100, 100, 100, 255);
+            emitOutlineList(lineBuilders, lineBacking, breakable, lineR, lineG, lineB, 255);
+            emitOutlineList(lineBuilders, lineBacking, unbreakable, 100, 100, 100, 255);
             collectAll(lineBuilders, lineBacking, outline);
         } catch (RuntimeException failure) {
             SectionMeshDraw.discardAllPending(outline);
             closeAllBacking(lineBacking);
             throw failure;
+        }
+        return new Baked(fill, outline);
+    }
+
+    /**
+     * Ultra-cheap overlay for huge shapes: one box around {@code [min, max]}
+     * (inclusive blocks) instead of per-block faces and border edges.
+     * Constant cost no matter how many blocks are inside — this is what keeps
+     * multi-thousand-block drags interactive.
+     *
+     * <p>Vertices are relative to {@code min} (a real shape block, so
+     * Sable/contraption translation still resolves correctly) rather than
+     * section-local; a single offset that small keeps float precision exact.</p>
+     */
+    public static Baked bakeBoundingBox(BlockPos min, BlockPos max, boolean isBreaking) {
+        List<SectionMeshDraw.PendingSection> fill = new ArrayList<>(1);
+        List<SectionMeshDraw.PendingSection> outline = new ArrayList<>(1);
+        int fillR = 255, fillG = isBreaking ? 0 : 255, fillB = isBreaking ? 0 : 255;
+        int lineR = 255, lineG = isBreaking ? 0 : 255, lineB = isBreaking ? 0 : 255;
+
+        float sx = (float) (max.getX() - min.getX() + 1);
+        float sy = (float) (max.getY() - min.getY() + 1);
+        float sz = (float) (max.getZ() - min.getZ() + 1);
+
+        ByteBufferBuilder fillStore = new ByteBufferBuilder(4096);
+        BufferBuilder fillBuilder = new BufferBuilder(fillStore, VertexFormat.Mode.QUADS, DefaultVertexFormat.NEW_ENTITY);
+        float x0 = -FILL_EPS;
+        float x1 = sx + FILL_EPS + FILL_GROW;
+        float y0 = -FILL_EPS;
+        float y1 = sy + FILL_EPS + FILL_GROW;
+        float z0 = -FILL_EPS;
+        float z1 = sz + FILL_EPS + FILL_GROW;
+        addQuad(fillBuilder, x0, y0, z0, x1, y0, z0, x1, y0, z1, x0, y0, z1, 0, -1, 0, fillR, fillG, fillB, 150);
+        addQuad(fillBuilder, x0, y1, z0, x0, y1, z1, x1, y1, z1, x1, y1, z0, 0, 1, 0, fillR, fillG, fillB, 150);
+        addQuad(fillBuilder, x0, y0, z0, x0, y1, z0, x1, y1, z0, x1, y0, z0, 0, 0, -1, fillR, fillG, fillB, 150);
+        addQuad(fillBuilder, x1, y0, z1, x1, y1, z1, x0, y1, z1, x0, y0, z1, 0, 0, 1, fillR, fillG, fillB, 150);
+        addQuad(fillBuilder, x0, y0, z1, x0, y1, z1, x0, y1, z0, x0, y0, z0, -1, 0, 0, fillR, fillG, fillB, 150);
+        addQuad(fillBuilder, x1, y0, z0, x1, y1, z0, x1, y1, z1, x1, y0, z1, 1, 0, 0, fillR, fillG, fillB, 150);
+        MeshData fillMesh = fillBuilder.build();
+        if (fillMesh != null) {
+            fill.add(new SectionMeshDraw.PendingSection(min.immutable(), fillMesh, fillStore));
+        } else {
+            fillStore.close();
+        }
+
+        ByteBufferBuilder lineStore = new ByteBufferBuilder(8192);
+        BufferBuilder lineBuilder = new BufferBuilder(lineStore, VertexFormat.Mode.QUADS, DefaultVertexFormat.NEW_ENTITY);
+        // 4 edges along each axis.
+        addBoxEdge(lineBuilder, 0, 0, 0, 0, sx, lineR, lineG, lineB, 255);
+        addBoxEdge(lineBuilder, 0, sy, 0, 0, sx, lineR, lineG, lineB, 255);
+        addBoxEdge(lineBuilder, 0, 0, sz, 0, sx, lineR, lineG, lineB, 255);
+        addBoxEdge(lineBuilder, 0, sy, sz, 0, sx, lineR, lineG, lineB, 255);
+        addBoxEdge(lineBuilder, 0, 0, 0, 1, sy, lineR, lineG, lineB, 255);
+        addBoxEdge(lineBuilder, sx, 0, 0, 1, sy, lineR, lineG, lineB, 255);
+        addBoxEdge(lineBuilder, 0, 0, sz, 1, sy, lineR, lineG, lineB, 255);
+        addBoxEdge(lineBuilder, sx, 0, sz, 1, sy, lineR, lineG, lineB, 255);
+        addBoxEdge(lineBuilder, 0, 0, 0, 2, sz, lineR, lineG, lineB, 255);
+        addBoxEdge(lineBuilder, sx, 0, 0, 2, sz, lineR, lineG, lineB, 255);
+        addBoxEdge(lineBuilder, 0, sy, 0, 2, sz, lineR, lineG, lineB, 255);
+        addBoxEdge(lineBuilder, sx, sy, 0, 2, sz, lineR, lineG, lineB, 255);
+        MeshData lineMesh = lineBuilder.build();
+        if (lineMesh != null) {
+            outline.add(new SectionMeshDraw.PendingSection(min.immutable(), lineMesh, lineStore));
+        } else {
+            lineStore.close();
         }
         return new Baked(fill, outline);
     }
@@ -179,11 +254,20 @@ public final class PreviewOverlayMesh {
 
     // Emits one slightly-expanded box per block, skipping faces hidden by a
     // neighbor in the same list. Vertices are section-local; the origin goes
-    // back on at draw time.
+    // back on at draw time. Membership is tracked as packed longs: neighbor
+    // checks are integer math, zero BlockPos temporaries, zero map nodes.
     private static void emitFill(Map<Long, BufferBuilder> builders, Map<Long, ByteBufferBuilder> backing,
-                                 List<BlockPos> positions, Set<BlockPos> self,
+                                 List<BlockPos> positions,
                                  int r, int g, int b, int a) {
-        for (BlockPos pos : positions) {
+        LongOpenHashSet self = new LongOpenHashSet(Math.max(16, positions.size() * 2));
+        for (int i = 0, n = positions.size(); i < n; i++) {
+            self.add(positions.get(i).asLong());
+        }
+        for (int i = 0, n = positions.size(); i < n; i++) {
+            BlockPos pos = positions.get(i);
+            int x = pos.getX();
+            int y = pos.getY();
+            int z = pos.getZ();
             BufferBuilder builder = builderFor(builders, backing, SectionPos.asLong(pos));
             float x0 = -FILL_EPS;
             float x1 = x0 + 1.0F + FILL_GROW;
@@ -192,35 +276,35 @@ public final class PreviewOverlayMesh {
             float z0 = -FILL_EPS;
             float z1 = z0 + 1.0F + FILL_GROW;
             // Local offset inside the 16³ section (origin re-applied on draw).
-            float ox = SectionPos.sectionRelative(pos.getX());
-            float oy = SectionPos.sectionRelative(pos.getY());
-            float oz = SectionPos.sectionRelative(pos.getZ());
-            if (!self.contains(pos.below())) {
+            float ox = SectionPos.sectionRelative(x);
+            float oy = SectionPos.sectionRelative(y);
+            float oz = SectionPos.sectionRelative(z);
+            if (!self.contains(BlockPos.asLong(x, y - 1, z))) {
                 addQuad(builder, ox + x0, oy + y0, oz + z0, ox + x1, oy + y0, oz + z0,
                         ox + x1, oy + y0, oz + z1, ox + x0, oy + y0, oz + z1,
                         0, -1, 0, r, g, b, a);
             }
-            if (!self.contains(pos.above())) {
+            if (!self.contains(BlockPos.asLong(x, y + 1, z))) {
                 addQuad(builder, ox + x0, oy + y1, oz + z0, ox + x0, oy + y1, oz + z1,
                         ox + x1, oy + y1, oz + z1, ox + x1, oy + y1, oz + z0,
                         0, 1, 0, r, g, b, a);
             }
-            if (!self.contains(pos.north())) {
+            if (!self.contains(BlockPos.asLong(x, y, z - 1))) {
                 addQuad(builder, ox + x0, oy + y0, oz + z0, ox + x0, oy + y1, oz + z0,
                         ox + x1, oy + y1, oz + z0, ox + x1, oy + y0, oz + z0,
                         0, 0, -1, r, g, b, a);
             }
-            if (!self.contains(pos.south())) {
+            if (!self.contains(BlockPos.asLong(x, y, z + 1))) {
                 addQuad(builder, ox + x1, oy + y0, oz + z1, ox + x1, oy + y1, oz + z1,
                         ox + x0, oy + y1, oz + z1, ox + x0, oy + y0, oz + z1,
                         0, 0, 1, r, g, b, a);
             }
-            if (!self.contains(pos.west())) {
+            if (!self.contains(BlockPos.asLong(x - 1, y, z))) {
                 addQuad(builder, ox + x0, oy + y0, oz + z1, ox + x0, oy + y1, oz + z1,
                         ox + x0, oy + y1, oz + z0, ox + x0, oy + y0, oz + z0,
                         -1, 0, 0, r, g, b, a);
             }
-            if (!self.contains(pos.east())) {
+            if (!self.contains(BlockPos.asLong(x + 1, y, z))) {
                 addQuad(builder, ox + x1, oy + y0, oz + z0, ox + x1, oy + y1, oz + z0,
                         ox + x1, oy + y1, oz + z1, ox + x1, oy + y0, oz + z1,
                         1, 0, 0, r, g, b, a);
@@ -230,29 +314,94 @@ public final class PreviewOverlayMesh {
 
     // -- outline baking ----------------------------------------------------
 
-    private static void emitOutline(Map<Long, BufferBuilder> builders, Map<Long, ByteBufferBuilder> backing,
-                                    Set<EdgeKey> edges, int r, int g, int b, int a) {
-        for (EdgeKey edge : edges) {
+    // Border edges for one position list, straight into section builders.
+    // Interior edges cancel in pairs across the three per-axis packed sets,
+    // leaving exactly the outer border — same toggle math as before, but one
+    // thin quad per surviving edge and no EdgeKey objects at all.
+    private static void emitOutlineList(Map<Long, BufferBuilder> builders, Map<Long, ByteBufferBuilder> backing,
+                                        List<BlockPos> positions, int r, int g, int b, int a) {
+        if (positions.isEmpty()) {
+            return;
+        }
+        int cap = Math.max(64, positions.size() * 2);
+        LongOpenHashSet xEdges = new LongOpenHashSet(cap);
+        LongOpenHashSet yEdges = new LongOpenHashSet(cap);
+        LongOpenHashSet zEdges = new LongOpenHashSet(cap);
+        for (int i = 0, n = positions.size(); i < n; i++) {
+            BlockPos pos = positions.get(i);
+            int x = pos.getX();
+            int y = pos.getY();
+            int z = pos.getZ();
+            toggleEdge(xEdges, BlockPos.asLong(x, y, z));
+            toggleEdge(xEdges, BlockPos.asLong(x, y + 1, z));
+            toggleEdge(xEdges, BlockPos.asLong(x, y, z + 1));
+            toggleEdge(xEdges, BlockPos.asLong(x, y + 1, z + 1));
+            toggleEdge(yEdges, BlockPos.asLong(x, y, z));
+            toggleEdge(yEdges, BlockPos.asLong(x + 1, y, z));
+            toggleEdge(yEdges, BlockPos.asLong(x, y, z + 1));
+            toggleEdge(yEdges, BlockPos.asLong(x + 1, y, z + 1));
+            toggleEdge(zEdges, BlockPos.asLong(x, y, z));
+            toggleEdge(zEdges, BlockPos.asLong(x + 1, y, z));
+            toggleEdge(zEdges, BlockPos.asLong(x, y + 1, z));
+            toggleEdge(zEdges, BlockPos.asLong(x + 1, y + 1, z));
+        }
+        emitAxisEdges(builders, backing, xEdges, 0, r, g, b, a);
+        emitAxisEdges(builders, backing, yEdges, 1, r, g, b, a);
+        emitAxisEdges(builders, backing, zEdges, 2, r, g, b, a);
+    }
+
+    private static void toggleEdge(LongOpenHashSet edges, long packed) {
+        if (!edges.remove(packed)) {
+            edges.add(packed);
+        }
+    }
+
+    private static void emitAxisEdges(Map<Long, BufferBuilder> builders, Map<Long, ByteBufferBuilder> backing,
+                                      LongOpenHashSet edges, int axis, int r, int g, int b, int a) {
+        // for-each would box every packed pos; the primitive iterator does not.
+        LongIterator it = edges.iterator();
+        while (it.hasNext()) {
+            long packed = it.nextLong();
             // Section of the edge's base block; strips never cross sections
             // because each edge spans exactly one block along its axis... except
             // edges on section borders. Those still bake fine: the strip is
             // stored in the base block's section and drawn with that section's
             // origin, so it lands in the right world spot either way.
-            BlockPos base = new BlockPos(edge.x(), edge.y(), edge.z());
-            BufferBuilder builder = builderFor(builders, backing, SectionPos.asLong(base));
-            float ox = SectionPos.sectionRelative(base.getX());
-            float oy = SectionPos.sectionRelative(base.getY());
-            float oz = SectionPos.sectionRelative(base.getZ());
-            float x1 = edge.axis() == 0 ? 1 : 0;
-            float y1 = edge.axis() == 1 ? 1 : 0;
-            float z1 = edge.axis() == 2 ? 1 : 0;
-            float sideX = edge.axis() == 1 ? OUTLINE_HALF_WIDTH : 0.0F;
-            float sideY = edge.axis() == 1 ? 0.0F : OUTLINE_HALF_WIDTH;
-            addQuad(builder,
-                    ox - sideX, oy - sideY, oz, ox + sideX, oy + sideY, oz,
-                    ox + x1 + sideX, oy + y1 + sideY, oz + z1, ox + x1 - sideX, oy + y1 - sideY, oz + z1,
-                    0, 1, 0, r, g, b, a);
+            int x = BlockPos.getX(packed);
+            int y = BlockPos.getY(packed);
+            int z = BlockPos.getZ(packed);
+            BufferBuilder builder = builderFor(builders, backing, SectionPos.asLong(
+                    SectionPos.blockToSectionCoord(x),
+                    SectionPos.blockToSectionCoord(y),
+                    SectionPos.blockToSectionCoord(z)));
+            float ox = SectionPos.sectionRelative(x);
+            float oy = SectionPos.sectionRelative(y);
+            float oz = SectionPos.sectionRelative(z);
+            addEdgeStrip(builder, ox, oy, oz, axis, 1.0F, r, g, b, a);
         }
+    }
+
+    // One thin outline strip starting at (x0, y0, z0), running {@code len}
+    // along {@code axis}. Identical look to the per-block border quads.
+    private static void addEdgeStrip(VertexConsumer consumer,
+                                     float x0, float y0, float z0, int axis, float len,
+                                     int r, int g, int b, int a) {
+        float x1 = axis == 0 ? len : 0;
+        float y1 = axis == 1 ? len : 0;
+        float z1 = axis == 2 ? len : 0;
+        float sideX = axis == 1 ? OUTLINE_HALF_WIDTH : 0.0F;
+        float sideY = axis == 1 ? 0.0F : OUTLINE_HALF_WIDTH;
+        addQuad(consumer,
+                x0 - sideX, y0 - sideY, z0, x0 + sideX, y0 + sideY, z0,
+                x0 + x1 + sideX, y0 + y1 + sideY, z0 + z1, x0 + x1 - sideX, y0 + y1 - sideY, z0 + z1,
+                0, 1, 0, r, g, b, a);
+    }
+
+    // One edge of the huge-shape bounding box (origin-relative coords).
+    private static void addBoxEdge(VertexConsumer consumer,
+                                   float x0, float y0, float z0, int axis, float len,
+                                   int r, int g, int b, int a) {
+        addEdgeStrip(consumer, x0, y0, z0, axis, len, r, g, b, a);
     }
 
     // -- section buffer plumbing -------------------------------------------
@@ -316,39 +465,4 @@ public final class PreviewOverlayMesh {
                 .setOverlay(OverlayTexture.NO_OVERLAY).setLight(15728880).setNormal(nx, ny, nz);
     }
 
-    // -- border math (shape-change only now, was per-frame) ------------------
-
-    // Every block contributes its 12 edges; shared edges toggle off in pairs,
-    // leaving exactly the outer border of the shape.
-    private static Set<EdgeKey> computeBorderEdges(List<BlockPos> positions) {
-        Set<EdgeKey> edges = new HashSet<>();
-        for (BlockPos pos : positions) {
-            int x = pos.getX();
-            int y = pos.getY();
-            int z = pos.getZ();
-            toggleEdge(edges, 0, x, y, z);
-            toggleEdge(edges, 0, x, y + 1, z);
-            toggleEdge(edges, 0, x, y, z + 1);
-            toggleEdge(edges, 0, x, y + 1, z + 1);
-            toggleEdge(edges, 1, x, y, z);
-            toggleEdge(edges, 1, x + 1, y, z);
-            toggleEdge(edges, 1, x, y, z + 1);
-            toggleEdge(edges, 1, x + 1, y, z + 1);
-            toggleEdge(edges, 2, x, y, z);
-            toggleEdge(edges, 2, x + 1, y, z);
-            toggleEdge(edges, 2, x, y + 1, z);
-            toggleEdge(edges, 2, x + 1, y + 1, z);
-        }
-        return edges;
-    }
-
-    private static void toggleEdge(Set<EdgeKey> edges, int axis, int x, int y, int z) {
-        EdgeKey key = new EdgeKey(axis, x, y, z);
-        if (!edges.remove(key)) {
-            edges.add(key);
-        }
-    }
-
-    private record EdgeKey(int axis, int x, int y, int z) {
-    }
 }

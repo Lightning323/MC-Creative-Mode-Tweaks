@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BooleanSupplier;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.block.BlockRenderDispatcher;
@@ -63,16 +64,28 @@ public final class PreviewBlockMesh {
     private final List<Section> sections = new ArrayList<>();
     private Level level;
 
+    /** Thrown to unwind a bake the render thread already superseded. Never escapes this class. */
+    private static final class BakeAborted extends RuntimeException {
+        private BakeAborted() {
+            super(null, null, false, false);
+        }
+    }
+
     /**
      * Tessellates ghost blocks into CPU-side meshes. Runs on the preview
      * worker thread — touches baked models and level reads (same class of
      * reads vanilla chunk builders do off-thread) but never GL.
      * {@code blocks} must already be the valid-only subset.
      *
-     * @return per-section meshes the render thread uploads via {@link #adopt}.
+     * @param keepGoing polled as the bake proceeds; when it flips false the
+     *                  bake unwinds immediately (returns {@code null}) so a
+     *                  stale drag frame never burns a full tessellation.
+     * @return per-section meshes the render thread uploads via {@link #adopt},
+     *         or {@code null} when aborted superseded (nothing to free).
      */
     public static List<SectionMeshDraw.PendingSection> bake(BlockRenderDispatcher dispatcher, Level level,
-                                                            List<PreviewBlock> blocks, int alpha) {
+                                                            List<PreviewBlock> blocks, int alpha,
+                                                            BooleanSupplier keepGoing) {
         List<SectionMeshDraw.PendingSection> out = new ArrayList<>();
         if (blocks.isEmpty() || alpha == 0) {
             return out;
@@ -80,7 +93,7 @@ public final class PreviewBlockMesh {
 
         // Fast neighbor lookups for face culling: pos -> preview state.
         Long2ObjectOpenHashMap<BlockState> states = new Long2ObjectOpenHashMap<>(blocks.size());
-        Map<Long, List<PreviewBlock>> bySection = new LinkedHashMap<>();
+        Map<Long, List<PreviewBlock>> bySection = new LinkedHashMap<>(Math.max(16, blocks.size() / 64));
         for (PreviewBlock block : blocks) {
             states.put(block.pos().asLong(), block.state());
             bySection.computeIfAbsent(SectionPos.asLong(block.pos()), unused -> new ArrayList<>()).add(block);
@@ -93,11 +106,17 @@ public final class PreviewBlockMesh {
         ModelBlockRenderer.enableCaching();
         try {
             for (Map.Entry<Long, List<PreviewBlock>> entry : bySection.entrySet()) {
-                SectionMeshDraw.PendingSection section = buildSection(dispatcher, view, random, entry.getKey(), entry.getValue(), alpha);
+                if (!keepGoing.getAsBoolean()) {
+                    throw new BakeAborted();
+                }
+                SectionMeshDraw.PendingSection section = buildSection(dispatcher, view, random, entry.getKey(), entry.getValue(), alpha, keepGoing);
                 if (section != null) {
                     out.add(section);
                 }
             }
+        } catch (BakeAborted aborted) {
+            SectionMeshDraw.discardAllPending(out);
+            return null;
         } catch (RuntimeException failure) {
             SectionMeshDraw.discardAllPending(out);
             throw failure;
@@ -155,16 +174,26 @@ public final class PreviewBlockMesh {
     // it here would invalidate the mesh before upload (crash), never closing
     // it would leak native memory until OOM (also crash).
     private static SectionMeshDraw.PendingSection buildSection(BlockRenderDispatcher dispatcher, PreviewBlockView view,
-                                                              RandomSource random, long sectionKey,
-                                                              List<PreviewBlock> blocks, int alpha) {
-        ByteBufferBuilder backing = new ByteBufferBuilder(SECTION_BUFFER_HINT);
+                                                               RandomSource random, long sectionKey,
+                                                               List<PreviewBlock> blocks, int alpha,
+                                                               BooleanSupplier keepGoing) {
+        // Sparse sections must not reserve a full chunk-sized store each:
+        // ~2KB per block covers the worst case, capped like before.
+        int hint = Math.min(SECTION_BUFFER_HINT, Math.max(4096, blocks.size() * 2048));
+        ByteBufferBuilder backing = new ByteBufferBuilder(hint);
         boolean transferred = false;
         try {
             BufferBuilder builder = new BufferBuilder(backing, VertexFormat.Mode.QUADS, DefaultVertexFormat.BLOCK);
             VertexConsumer consumer = new AlphaFullBrightVertexConsumer(builder, alpha);
             PoseStack sectionPose = new PoseStack();
 
-            for (PreviewBlock block : blocks) {
+            for (int i = 0, n = blocks.size(); i < n; i++) {
+                // Bail out of a superseded bake even mid-section; the
+                // bit-mask keeps the supplier call off the hot path.
+                if ((i & 127) == 0 && !keepGoing.getAsBoolean()) {
+                    throw new BakeAborted();
+                }
+                PreviewBlock block = blocks.get(i);
                 BlockPos pos = block.pos();
                 BlockState state = block.state();
                 FluidState fluid = state.getFluidState();

@@ -39,32 +39,36 @@ import org.joml.Matrix4f;
  *   <li>draw the handful of animated block entities + Mesh vertices live.</li>
  * </ol>
  *
- * <p>The one remaining per-frame {@code O(N)} loop is the action-bar
- * count/dims line in {@code updateFeedback} while a sequence is active
- * (plain int compares, no allocation — the list itself is cached). Everything
- * that allocated, hashed, sorted or touched the world per frame before now
- * runs on shape change only.</p>
+ * <p>Cache hits allocate nothing meaningful: the action-bar line re-shows the
+ * cached component ({@code showCachedFeedback}, no list scan), and the Mesh
+ * marker pass reuses the cache's raycast hit instead of raycasting twice.
+ * Everything that allocated, hashed, sorted or touched the world per frame
+ * before now runs on shape change only — and huge shapes degrade further to
+ * a throttled bounding box (see {@link PreviewRenderCache}).</p>
  */
 public class BlockPreviewRenderer {
    private static final ResourceLocation SELECTION_TEXTURE = ResourceLocation.fromNamespaceAndPath("creative_mode_tweaks", "textures/special/selection.png");
    private static final RenderType MESH_VERTEX_RENDER_TYPE = RenderType.eyes(SELECTION_TEXTURE);
 
-   public static void render(PoseStack poseStack, MultiBufferSource.BufferSource bufferSource, double camX, double camY, double camZ, Matrix4f modelViewMatrix, Matrix4f projectionMatrix) {
-      Minecraft mc = Minecraft.getInstance();
-      if (mc.player == null || mc.level == null) {
-         PreviewRenderCache.get().clear();
-         return;
-      }
+    public static void render(PoseStack poseStack, MultiBufferSource.BufferSource bufferSource, double camX, double camY, double camZ, Matrix4f modelViewMatrix, Matrix4f projectionMatrix) {
+       Minecraft mc = Minecraft.getInstance();
+       PreviewRenderCache cache = PreviewRenderCache.get();
+       if (mc.player == null || mc.level == null) {
+          // Menus/loading hit this every frame: skip the cancel + free churn
+          // when there is nothing cached to drop.
+          if (!cache.isIdle()) {
+             cache.clear();
+          }
+          return;
+       }
 
-      PreviewRenderCache cache = PreviewRenderCache.get();
-      cache.update(mc);
+       cache.update(mc);
 
-      if (cache.hasPreview()) {
-         // Count/dims line + placement sound. Reads the cached list (no
-         // allocation); the min/max scan only runs mid-sequence. Red when the
-         // count cap cut the shape (see PreviewRenderCache.isOverLimit).
-         BuildPipeline.BuildState pendingAction = BuildPipelineClient.getBuildState();
-         RenderHandler.updateFeedback(cache.allPositions(), pendingAction != null, pendingAction, cache.isOverLimit());
+       if (cache.hasPreview()) {
+          // Count/dims line: re-shows the component the shape change cached
+          // (no scan, no allocation). Red when the count cap cut the shape.
+          BuildPipeline.BuildState pendingAction = BuildPipelineClient.getBuildState();
+          RenderHandler.showCachedFeedback(pendingAction != null, pendingAction);
 
          // Ghost blocks: pure GPU re-draw of the cached sections.
          cache.renderBlocks(mc.level, camX, camY, camZ, modelViewMatrix, projectionMatrix);
@@ -98,26 +102,30 @@ public class BlockPreviewRenderer {
          RenderHandler.resetPreviewSize();
       }
 
-      renderSelectionMarkers(poseStack, bufferSource, mc.level, camX, camY, camZ);
-   }
+       renderSelectionMarkers(poseStack, bufferSource, cache, mc.level, camX, camY, camZ);
+    }
 
-   /** Renders Mesh's session-only vertices independently of the normal block preview. */
-   private static void renderSelectionMarkers(PoseStack poseStack, MultiBufferSource.BufferSource bufferSource, Level level, double camX, double camY, double camZ) {
-      if (BuildModes.CLIENT.getBuildMode() != BuildModeEnum.MESH || !(BuildModeEnum.MESH.instance instanceof Mesh mesh)) {
-         return;
-      }
+    /** Renders Mesh's session-only vertices independently of the normal block preview. */
+    private static void renderSelectionMarkers(PoseStack poseStack, MultiBufferSource.BufferSource bufferSource, PreviewRenderCache cache, Level level, double camX, double camY, double camZ) {
+       if (BuildModes.CLIENT.getBuildMode() != BuildModeEnum.MESH || !(BuildModeEnum.MESH.instance instanceof Mesh mesh)) {
+          return;
+       }
 
-      List<BlockPos> vertices = mesh.getVertexMarkers();
-      if (vertices.isEmpty()) {
-         return;
-      }
+       List<BlockPos> vertices = mesh.getVertexMarkers();
+       if (vertices.isEmpty()) {
+          return;
+       }
 
-      // Deliberately live: a handful of boxes, and they must track hover
-      // highlights the same frame the crosshair moves onto them.
-      RenderSystem.depthMask(false);
-      VertexConsumer consumer = bufferSource.getBuffer(MESH_VERTEX_RENDER_TYPE);
-      BlockHitResult hit = BuildPipelineClient.getCurrentTargetHit(Minecraft.getInstance());
-      BlockPos hoveredMarker = hit != null ? mesh.getSelectionMarker(hit.getBlockPos()) : null;
+       // Deliberately live: a handful of boxes, and they must track hover
+       // highlights the same frame the crosshair moves onto them. Reuses the
+       // cache's hit — the frame already paid for exactly one raycast.
+       RenderSystem.depthMask(false);
+       VertexConsumer consumer = bufferSource.getBuffer(MESH_VERTEX_RENDER_TYPE);
+       BlockHitResult hit = cache.getCurrentHit();
+       if (hit == null) {
+          hit = BuildPipelineClient.getCurrentTargetHit(Minecraft.getInstance());
+       }
+       BlockPos hoveredMarker = hit != null ? mesh.getSelectionMarker(hit.getBlockPos()) : null;
 
       for (BlockPos vertex : vertices) {
          boolean selected = mesh.isVertexSelected(vertex)

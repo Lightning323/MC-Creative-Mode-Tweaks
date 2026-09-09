@@ -1,9 +1,12 @@
 package nl.requios.effortlessbuilding.render.preview;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -57,6 +60,12 @@ import org.lightning323.creative_mode_tweaks.Config;
  * (smoother shape-change frames, but the border then lags with the ghosts).
  * Off by default.</p>
  *
+ * <p><b>Huge shapes</b> (past {@link #DETAILED_PREVIEW_BLOCK_LIMIT} blocks,
+ * or past the configured max-blocks cap) skip all of that: one min/max pass
+ * feeds a single bounding-box overlay, ghosts stay off, and hover-only
+ * reshapes are throttled to ~12Hz. The count/dims line stays exact (red past
+ * the cap); placement itself was always server-authoritative.</p>
+ *
  * <p>Validity split is preserved: over-limit / protected / out-of-reach blocks
  * stay flagged as <i>rejected</i> for the overlay, which draws the <i>exact
  * tool shape</i> — white fill + outline for placeable, red/grey for rejected.
@@ -65,6 +74,24 @@ import org.lightning323.creative_mode_tweaks.Config;
  */
 public final class PreviewRenderCache {
     private static final PreviewRenderCache INSTANCE = new PreviewRenderCache();
+
+    /**
+     * Past this many blocks the preview degrades to the cheap path: one
+     * bounding-box overlay, no ghost tessellation, no sorting, no per-block
+     * validity scans. One full 16³ section holds 4096 blocks, so anything
+     * bigger was already paying multi-section costs on every shape change;
+     * survival's default cap (2000) stays fully detailed.
+     */
+    static final int DETAILED_PREVIEW_BLOCK_LIMIT = Integer.MAX_VALUE;
+
+    /**
+     * Minimum time between shape rebuilds while a huge preview is live and
+     * only the hover point moved. Dragging a 50k-block shape otherwise
+     * regenerates tens of thousands of coordinates every frame; 80ms keeps
+     * the box tracking the cursor at ~12Hz instead of hitching the game.
+     * Clicks, mode/item/config changes always rebuild immediately.
+     */
+    private static final long HUGE_SHAPE_RESHAPE_MIN_NANOS = 80_000_000L;
 
     public static PreviewRenderCache get() {
         return INSTANCE;
@@ -99,6 +126,20 @@ public final class PreviewRenderCache {
     private int pendingAlpha;
     private long submittedFrame;
     private long frame;
+
+    // True while the live shape uses the huge-shape box path (no ghosts,
+    // box overlay). Gates the hover-only reshape throttle in update().
+    private boolean simplePreview;
+    private long lastShapeNanos;
+
+    // Raycast hit reused by the frame: computed once here, shared with the
+    // selection-marker pass so the frame pays for exactly one raycast.
+    private @Nullable BlockHitResult currentHit;
+
+    // level.dimension().location().toString() allocates every call; the
+    // dimension barely changes, so remember it per level instance.
+    private @Nullable Level dimensionLevel;
+    private String dimensionId = "";
 
     // Bumped on resource reload so pre-reload bakes can never go live.
     private int modelGeneration;
@@ -143,6 +184,7 @@ public final class PreviewRenderCache {
         }
 
         BlockHitResult hit = BuildPipelineClient.getCurrentTargetHit(mc);
+        this.currentHit = hit;
         PreviewShapeKey key = buildKey(player, level, mode, inProgress, state, hit);
         if (key == null) {
             // Hovered across a Sable boundary: nothing valid to show.
@@ -155,7 +197,14 @@ public final class PreviewRenderCache {
         this.frame++;
 
         if (!key.equals(this.shapedKey) || level != this.shapedLevel) {
-            shapeOnRenderThread(mc, player, level, mode, state, hit, key);
+            if (this.simplePreview && hoverOnlyChange(this.shapedKey, key)
+                    && System.nanoTime() - this.lastShapeNanos < HUGE_SHAPE_RESHAPE_MIN_NANOS) {
+                // Huge box already on screen and only the cursor moved a
+                // moment ago: hold the stale box briefly instead of
+                // regenerating tens of thousands of blocks this frame.
+            } else {
+                shapeOnRenderThread(mc, player, level, mode, state, hit, key);
+            }
         } else if (this.wantsBlocks && !key.equals(this.meshKey)
                 && this.frame - this.submittedFrame > 120) {
             // Worker bake vanished without a trace (dropped race + no
@@ -164,13 +213,17 @@ public final class PreviewRenderCache {
         }
     }
 
-    /** Ghost blocks (cached sections). No-op until the first bake swaps in. */
+    /**
+     * Ghost blocks (cached sections). No-op until the first bake swaps in.
+     */
     public void renderBlocks(Level level, double camX, double camY, double camZ,
                              Matrix4f modelView, Matrix4f projection) {
         this.blockMesh.render(level, camX, camY, camZ, modelView, projection);
     }
 
-    /** Tinted fill boxes (cached sections, always live). */
+    /**
+     * Tinted fill boxes (cached sections, always live).
+     */
     public void renderFill(Level level, double camX, double camY, double camZ,
                            Matrix4f modelView, Matrix4f projection) {
         if (!this.hasOverlay) {
@@ -179,7 +232,9 @@ public final class PreviewRenderCache {
         this.overlayMesh.renderFill(level, camX, camY, camZ, modelView, projection);
     }
 
-    /** Border outline (cached sections, always live). */
+    /**
+     * Border outline (cached sections, always live).
+     */
     public void renderOutline(Level level, double camX, double camY, double camZ,
                               Matrix4f modelView, Matrix4f projection) {
         if (!this.hasOverlay) {
@@ -204,7 +259,9 @@ public final class PreviewRenderCache {
         return this.unbreakable;
     }
 
-    /** Breakable + unbreakable, for the count/dims action-bar line. */
+    /**
+     * Breakable + unbreakable, for the count/dims action-bar line.
+     */
     public List<BlockPos> allPositions() {
         return this.all;
     }
@@ -213,7 +270,9 @@ public final class PreviewRenderCache {
         return this.isBreaking;
     }
 
-    /** True when the count cap cut blocks: the shape won't fully build. */
+    /**
+     * True when the count cap cut blocks: the shape won't fully build.
+     */
     public boolean isOverLimit() {
         return this.overLimit;
     }
@@ -222,7 +281,27 @@ public final class PreviewRenderCache {
         return !this.breakable.isEmpty() || !this.unbreakable.isEmpty();
     }
 
-    /** Drops GPU buffers + snapshots and cancels in-flight work. */
+    /** True while the live preview is the huge-shape bounding box (no ghosts). */
+    public boolean isSimplePreview() {
+        return this.simplePreview;
+    }
+
+    /**
+     * This frame's raycast hit, or null when there is no live preview.
+     * Lets the marker pass reuse the hit instead of raycasting twice.
+     */
+    public @Nullable BlockHitResult getCurrentHit() {
+        return this.currentHit;
+    }
+
+    /** True when nothing is cached, submitted or shaped: clear() would be a no-op. */
+    public boolean isIdle() {
+        return this.shapedKey == null && this.submittedKey == null && !hasPreview();
+    }
+
+    /**
+     * Drops GPU buffers + snapshots and cancels in-flight work.
+     */
     public void clear() {
         PreviewBuildWorker.cancel();
         this.blockMesh.clear();
@@ -239,9 +318,15 @@ public final class PreviewRenderCache {
         this.hasOverlay = false;
         this.wantsBlocks = false;
         this.overLimit = false;
+        this.simplePreview = false;
+        this.lastShapeNanos = 0;
+        this.currentHit = null;
+        this.dimensionLevel = null;
     }
 
-    /** Resource reload: same as clear, plus retire pre-reload bakes. */
+    /**
+     * Resource reload: same as clear, plus retire pre-reload bakes.
+     */
     public void onModelsBaked() {
         clear();
         this.modelGeneration++;
@@ -275,6 +360,96 @@ public final class PreviewRenderCache {
             return;
         }
 
+        int maxBlocks = key.maxBlocks();
+        if (blocks.size() > DETAILED_PREVIEW_BLOCK_LIMIT) {
+            // Too many blocks for per-block overlay + ghosts: bounding box.
+            shapeSimple(level, state, key, blocks, maxBlocks);
+            return;
+        }
+        shapeDetailed(mc, player, level, state, hit, key, blocks, anchor);
+    }
+
+    /**
+     * Huge-shape fast path: one min/max pass over the coordinates, one
+     * 6-quad box overlay, no ghosts. Skips constraints, sorting, state
+     * resolution and per-block validity — placement stays
+     * server-authoritative, so a box + exact count is the honest cheap
+     * preview. Constant overlay cost no matter how many blocks.
+     */
+    private void shapeSimple(Level level, BuildPipeline.@Nullable BuildState state,
+                             PreviewShapeKey key, BlockSet blocks, int maxBlocks) {
+        int minX = Integer.MAX_VALUE;
+        int minY = Integer.MAX_VALUE;
+        int minZ = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE;
+        int maxY = Integer.MIN_VALUE;
+        int maxZ = Integer.MIN_VALUE;
+        List<BlockPos> ok = new ArrayList<>(blocks.size());
+        for (BlockPos pos : blocks.keySet()) {
+            int x = pos.getX();
+            int y = pos.getY();
+            int z = pos.getZ();
+            if (x < minX) {
+                minX = x;
+            }
+            if (x > maxX) {
+                maxX = x;
+            }
+            if (y < minY) {
+                minY = y;
+            }
+            if (y > maxY) {
+                maxY = y;
+            }
+            if (z < minZ) {
+                minZ = z;
+            }
+            if (z > maxZ) {
+                maxZ = z;
+            }
+            ok.add(pos);
+        }
+
+        BlockPos min = new BlockPos(minX, minY, minZ);
+        BlockPos max = new BlockPos(maxX, maxY, maxZ);
+        boolean overCap = ok.size() > maxBlocks;
+        this.isBreaking = (state != null ? state : BuildPipeline.BuildState.PLACING)
+                == BuildPipeline.BuildState.BREAKING;
+        // Nothing rejected individually on this path, so the breakable list
+        // doubles as the combined count/dims view: one list, zero extra copy.
+        this.breakable = Collections.unmodifiableList(ok);
+        this.unbreakable = List.of();
+        this.all = this.breakable;
+        this.animated = List.of();
+        this.overLimit = overCap;
+        this.wantsBlocks = false;
+        this.shapedKey = key;
+        this.shapedLevel = level;
+        this.simplePreview = true;
+        this.lastShapeNanos = System.nanoTime();
+
+        // Box overlay bakes synchronously — it is microseconds, never a hitch.
+        this.overlayMesh.adopt(level, PreviewOverlayMesh.bakeBoundingBox(min, max, this.isBreaking));
+        this.hasOverlay = !this.overlayMesh.isEmpty();
+
+        // No worker traffic at all: drop stale ghosts, retire any bake.
+        PreviewBuildWorker.cancel();
+        this.blockMesh.clear();
+        this.meshKey = key;
+        this.submittedKey = key;
+        this.pendingMeshBlocks = List.of();
+
+        // Count + dims from the already-known bounds: no list rescan.
+        RenderHandler.updateFeedbackSimple(ok.size(), min, max, state != null, state, overCap);
+    }
+
+    // Full-fidelity path for sensibly-sized shapes: constraints, ghosts,
+    // exact per-block overlay. Bounded by DETAILED_PREVIEW_BLOCK_LIMIT, so
+    // every O(N log N) step here has a hard ceiling.
+    private void shapeDetailed(Minecraft mc, Player player, Level level,
+                               BuildPipeline.@Nullable BuildState state,
+                               @Nullable BlockHitResult hit, PreviewShapeKey key,
+                               BlockSet blocks, BlockPos anchor) {
         // NOTE: no sorting before processBlocks — and that is deliberate.
         // ConstraintSystem keeps the first N blocks in GENERATION order, and
         // the server pipeline caps the exact same way. Sorting first would
@@ -287,20 +462,35 @@ public final class PreviewRenderCache {
         // blocks were kept valid above.
         blocks.sortByDistance();
 
-        List<BlockPos> ok = new ArrayList<>();
+        // Single entry-set pass: split + global flags together, no second
+        // hasEntriesWithStatus scan and no per-key map re-lookup. The
+        // outside-sublevel rule (everything rejected) folds in afterwards by
+        // moving the whole ok list at once — the common case stays one pass.
+        List<BlockPos> ok = new ArrayList<>(blocks.size());
+        List<BlockEntry> okEntries = new ArrayList<>(blocks.size());
         List<BlockPos> bad = new ArrayList<>();
-        boolean outsideSublevel = blocks.hasEntriesWithStatus(BlockStatus.OUTSIDE_REACH);
+        boolean outsideSublevel = false;
         boolean overCap = false;
-        for (BlockPos pos : blocks.keySet()) {
-            BlockEntry entry = blocks.get(pos);
-            if (outsideSublevel || (entry != null && !entry.isValid())) {
-                bad.add(pos);
-            } else {
+        for (Map.Entry<BlockPos, BlockEntry> weighed : blocks.entrySet()) {
+            BlockPos pos = weighed.getKey();
+            BlockEntry entry = weighed.getValue();
+            if (entry == null || entry.isValid()) {
                 ok.add(pos);
+                okEntries.add(entry);
+            } else {
+                if (entry.getStatus() == BlockStatus.OUTSIDE_REACH) {
+                    outsideSublevel = true;
+                }
+                if (entry.getStatus() == BlockStatus.MAX_BLOCKS_EXCEEDED) {
+                    overCap = true;
+                }
+                bad.add(pos);
             }
-            if (entry != null && entry.getStatus() == BlockStatus.MAX_BLOCKS_EXCEEDED) {
-                overCap = true;
-            }
+        }
+        if (outsideSublevel && !ok.isEmpty()) {
+            bad.addAll(ok);
+            ok.clear();
+            okEntries.clear();
         }
 
         this.isBreaking = action == BuildPipeline.BuildState.BREAKING;
@@ -311,17 +501,19 @@ public final class PreviewRenderCache {
         // Ghost states resolve here (was per-frame before caching). Trowel
         // rolls one random set per shape instead of shimmering every frame.
         // Mesh stays strictly placeable-only: over-cap blocks show red in the
-        // overlay + red count line instead of rendering as ghosts.
+        // overlay + red count line instead of rendering as ghosts. Iterates
+        // the retained entry refs — no map lookups.
         List<PreviewBlock> meshBlocks = new ArrayList<>();
         List<PreviewBlock> animatedBlocks = new ArrayList<>();
-        if (wantBlocks) {
+        if (wantBlocks && !ok.isEmpty()) {
             BlockHitResult firstHit = BuildPipelineClient.getFirstClickHit();
             BlockState base = resolveBaseState(mc, player, firstHit, hit);
-            Map<Item, BlockState> trowelCache = new HashMap<>();
             boolean trowel = TrowelSystem.isTrowel(player.getMainHandItem());
-            for (BlockPos pos : ok) {
+            Map<Item, BlockState> trowelCache = trowel ? new HashMap<>() : null;
+            for (int i = 0, n = ok.size(); i < n; i++) {
+                BlockPos pos = ok.get(i);
+                BlockEntry entry = okEntries.get(i);
                 BlockState resolved = base;
-                BlockEntry entry = blocks.get(pos);
                 if (trowel && entry != null && entry.item instanceof BlockItem randomBlock) {
                     resolved = trowelCache.computeIfAbsent(entry.item,
                             item -> resolveBaseState(mc, player, randomBlock, new ItemStack(item), firstHit, hit));
@@ -341,18 +533,26 @@ public final class PreviewRenderCache {
             }
         }
 
+        // Wrap, don't copy: these lists are never mutated after publish, so
+        // unmodifiable views skip 4 full array copies per shape change.
         int alpha = key.blockAlpha();
-        this.breakable = List.copyOf(ok);
-        this.unbreakable = List.copyOf(bad);
-        List<BlockPos> combined = new ArrayList<>(ok.size() + bad.size());
-        combined.addAll(ok);
-        combined.addAll(bad);
-        this.all = List.copyOf(combined);
-        this.animated = List.copyOf(animatedBlocks);
+        this.breakable = Collections.unmodifiableList(ok);
+        this.unbreakable = bad.isEmpty() ? List.of() : Collections.unmodifiableList(bad);
+        if (bad.isEmpty()) {
+            this.all = this.breakable;
+        } else {
+            List<BlockPos> combined = new ArrayList<>(ok.size() + bad.size());
+            combined.addAll(ok);
+            combined.addAll(bad);
+            this.all = Collections.unmodifiableList(combined);
+        }
+        this.animated = animatedBlocks.isEmpty() ? List.of() : Collections.unmodifiableList(animatedBlocks);
         this.overLimit = overCap;
         this.wantsBlocks = wantBlocks && !meshBlocks.isEmpty();
         this.shapedKey = key;
         this.shapedLevel = level;
+        this.simplePreview = false;
+        this.lastShapeNanos = System.nanoTime();
 
         // Border: synchronous by default so it lands the same frame as the
         // shape. With async-boundary on, it rides the worker with the ghosts.
@@ -366,7 +566,7 @@ public final class PreviewRenderCache {
         RenderHandler.updateFeedback(this.all, state != null, state, this.overLimit);
 
         if (this.wantsBlocks) {
-            this.pendingMeshBlocks = List.copyOf(meshBlocks);
+            this.pendingMeshBlocks = Collections.unmodifiableList(meshBlocks);
             this.pendingAlpha = alpha;
             submitMeshTask(mc, level, key);
         } else {
@@ -375,7 +575,37 @@ public final class PreviewRenderCache {
             this.blockMesh.clear();
             this.meshKey = key;
             this.submittedKey = key;
+            this.pendingMeshBlocks = List.of();
         }
+    }
+
+    // True when the new key differs from the shaped one only by aim: hover
+    // block/face/point or eye block. Anything structural (clicks, mode, held
+    // item, options, limits, dimension…) must rebuild immediately.
+    private static boolean hoverOnlyChange(@Nullable PreviewShapeKey oldKey, PreviewShapeKey key) {
+        if (oldKey == null) {
+            return false;
+        }
+        return oldKey.mode() == key.mode()
+                && oldKey.inProgress() == key.inProgress()
+                && oldKey.buildState() == key.buildState()
+                && Objects.equals(oldKey.selectionOrigin(), key.selectionOrigin())
+                && Objects.equals(oldKey.firstHitPos(), key.firstHitPos())
+                && oldKey.firstHitFace() == key.firstHitFace()
+                && oldKey.heldItem() == key.heldItem()
+                && oldKey.trowel() == key.trowel()
+                && oldKey.replaceMode() == key.replaceMode()
+                && oldKey.blockAlpha() == key.blockAlpha()
+                && oldKey.maxBlocks() == key.maxBlocks()
+                && oldKey.axisLimit() == key.axisLimit()
+                && oldKey.protectTiles() == key.protectTiles()
+                && oldKey.fill() == key.fill()
+                && oldKey.cubeFill() == key.cubeFill()
+                && oldKey.sides() == key.sides()
+                && oldKey.pointBuild() == key.pointBuild()
+                && oldKey.creative() == key.creative()
+                && oldKey.asyncBoundary() == key.asyncBoundary()
+                && oldKey.dimension().equals(key.dimension());
     }
 
     // Hands the retained bake inputs to the worker. Previous ghosts stay live
@@ -426,10 +656,10 @@ public final class PreviewRenderCache {
     // Resolves the hovered block exactly like a click would land: reuse a
     // persistent Mesh vertex when hovering one, otherwise offset to air.
     // Returns null only when hovering across a Sable boundary (no preview).
-    private static @Nullable PreviewShapeKey buildKey(Player player, Level level,
-                                                      BuildModeEnum mode, boolean inProgress,
-                                                      BuildPipeline.@Nullable BuildState state,
-                                                      @Nullable BlockHitResult hit) {
+    private @Nullable PreviewShapeKey buildKey(Player player, Level level,
+                                                  BuildModeEnum mode, boolean inProgress,
+                                                  BuildPipeline.@Nullable BuildState state,
+                                                  @Nullable BlockHitResult hit) {
         BlockPos hoverPos = hit != null ? hit.getBlockPos() : null;
         Direction hoverFace = hit != null ? hit.getDirection() : null;
 
@@ -473,7 +703,17 @@ public final class PreviewRenderCache {
                 ModeOptions.getPointBuild(),
                 player.getAbilities().instabuild,
                 readAsyncBoundary(),
-                level.dimension().location().toString());
+                dimensionId(level));
+    }
+
+    // The dimension registry id allocates a fresh String every call; cache it
+    // per level instance (dimensions change rarely, instances never).
+    private String dimensionId(Level level) {
+        if (level != this.dimensionLevel) {
+            this.dimensionLevel = level;
+            this.dimensionId = level.dimension().location().toString();
+        }
+        return this.dimensionId;
     }
 
     // -- small helpers -------------------------------------------------------
