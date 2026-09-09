@@ -48,13 +48,6 @@ public class BuildPipelineClient {
    private static @Nullable BlockHitResult firstClickHit = null;
    private static @Nullable BlockPos selectionOrigin = null;
    private static boolean angelPlacementSequence = false;
-   // Last accepted legacy preview (see getPreviewBlocks): returned verbatim
-   // while oversized so a rejected grow keeps showing the frozen selection
-   // instead of vanishing.
-   private static @Nullable BlockSet lastLegacyPreview = null;
-   private static @Nullable BlockPos lastLegacyHover = null;
-   private static @Nullable BlockPos lastLegacySessionOrigin = null;
-   private static @Nullable BuildModeEnum lastLegacyMode = null;
 
    private static BuildPipeline createClientPipeline() {
       BuildPipeline pipeline = new BuildPipeline();
@@ -168,7 +161,6 @@ public class BuildPipelineClient {
             mode.instance.setFirstClickFace(hit.getDirection());
             selectionOrigin = clickedPos;
             BuildSelectionGuard.CLIENT.reset();
-            clearLegacyPreviewCache();
          } else if (mode.instance.usesDirectSecondPoint()) {
             AngelPlacement.Target target = getCurrentTarget(mc);
             if (target == null) {
@@ -285,7 +277,6 @@ public class BuildPipelineClient {
                selectionOrigin = null;
                angelPlacementSequence = false;
                BuildSelectionGuard.CLIENT.reset();
-               clearLegacyPreviewCache();
             }
          }
       }
@@ -302,15 +293,9 @@ public class BuildPipelineClient {
       selectionOrigin = null;
       angelPlacementSequence = false;
       BuildSelectionGuard.CLIENT.reset();
-      clearLegacyPreviewCache();
    }
 
-   private static void clearLegacyPreviewCache() {
-      lastLegacyPreview = null;
-      lastLegacyHover = null;
-      lastLegacySessionOrigin = null;
-      lastLegacyMode = null;
-   }
+
 
    private static void rejectMixedSelection(Player player) {
       player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.sublevel_out_of_bounds").withStyle(ChatFormatting.RED), true);

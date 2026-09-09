@@ -93,7 +93,7 @@ public final class PreviewRenderCache {
      * the box tracking the cursor at ~12Hz instead of hitching the game.
      * Clicks, mode/item/config changes always rebuild immediately.
      */
-    private static final long HUGE_SHAPE_RESHAPE_MIN_NANOS = 100_000_000L;
+    private static final long HUGE_SHAPE_RESHAPE_MIN_NANOS = 150_000_000L;
     private static final long SHAPE_RESHAPE_MIN_NANOS = 35_000_000L;
 
     /**
@@ -230,8 +230,13 @@ public final class PreviewRenderCache {
             return;
         }
 
-        // A finished bake only lands while it is still the live shape.
-        drainReady(key, level);
+        // A finished bake lands on the shaped snapshot, not the drifting
+        // cursor: while a freeze (e.g. oversized) pins shapedKey, the bake
+        // submitted on entry still lands instead of being discarded as
+        // stale — so the mesh updates one last time, then stays frozen.
+        // Every other displayed output already follows shapedKey, so this
+        // keeps ghosts consistent with the shown shape.
+        drainReady(this.shapedKey != null ? this.shapedKey : key, level);
         this.frame++;
 
         if (!key.equals(this.shapedKey) || level != this.shapedLevel) {
