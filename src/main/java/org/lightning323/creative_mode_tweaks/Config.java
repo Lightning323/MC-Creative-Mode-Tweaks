@@ -43,11 +43,11 @@ public class Config {
 
     public static final ModConfigSpec.IntValue CREATIVE_BUILDING_REACH =
             COMMON_BUILDER.comment("How far creative players can place and break blocks with build modes.")
-                    .defineInRange("reach.creative_building_reach", 56, 1, 256);
+                    .defineInRange("reach.creative_building_reach", 64, 1, 256);
 
     public static final ModConfigSpec.IntValue CREATIVE_SINGLE_REACH =
             COMMON_BUILDER.comment("How far creative players can place and break blocks in single building mode.")
-                    .defineInRange("reach.creative_reach", 46, 1, 256);
+                    .defineInRange("reach.creative_reach", 60, 1, 256);
 
     public static final ModConfigSpec.IntValue SURVIVAL_BUILDING_REACH =
             COMMON_BUILDER.comment("How far survival players can place and break blocks with build modes.")
@@ -145,22 +145,22 @@ public class Config {
     public static final ModConfigSpec.IntValue BUILDING_CREATIVE_MAX_BLOCKS_PLACED =
             COMMON_BUILDER.comment("Maximum number of blocks creative players can place or break in a single action.")
                     .translation("creative_mode_tweaks.config.max_blocks_placed")
-                    .defineInRange("building.creative.max_blocks_placed", 50000, 1, 100000);
+                    .defineInRange("building.creative.max_blocks_placed", 100000, 1, Integer.MAX_VALUE);
 
     public static final ModConfigSpec.IntValue BUILDING_CREATIVE_MAX_BLOCKS_PER_AXIS =
             COMMON_BUILDER.comment("Maximum size of a creative build-mode shape along any axis.")
                     .translation("creative_mode_tweaks.config.max_blocks_per_axis")
-                    .defineInRange("building.creative.max_blocks_per_axis", 1000, 1, 1000);
+                    .defineInRange("building.creative.max_blocks_per_axis", 1000, 1, Integer.MAX_VALUE);
 
     public static final ModConfigSpec.IntValue BUILDING_CREATIVE_MAX_MIRROR_SIZE =
             COMMON_BUILDER.comment("Maximum diameter for creative mirror and radial mirror modifiers.")
                     .translation("creative_mode_tweaks.config.max_mirror_size")
-                    .defineInRange("building.creative.max_mirror_size", 256, 1, 1000);
+                    .defineInRange("building.creative.max_mirror_size", 256, 1, Integer.MAX_VALUE);
 
     public static final ModConfigSpec.IntValue BUILDING_CREATIVE_MAX_ARRAY_COUNT =
             COMMON_BUILDER.comment("Maximum number of copies a creative array modifier can produce.")
                     .translation("creative_mode_tweaks.config.max_array_count")
-                    .defineInRange("building.creative.max_array_count", 256, 1, 1000);
+                    .defineInRange("building.creative.max_array_count", 256, 1, Integer.MAX_VALUE);
 
     public static final ModConfigSpec.IntValue BUILDING_CREATIVE_MAX_ARRAY_OFFSET =
             COMMON_BUILDER.comment("Maximum offset distance for each creative array modifier axis.")
