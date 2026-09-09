@@ -62,137 +62,111 @@ public abstract class ThreeClicksBuildMode extends BaseBuildMode {
    }
 
    public void findCoordinates(BlockSet blocks, Player player) {
-      if (this.twoPointBuild) {
-         this.findTwoPointCoordinates(blocks, player);
+      ShapeFrame frame = describeShape(player);
+      if (frame == null) {
          return;
       }
+      blocks.clear();
 
-      if (this.clicks != 0) {
-         int axisLimit = Config.getBuildingMaxBlocksPerAxis(player);
-         if (this.clicks == 1) {
-            BlockPos firstPos = this.firstBlockEntry.blockPos;
-            BlockPos secondPos = this.findSecondPos(player, this.firstBlockEntry.blockPos, true);
-            if (secondPos == null) {
-               return;
-            }
-
-            int x1 = firstPos.getX();
-            int x2 = secondPos.getX();
-            int y1 = firstPos.getY();
-            int y2 = secondPos.getY();
-            int z1 = firstPos.getZ();
-            int z2 = secondPos.getZ();
-            if (x2 - x1 >= axisLimit) {
-               x2 = x1 + axisLimit - 1;
-            }
-
-            if (x1 - x2 >= axisLimit) {
-               x2 = x1 - axisLimit + 1;
-            }
-
-            if (y2 - y1 >= axisLimit) {
-               y2 = y1 + axisLimit - 1;
-            }
-
-            if (y1 - y2 >= axisLimit) {
-               y2 = y1 - axisLimit + 1;
-            }
-
-            if (z2 - z1 >= axisLimit) {
-               z2 = z1 + axisLimit - 1;
-            }
-
-            if (z1 - z2 >= axisLimit) {
-               z2 = z1 - axisLimit + 1;
-            }
-
-            blocks.clear();
-
-            for(BlockPos pos : this.getIntermediateBlocks(player, x1, y1, z1, x2, y2, z2)) {
-               if (!blocks.containsKey(pos)) {
-                  blocks.add(new BlockEntry(pos));
-               }
-            }
-
-            blocks.firstPos = firstPos;
-            blocks.lastPos = secondPos;
-         } else {
-            BlockPos firstPos = this.firstBlockEntry.blockPos;
-            BlockPos secondPos = this.secondBlockEntry.blockPos;
-            BlockPos thirdPos = this.findThirdPos(player, firstPos, secondPos, true);
-            if (thirdPos == null) {
-               return;
-            }
-
-            int x1 = firstPos.getX();
-            int x2 = secondPos.getX();
-            int x3 = thirdPos.getX();
-            int y1 = firstPos.getY();
-            int y2 = secondPos.getY();
-            int y3 = thirdPos.getY();
-            int z1 = firstPos.getZ();
-            int z2 = secondPos.getZ();
-            int z3 = thirdPos.getZ();
-            if (x2 - x1 >= axisLimit) {
-               x2 = x1 + axisLimit - 1;
-            }
-
-            if (x1 - x2 >= axisLimit) {
-               x2 = x1 - axisLimit + 1;
-            }
-
-            if (y2 - y1 >= axisLimit) {
-               y2 = y1 + axisLimit - 1;
-            }
-
-            if (y1 - y2 >= axisLimit) {
-               y2 = y1 - axisLimit + 1;
-            }
-
-            if (z2 - z1 >= axisLimit) {
-               z2 = z1 + axisLimit - 1;
-            }
-
-            if (z1 - z2 >= axisLimit) {
-               z2 = z1 - axisLimit + 1;
-            }
-
-            if (x3 - x1 >= axisLimit) {
-               x3 = x1 + axisLimit - 1;
-            }
-
-            if (x1 - x3 >= axisLimit) {
-               x3 = x1 - axisLimit + 1;
-            }
-
-            if (y3 - y1 >= axisLimit) {
-               y3 = y1 + axisLimit - 1;
-            }
-
-            if (y1 - y3 >= axisLimit) {
-               y3 = y1 - axisLimit + 1;
-            }
-
-            if (z3 - z1 >= axisLimit) {
-               z3 = z1 + axisLimit - 1;
-            }
-
-            if (z1 - z3 >= axisLimit) {
-               z3 = z1 - axisLimit + 1;
-            }
-
-            blocks.clear();
-
-            for(BlockPos pos : this.getFinalBlocks(player, x1, y1, z1, x2, y2, z2, x3, y3, z3)) {
-               if (!blocks.containsKey(pos)) {
-                  blocks.add(new BlockEntry(pos));
-               }
-            }
-
-            blocks.firstPos = firstPos;
-            blocks.lastPos = thirdPos;
+      for(BlockPos pos : expandShape(player, frame)) {
+         if (!blocks.containsKey(pos)) {
+            blocks.add(new BlockEntry(pos));
          }
+      }
 
+      blocks.firstPos = frame.first();
+      BlockPos last = frame.third() != null ? frame.third() : frame.second();
+      blocks.lastPos = last != null ? last : frame.first();
+   }
+
+   /**
+    * O(1) coordinate calculation: resolve + clamp at most two anchors.
+    * Never enumerates blocks.
+    */
+   @Override
+   public @Nullable ShapeFrame describeShape(Player player) {
+      if (this.twoPointBuild) {
+         if (this.clicks == 0 || this.firstBlockEntry == null) {
+            return null;
+         }
+         BlockPos secondPos = this.clicks == 1 ? this.previewSecondPoint : this.secondBlockEntry.blockPos;
+         if (secondPos == null) {
+            return null;
+         }
+         int axisLimit = Config.getBuildingMaxBlocksPerAxis(player);
+         BlockPos bounded = TwoClicksBuildMode.clampPair(this.firstBlockEntry.blockPos, secondPos, axisLimit);
+         return ShapeFrame.twoPoint(this.firstBlockEntry.blockPos, bounded, axisLimit,
+               ModeOptions.getFill(), ModeOptions.getCubeFill(), ModeOptions.getSides(),
+               ModeOptions.getCircleStart());
+      }
+
+      if (this.clicks == 0 || this.firstBlockEntry == null) {
+         return null;
+      }
+      int axisLimit = Config.getBuildingMaxBlocksPerAxis(player);
+      if (this.clicks == 1) {
+         BlockPos firstPos = this.firstBlockEntry.blockPos;
+         BlockPos secondPos = this.findSecondPos(player, this.firstBlockEntry.blockPos, true);
+         if (secondPos == null) {
+            return null;
+         }
+         BlockPos bounded = TwoClicksBuildMode.clampPair(firstPos, secondPos, axisLimit);
+         return ShapeFrame.intermediate(firstPos, bounded, axisLimit,
+               ModeOptions.getFill(), ModeOptions.getCubeFill(), ModeOptions.getSides(),
+               ModeOptions.getCircleStart(), false);
+      } else {
+         if (this.secondBlockEntry == null) {
+            return null;
+         }
+         BlockPos firstPos = this.firstBlockEntry.blockPos;
+         BlockPos secondPos = TwoClicksBuildMode.clampPair(firstPos, this.secondBlockEntry.blockPos, axisLimit);
+         BlockPos thirdRaw = this.findThirdPos(player, firstPos, secondPos, true);
+         if (thirdRaw == null) {
+            return null;
+         }
+         BlockPos thirdPos = TwoClicksBuildMode.clampPair(firstPos, thirdRaw, axisLimit);
+         return ShapeFrame.finall(firstPos, secondPos, thirdPos, axisLimit,
+               ModeOptions.getFill(), ModeOptions.getCubeFill(), ModeOptions.getSides(),
+               ModeOptions.getCircleStart(), false);
+      }
+   }
+
+   /**
+    * O(N) block calculation: expand resolved anchors into positions.
+    * Pure coordinate math — safe to defer off the render thread.
+    */
+   @Override
+   public List<BlockPos> expandShape(Player player, ShapeFrame frame) {
+      BlockPos firstPos = frame.first();
+      BlockPos secondPos = frame.second();
+      if (firstPos == null || secondPos == null) {
+         return List.of();
+      }
+      switch (frame.kind()) {
+         case INTERMEDIATE -> {
+            return this.getIntermediateBlocks(player,
+                  firstPos.getX(), firstPos.getY(), firstPos.getZ(),
+                  secondPos.getX(), secondPos.getY(), secondPos.getZ());
+         }
+         case FINAL -> {
+            BlockPos thirdPos = frame.third();
+            if (thirdPos == null) {
+               return List.of();
+            }
+            return this.getFinalBlocks(player,
+                  firstPos.getX(), firstPos.getY(), firstPos.getZ(),
+                  secondPos.getX(), secondPos.getY(), secondPos.getZ(),
+                  thirdPos.getX(), thirdPos.getY(), thirdPos.getZ());
+         }
+         case TWO_POINT -> {
+            return this.getFinalBlocks(player,
+                  firstPos.getX(), firstPos.getY(), firstPos.getZ(),
+                  secondPos.getX(), secondPos.getY(), secondPos.getZ(),
+                  secondPos.getX(), secondPos.getY(), secondPos.getZ());
+         }
+         default -> {
+            return List.of();
+         }
       }
    }
 

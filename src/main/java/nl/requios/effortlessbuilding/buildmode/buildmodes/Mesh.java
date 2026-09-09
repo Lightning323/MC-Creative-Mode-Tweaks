@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Set;
 import nl.requios.effortlessbuilding.buildmode.BaseBuildMode;
 import nl.requios.effortlessbuilding.buildmode.ModeOptions;
+import nl.requios.effortlessbuilding.buildmode.ShapeFrame;
 import nl.requios.effortlessbuilding.utilities.BlockEntry;
 import nl.requios.effortlessbuilding.utilities.BlockSet;
 import org.lightning323.creative_mode_tweaks.Config;
@@ -65,17 +66,11 @@ public class Mesh extends BaseBuildMode {
    }
 
    public void findCoordinates(BlockSet blocks, Player player) {
-      List<BlockPos> selectedPoints = new ArrayList(this.points);
-      if (selectedPoints.size() < this.requiredPointCount() && this.previewPoint != null) {
-         selectedPoints.add(this.previewPoint);
-      }
-
-      if (selectedPoints.isEmpty()) {
+      ShapeFrame frame = describeShape(player);
+      if (frame == null || frame.meshPoints() == null) {
          return;
       }
-
-      List<BlockPos> boundedPoints = this.limitToBuildRange(player, selectedPoints);
-      List<BlockPos> meshBlocks = this.getMeshBlocks(boundedPoints);
+      List<BlockPos> meshBlocks = expandShape(player, frame);
       blocks.clear();
 
       for(BlockPos pos : meshBlocks) {
@@ -84,8 +79,41 @@ public class Mesh extends BaseBuildMode {
          }
       }
 
-      blocks.firstPos = (BlockPos)boundedPoints.getFirst();
-      blocks.lastPos = (BlockPos)boundedPoints.getLast();
+      blocks.firstPos = frame.meshPoints().getFirst();
+      blocks.lastPos = frame.meshPoints().getLast();
+   }
+
+   /**
+    * O(1) coordinate calculation: snapshot + clamp at most 4 vertices.
+    * Never runs the triangle/line sampling.
+    */
+   @Override
+   public @Nullable ShapeFrame describeShape(Player player) {
+      List<BlockPos> selectedPoints = new ArrayList(this.points);
+      if (selectedPoints.size() < this.requiredPointCount() && this.previewPoint != null) {
+         selectedPoints.add(this.previewPoint);
+      }
+
+      if (selectedPoints.isEmpty()) {
+         return null;
+      }
+
+      List<BlockPos> boundedPoints = this.limitToBuildRange(player, selectedPoints);
+      int axisLimit = Config.getBuildingMaxBlocksPerAxis(player);
+      return ShapeFrame.mesh(boundedPoints, axisLimit,
+            ModeOptions.getFill(), ModeOptions.getCubeFill(), ModeOptions.getSides(),
+            ModeOptions.getCircleStart());
+   }
+
+   /**
+    * O(N) block calculation: sample lines/triangles between the vertices.
+    */
+   @Override
+   public List<BlockPos> expandShape(Player player, ShapeFrame frame) {
+      if (frame.kind() != ShapeFrame.Kind.MESH || frame.meshPoints() == null) {
+         return List.of();
+      }
+      return this.getMeshBlocks(frame.meshPoints());
    }
 
    public List<BlockPos> getServerBlocks(Player player, BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos, @Nullable BlockPos fourthPos) {

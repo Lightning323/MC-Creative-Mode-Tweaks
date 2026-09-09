@@ -29,6 +29,7 @@ import nl.requios.effortlessbuilding.buildmode.BuildModeEnum;
 import nl.requios.effortlessbuilding.buildmode.BuildModes;
 import nl.requios.effortlessbuilding.buildmode.BuildSettings;
 import nl.requios.effortlessbuilding.buildmode.ModeOptions;
+import nl.requios.effortlessbuilding.buildmode.ShapeFrame;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipeline;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipelineClient;
 import nl.requios.effortlessbuilding.buildpipeline.SableCompat;
@@ -279,7 +280,8 @@ public final class PreviewRenderCache {
     }
 
     public boolean hasPreview() {
-        return !this.breakable.isEmpty() || !this.unbreakable.isEmpty();
+        return !this.breakable.isEmpty() || !this.unbreakable.isEmpty()
+                || (this.simplePreview && this.hasOverlay);
     }
 
     /** True while the live preview is the huge-shape bounding box (no ghosts). */
@@ -335,25 +337,28 @@ public final class PreviewRenderCache {
 
     // -- shape path (render thread, key-gated) --------------------------------
 
-    // Everything except ghost tessellation, done the moment the key changes:
-    // hover publish, coordinates, constraints, state resolution, overlay bake,
-    // feedback — then the ghosts go to the worker. The overlay/message are
-    // therefore instantaneous even while ghosts still bake.
+    // Everything except ghost tessellation, done the moment the key changes.
+    // Split into two stages with different budgets:
+    //   1. describeShape (O(1), always): resolve + clamp at most two anchors.
+    //   2. expandShape (O(N), separate): enumerate every block position.
+    // Huge shapes never reach stage 2: the O(1) estimate routes them to the
+    // box overlay, so the render thread never allocates per-block lists.
     private void shapeOnRenderThread(Minecraft mc, Player player, Level level,
-                                     BuildModeEnum mode, BuildPipeline.@Nullable BuildState state,
-                                     @Nullable BlockHitResult hit, PreviewShapeKey key) {
-        // Publish the hover point BEFORE generating coordinates —
-        // findCoordinates reads it as the in-progress second/third point.
+                                      BuildModeEnum mode, BuildPipeline.@Nullable BuildState state,
+                                      @Nullable BlockHitResult hit, PreviewShapeKey key) {
+        // Publish the hover point BEFORE resolving anchors —
+        // describeShape reads it as the in-progress second/third point.
         if (mode.instance.usesDirectSecondPoint()) {
             mode.instance.setPreviewPoint(key.hoverPoint());
         }
 
         BlockPos anchor = key.selectionOrigin() != null ? key.selectionOrigin() : player.blockPosition();
-        BlockSet blocks = new BlockSet();
+        ShapeFrame frame;
         try (SableCompat.SelectionScope ignored = SableCompat.pushSelection(level, anchor)) {
-            mode.instance.findCoordinates(blocks, player);
+            // Stage 1 — coordinate calculation. ALWAYS O(1).
+            frame = mode.instance.describeShape(player);
         }
-        if (blocks.isEmpty()) {
+        if (frame == null || frame.isEmpty()) {
             clear();
             RenderHandler.resetPreviewSize();
             this.shapedKey = key;
@@ -362,13 +367,89 @@ public final class PreviewRenderCache {
         }
 
         int maxBlocks = key.maxBlocks();
+        long estimate = mode.instance.countBlocks(frame);
+        long detailedLimit = Math.max((long) DETAILED_PREVIEW_BLOCK_LIMIT,
+                (long) (Config.getBuildingMaxBlocksPlaced(player) * 1.5));
+        if (estimate > detailedLimit) {
+            // Too many blocks for per-block overlay + ghosts: bounding box
+            // straight from the anchors. No enumeration at all.
+            shapeSimpleFromFrame(level, state, key, frame, maxBlocks, estimate);
+            return;
+        }
+
+        // Stage 2 — block calculation (O(N)). Separate call, only reached
+        // when the O(1) estimate says the shape fits the detailed path.
+        BlockSet blocks = new BlockSet();
+        for (BlockPos pos : mode.instance.expandShape(player, frame)) {
+            if (!blocks.containsKey(pos)) {
+                blocks.put(pos, new nl.requios.effortlessbuilding.utilities.BlockEntry(pos));
+            }
+        }
+        blocks.firstPos = frame.first();
+        BlockPos last = frame.third() != null ? frame.third() : frame.second();
+        blocks.lastPos = last != null ? last : frame.first();
+        if (blocks.isEmpty()) {
+            clear();
+            RenderHandler.resetPreviewSize();
+            this.shapedKey = key;
+            this.shapedLevel = level;
+            return;
+        }
+
         if (blocks.size() > DETAILED_PREVIEW_BLOCK_LIMIT
                 || blocks.size() > Config.getBuildingMaxBlocksPlaced(player) * 1.5) {
-            // Too many blocks for per-block overlay + ghosts: bounding box.
-            shapeSimple(level, state, key, blocks, maxBlocks);
+            // Conservative estimate let a hollow shape through; fall back to
+            // the box without keeping the expanded list.
+            shapeSimpleFromFrame(level, state, key, frame, maxBlocks, blocks.size());
             return;
         }
         shapeDetailed(mc, player, level, state, hit, key, blocks, anchor);
+    }
+
+    /**
+     * Huge-shape fast path, O(1) end to end: min/max straight from the shape
+     * anchors, one 6-quad box overlay, no ghosts, no per-block lists.
+     * The count is the O(1) estimate (exact for solid boxes, an upper bound
+     * for hollow/skeleton shapes); placement itself stays
+     * server-authoritative. Constant cost no matter how many blocks.
+     */
+    private void shapeSimpleFromFrame(Level level, BuildPipeline.@Nullable BuildState state,
+                                      PreviewShapeKey key, ShapeFrame frame,
+                                      int maxBlocks, long estimatedCount) {
+        BlockPos min = frame.aabbMin();
+        BlockPos max = frame.aabbMax();
+        boolean overCap = estimatedCount > maxBlocks;
+        this.isBreaking = (state != null ? state : BuildPipeline.BuildState.BREAKING)
+                == BuildPipeline.BuildState.BREAKING;
+        // No per-block lists on this path: the box overlay + estimated count
+        // are the whole preview. hasPreview() reports the box via
+        // simplePreview && hasOverlay.
+        this.breakable = List.of();
+        this.unbreakable = List.of();
+        this.all = List.of();
+        this.animated = List.of();
+        this.overLimit = overCap;
+        this.wantsBlocks = false;
+        this.shapedKey = key;
+        this.shapedLevel = level;
+        this.simplePreview = true;
+        this.lastShapeNanos = System.nanoTime();
+
+        // Box overlay bakes synchronously — it is microseconds, never a hitch.
+        this.overlayMesh.adopt(level, PreviewOverlayMesh.bakeBoundingBox(min, max, this.isBreaking));
+        this.overlayMesh.setIsSimple(true);
+        this.hasOverlay = !this.overlayMesh.isEmpty();
+
+        // No worker traffic at all: drop stale ghosts, retire any bake.
+        PreviewBuildWorker.cancel();
+        this.blockMesh.clear();
+        this.meshKey = key;
+        this.submittedKey = key;
+        this.pendingMeshBlocks = List.of();
+
+        // Count + dims from the already-known bounds: no list rescan.
+        RenderHandler.updateFeedbackSimple((int) Math.min(estimatedCount, Integer.MAX_VALUE),
+                min, max, state != null, state, overCap);
     }
 
     /**

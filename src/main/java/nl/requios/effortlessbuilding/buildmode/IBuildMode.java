@@ -22,6 +22,34 @@ public interface IBuildMode {
 
    void findCoordinates(BlockSet var1, Player var2);
 
+   /**
+    * Resolves the shape anchors only (first/second/third click points +
+    * axis clamping + option snapshot). MUST be O(1): no block enumeration,
+    * no world scans, no allocation proportional to the shape volume.
+    * Returns null when no selection is in progress.
+    */
+   default @Nullable ShapeFrame describeShape(Player player) {
+      return null;
+   }
+
+   /**
+    * Expands a frame from {@link #describeShape} into the full block list.
+    * This is the O(N) block calculation, kept separate so callers can run
+    * the O(1) coordinate part on the render thread and defer/skip this.
+    */
+   default List<BlockPos> expandShape(Player player, ShapeFrame frame) {
+      return List.of();
+   }
+
+   /**
+    * O(1) upper bound on the expanded block count, used for detailed-vs-box
+    * routing without enumerating. Defaults to the anchor bounding-box volume
+    * (conservative: hollow shapes only overestimate, never underestimate).
+    */
+   default long countBlocks(ShapeFrame frame) {
+      return frame.aabbVolume();
+   }
+
    default void setFirstClickFace(Direction face) {
    }
 
