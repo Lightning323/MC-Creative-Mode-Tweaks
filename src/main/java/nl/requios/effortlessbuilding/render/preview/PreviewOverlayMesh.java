@@ -56,14 +56,21 @@ public final class PreviewOverlayMesh {
     private static final float OUTLINE_HALF_WIDTH = 0.02F;
 
     private final ResourceLocation fillTexture;
+    private final ResourceLocation simpleFillTexture;
     private final ResourceLocation outlineTexture;
 
+    private  boolean isSimple;
     private final List<Section> fillSections = new ArrayList<>();
     private final List<Section> outlineSections = new ArrayList<>();
     private Level level;
 
-    public PreviewOverlayMesh(ResourceLocation fillTexture, ResourceLocation outlineTexture) {
+    public void setIsSimple(boolean isSimple) {
+        this.isSimple = isSimple;
+    }
+
+    public PreviewOverlayMesh(ResourceLocation fillTexture, ResourceLocation simpleFillTexture, ResourceLocation outlineTexture) {
         this.fillTexture = fillTexture;
+        this.simpleFillTexture = simpleFillTexture;
         this.outlineTexture = outlineTexture;
     }
 
@@ -227,7 +234,7 @@ public final class PreviewOverlayMesh {
             return;
         }
         SectionMeshDraw.drawAll(this.fillSections, level, camX, camY, camZ,
-                baseModelView, projectionMatrix, RenderType.entityTranslucentCull(this.fillTexture));
+                baseModelView, projectionMatrix, RenderType.entityTranslucentCull(isSimple? this.simpleFillTexture : this.fillTexture));
     }
 
     /** Draws the border outline (blank texture, thin strips). */

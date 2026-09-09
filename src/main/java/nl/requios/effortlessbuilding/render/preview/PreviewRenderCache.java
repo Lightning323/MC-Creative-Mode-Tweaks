@@ -147,6 +147,7 @@ public final class PreviewRenderCache {
     private PreviewRenderCache() {
         this.overlayMesh = new PreviewOverlayMesh(
                 ResourceLocation.fromNamespaceAndPath("creative_mode_tweaks", "textures/special/checkerboard.png"),
+                ResourceLocation.fromNamespaceAndPath("creative_mode_tweaks", "textures/special/solid.png"),
                 ResourceLocation.fromNamespaceAndPath("creative_mode_tweaks", "textures/special/blank.png"));
     }
 
@@ -361,7 +362,8 @@ public final class PreviewRenderCache {
         }
 
         int maxBlocks = key.maxBlocks();
-        if (blocks.size() > DETAILED_PREVIEW_BLOCK_LIMIT) {
+        if (blocks.size() > DETAILED_PREVIEW_BLOCK_LIMIT
+                || blocks.size() > Config.getBuildingMaxBlocksPlaced(player) * 1.5) {
             // Too many blocks for per-block overlay + ghosts: bounding box.
             shapeSimple(level, state, key, blocks, maxBlocks);
             return;
@@ -430,6 +432,7 @@ public final class PreviewRenderCache {
 
         // Box overlay bakes synchronously — it is microseconds, never a hitch.
         this.overlayMesh.adopt(level, PreviewOverlayMesh.bakeBoundingBox(min, max, this.isBreaking));
+        this.overlayMesh.setIsSimple(true);
         this.hasOverlay = !this.overlayMesh.isEmpty();
 
         // No worker traffic at all: drop stale ghosts, retire any bake.
@@ -454,6 +457,7 @@ public final class PreviewRenderCache {
         // ConstraintSystem keeps the first N blocks in GENERATION order, and
         // the server pipeline caps the exact same way. Sorting first would
         // preview a different subset (closest-first blob) than placed.
+        this.overlayMesh.setIsSimple(false);
         BuildPipeline.BuildState action = state != null ? state : BuildPipeline.BuildState.PLACING;
         try (SableCompat.SelectionScope ignored = SableCompat.pushSelection(level, anchor)) {
             BuildPipelineClient.CLIENT.processBlocks(blocks, player, action);
