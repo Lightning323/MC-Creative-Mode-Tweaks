@@ -1,6 +1,8 @@
 package nl.requios.effortlessbuilding.buildpipeline;
 
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import java.util.HashMap;
+import java.util.Map;
 import org.lightning323.creative_mode_tweaks.Config;
 import nl.requios.effortlessbuilding.utilities.BlockEntry;
 import nl.requios.effortlessbuilding.utilities.BlockSet;
@@ -9,6 +11,9 @@ import nl.requios.effortlessbuilding.utilities.InventoryHelper;
 import nl.requios.effortlessbuilding.utilities.PlacedBlockTracker;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 
@@ -80,6 +85,13 @@ public class ConstraintSystem implements IBuildSystem {
                entry.markRejected(BlockStatus.MAX_BLOCKS_EXCEEDED);
             }
          }
+      }
+
+      // Survival stock: when the player cannot supply the whole shape, cut
+      // it to what can actually be set — red count text plus affordable-only
+      // ghosts, identical to the max-blocks cap above. Creative is exempt.
+      if (!isBreaking && !player.getAbilities().instabuild) {
+         applySurvivalInventoryCap(blocks, player);
       }
 
       boolean protectTiles = this.getProtectTileEntities();
@@ -164,6 +176,51 @@ public class ConstraintSystem implements IBuildSystem {
                }
             }
 
+         }
+      }
+   }
+
+   /**
+    * Survival stock cap. Mirrors the server placement accounting (which
+    * places up to the available stock, then stops), so preview and
+    * placement agree on the affordable subset in generation order.
+    * Entries beyond stock are marked {@link BlockStatus#INSUFFICIENT_ITEMS},
+    * which the preview renders exactly like {@code MAX_BLOCKS_EXCEEDED}.
+    */
+   private static void applySurvivalInventoryCap(BlockSet blocks, Player player) {
+      ItemStack held = player.getMainHandItem();
+      if (TrowelSystem.isTrowel(held)) {
+         Map<Item, Integer> available = TrowelSystem.getHotbarBlockCounts(player);
+         Map<Item, Integer> used = new HashMap<>();
+         for (BlockEntry entry : blocks.values()) {
+            if (!entry.isValid()) {
+               continue;
+            }
+            Item item = entry.item;
+            if (!(item instanceof BlockItem) || used.getOrDefault(item, 0) >= available.getOrDefault(item, 0)) {
+               entry.markRejected(BlockStatus.INSUFFICIENT_ITEMS);
+            } else {
+               used.merge(item, 1, Integer::sum);
+            }
+         }
+         return;
+      }
+      Item heldItem = held.getItem();
+      if (!(heldItem instanceof BlockItem)) {
+         return;
+      }
+      int available = !held.getComponentsPatch().isEmpty()
+            ? held.getCount()
+            : InventoryHelper.findTotalItemsInInventory(player, heldItem);
+      int remaining = available;
+      for (BlockEntry entry : blocks.values()) {
+         if (!entry.isValid()) {
+            continue;
+         }
+         if (remaining <= 0) {
+            entry.markRejected(BlockStatus.INSUFFICIENT_ITEMS);
+         } else {
+            --remaining;
          }
       }
    }

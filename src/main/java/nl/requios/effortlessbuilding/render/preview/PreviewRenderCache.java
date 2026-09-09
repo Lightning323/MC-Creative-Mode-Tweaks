@@ -79,11 +79,11 @@ import org.lightning323.creative_mode_tweaks.Config;
  * stay flagged as <i>rejected</i> for the overlay, which draws the <i>exact
  * tool shape</i> — white fill + outline for placeable, red/grey for rejected.
  * The block mesh itself stays strictly placeable-only, and the count/dims
- * line turns red whenever the count cap cuts blocks (see isOverLimit).</p>
+ * line turns red whenever the count cap or the survival stock cuts blocks
+ * (see isOverLimit).</p>
  */
 public final class PreviewRenderCache {
     private static final PreviewRenderCache INSTANCE = new PreviewRenderCache();
-
 
 
     /**
@@ -93,15 +93,8 @@ public final class PreviewRenderCache {
      * the box tracking the cursor at ~12Hz instead of hitching the game.
      * Clicks, mode/item/config changes always rebuild immediately.
      */
-    private static final long HUGE_SHAPE_RESHAPE_MIN_NANOS = 80_000_000L;
-
-    /**
-     * Same throttle for detailed previews: dragging a multi-thousand-block
-     * shape regenerates coordinates, runs constraints and rebakes the overlay
-     * per frame otherwise. 35ms (~28Hz) costs at most a frame or two of border
-     * lag while dragging; structural changes bypass it via hoverOnlyChange.
-     */
-    private static final long DETAILED_SHAPE_RESHAPE_MIN_NANOS = 35_000_000L;
+    private static final long HUGE_SHAPE_RESHAPE_MIN_NANOS = 100_000_000L;
+    private static final long SHAPE_RESHAPE_MIN_NANOS = 35_000_000L;
 
     /**
      * Upper bound for transient presizing (block sets, generator lists).
@@ -110,8 +103,11 @@ public final class PreviewRenderCache {
      */
     private static final int PRESIZE_CAP = 1 << 16;
 
-    /** Refresh period for the config snapshot (see config fields below). */
+    /**
+     * Refresh period for the config snapshot (see config fields below).
+     */
     private static final long CONFIG_CACHE_NANOS = 500_000_000L;
+    private long throttleNanoseconds = SHAPE_RESHAPE_MIN_NANOS;
 
     public static PreviewRenderCache get() {
         return INSTANCE;
@@ -178,6 +174,8 @@ public final class PreviewRenderCache {
     private boolean configProtectTiles;
     private int configBlockAlpha;
     private boolean configAsyncBoundary;
+    private int configPreviewRenderThrottleBlocks;
+
 
     // Bumped on resource reload so pre-reload bakes can never go live.
     private int modelGeneration;
@@ -242,7 +240,8 @@ public final class PreviewRenderCache {
             // (~12Hz); detailed shapes refresh at ~28Hz — a frame or two of
             // border lag for much less hitch. Clicks, mode/item/config changes
             // always rebuild immediately via hoverOnlyChange.
-            long throttleNanos = this.simplePreview ? HUGE_SHAPE_RESHAPE_MIN_NANOS : DETAILED_SHAPE_RESHAPE_MIN_NANOS;
+            long throttleNanos = this.throttleNanoseconds;
+
             if (level == this.shapedLevel && hoverOnlyChange(this.shapedKey, key)
                     && System.nanoTime() - this.lastShapeNanos < throttleNanos) {
                 // Stale shape stays on screen; the next frame retries with a
@@ -432,6 +431,10 @@ public final class PreviewRenderCache {
         try (SableCompat.SelectionScope ignored = SableCompat.pushSelection(level, anchor)) {
             mode.instance.getClientBlocks(blocks, player); //Get the blocks from the selected anchor points, first pos, second pos, etc...
         }
+        throttleNanoseconds = blocks.size() > configPreviewRenderThrottleBlocks ?
+                HUGE_SHAPE_RESHAPE_MIN_NANOS : //Throttle the speed at which the shape is rebuilt to save performance
+                SHAPE_RESHAPE_MIN_NANOS;
+
         if (blocks.isEmpty()) {
             clear();
             RenderHandler.resetPreviewSize();
@@ -621,7 +624,8 @@ public final class PreviewRenderCache {
                 if (entry.getStatus() == BlockStatus.OUTSIDE_REACH) {
                     outsideSublevel = true;
                 }
-                if (entry.getStatus() == BlockStatus.MAX_BLOCKS_EXCEEDED) {
+                if (entry.getStatus() == BlockStatus.MAX_BLOCKS_EXCEEDED
+                        || entry.getStatus() == BlockStatus.INSUFFICIENT_ITEMS) {
                     overCap = true;
                 }
                 bad.add(pos);
@@ -825,6 +829,7 @@ public final class PreviewRenderCache {
         }
         this.configNanos = now;
         this.configCreative = creative;
+        this.configPreviewRenderThrottleBlocks = Config.BUILDING_PREVIEW_RENDER_THROTTLE_BLOCKS.getAsInt();
         this.configMaxBlocks = Config.getBuildingMaxBlocksPlaced(player);
         this.configAxisLimit = Config.getBuildingMaxBlocksPerAxis(player);
         this.configReach = Config.getBuildingReach(player);

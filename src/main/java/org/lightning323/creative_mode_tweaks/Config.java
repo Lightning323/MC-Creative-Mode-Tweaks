@@ -70,6 +70,11 @@ public class Config {
             COMMON_BUILDER.comment("If No-Clip should be enabled or disabled by default when logging in")
                     .define("noclip.noclip_enabled_by_default", true);
 
+    public static final ModConfigSpec.IntValue BUILDING_PREVIEW_RENDER_THROTTLE_BLOCKS =
+            CLIENT_BUILDER.comment("How big the number of blocks should be when throttling the preview rendering.")
+                    .translation("creative_mode_tweaks.config.render_throttle_blocks")
+                    .defineInRange("building.creative.render_throttle_blocks", 500000, 1, Integer.MAX_VALUE);
+
     public static final ModConfigSpec.DoubleValue BUILDING_PREVIEW_BLOCK_TRANSPARENCY =
             CLIENT_BUILDER.comment("Transparency of block previews. 0% = invisible, 100% = solid.")
                     .translation("creative_mode_tweaks.config.preview_block_transparency")
@@ -146,6 +151,8 @@ public class Config {
             COMMON_BUILDER.comment("Maximum number of blocks creative players can place or break in a single action.")
                     .translation("creative_mode_tweaks.config.max_blocks_placed")
                     .defineInRange("building.creative.max_blocks_placed", 1000000, 1, Integer.MAX_VALUE);
+
+
 
     public static final ModConfigSpec.IntValue BUILDING_CREATIVE_MAX_BLOCKS_PER_AXIS =
             COMMON_BUILDER.comment("Maximum size of a creative build-mode shape along any axis.")
