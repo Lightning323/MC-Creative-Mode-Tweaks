@@ -146,6 +146,10 @@ public final class PreviewRenderCache {
     // True while the live shape uses the huge-shape box path (no ghosts,
     // box overlay). Gates the hover-only reshape throttle in update().
     private boolean simplePreview;
+    // True while the live preview is over the throttle count: positions +
+    // mesh only, every validation skipped (see shapeFast). False means the
+    // preview runs the exact same logic as placement, replacement included.
+    private boolean throttleMode;
     private long lastShapeNanos;
 
     // Raycast hit reused by the frame: computed once here, shared with the
@@ -338,6 +342,14 @@ public final class PreviewRenderCache {
     }
 
     /**
+     * True while the live preview is in fast mode (over the throttle count:
+     * shape + mesh only, no modifiers, no reach caps, no survival checks).
+     */
+    public boolean isThrottleMode() {
+        return this.throttleMode;
+    }
+
+    /**
      * This frame's raycast hit, or null when there is no live preview.
      * Lets the marker pass reuse the hit instead of raycasting twice.
      */
@@ -373,6 +385,7 @@ public final class PreviewRenderCache {
         this.wantsBlocks = false;
         this.overLimit = false;
         this.simplePreview = false;
+        this.throttleMode = false;
         this.lastShapeNanos = 0;
         this.currentHit = null;
         this.dimensionLevel = null;
@@ -451,11 +464,15 @@ public final class PreviewRenderCache {
         int est = (int) Math.min(boundaryVol, (long) maxBlocks * 2L);
         BlockSet blocks = new BlockSet(Math.max(16, Math.min(est, PRESIZE_CAP)));
         try (SableCompat.SelectionScope ignored = SableCompat.pushSelection(level, anchor)) {
-            // Preview path: streams the shape from the resolved anchor
-            // points, never the exact placement list.
-            mode.instance.getCommonBlocks(blocks, player);
+            // Preview path: bare positions only, never the exact placement list.
+            mode.instance.getPlacementBlocks(blocks, player, false);
         }
-        throttleNanoseconds = blocks.size() > configPreviewRenderThrottleBlocks ?
+        // Fast gate on the raw count: past the throttle count the preview
+        // drops every calculation that isn't shape + mesh (no modifiers, no
+        // reach caps, no survival checks, no replacement logic). At or under
+        // it, the preview runs the exact same logic as placement.
+        this.throttleMode = blocks.size() > configPreviewRenderThrottleBlocks;
+        throttleNanoseconds = this.throttleMode ?
                 HUGE_SHAPE_RESHAPE_MIN_NANOS : //Throttle the speed at which the shape is rebuilt to save performance
                 SHAPE_RESHAPE_MIN_NANOS;
 
@@ -480,13 +497,11 @@ public final class PreviewRenderCache {
             return;
         }
 
-//        if (blocks.size() > maxBlocks * 2) {
-//            // Safety net: boundary underestimated (should not happen now that
-//            // every mode expands mirrors/squares), fall back to the box.
-//            shapeSimple(level, state, key, previewBoundary, maxBlocks);
-//            return;
-//        }
-        shapeDetailed(mc, player, level, state, hit, key, blocks, anchor);
+        if (this.throttleMode) {
+            shapeFast(mc, player, level, state, hit, key, blocks);
+        } else {
+            shapeDetailed(mc, player, level, state, hit, key, blocks, anchor);
+        }
     }
 
     /**
@@ -578,6 +593,131 @@ public final class PreviewRenderCache {
 //        RenderHandler.updateFeedbackSimple(estimatedCount, min, max, state != null, state, overCap);
 //    }
 
+    /**
+     * Breakneck path for over-throttle shapes: selection shape + block mesh,
+     * nothing else. No modifiers, no reach caps, no max-blocks capping, no
+     * tile-entity scans, no survival checks, no replacement handling — zero
+     * world reads per block, every entry stays VALID. One linear pass builds
+     * positions, feedback bounds and ghosts together; no ok/bad/entry side
+     * lists. Placement (click path, server) still runs the full pipeline, so
+     * this preview is allowed to over-promise.
+     */
+    private void shapeFast(Minecraft mc, Player player, Level level,
+                           BuildPipeline.@Nullable BuildState state,
+                           @Nullable BlockHitResult hit, PreviewShapeKey key,
+                           BlockSet blocks) {
+        this.overlayMesh.setIsSimple(false);
+        BuildPipeline.BuildState action = state != null ? state : BuildPipeline.BuildState.PLACING;
+        // Appearance only: per-block trowel items. Hotbar scan + hash pick,
+        // no level access.
+        TrowelSystem.INSTANCE.processBlocks(blocks, player, action);
+
+        this.isBreaking = action == BuildPipeline.BuildState.BREAKING;
+        boolean wantBlocks = !this.isBreaking
+                && BuildSettings.CLIENT.getReplaceMode() != BuildSettings.ReplaceMode.ONLY_BLOCKS;
+
+        // Ghost base state resolves once per shape, exactly like the detailed
+        // path (trowel rolls one random set per shape, no per-frame shimmer).
+        BlockHitResult firstHit = BuildPipelineClient.getFirstClickHit();
+        BlockState base = wantBlocks ? resolveBaseState(mc, player, firstHit, hit) : null;
+        boolean trowel = base != null && TrowelSystem.isTrowel(player.getMainHandItem());
+        Map<Item, BlockState> trowelCache = trowel ? new HashMap<>() : null;
+
+        // The single pass: positions for the overlay, bounds for feedback,
+        // ghosts for the mesh. No status checks, no side lists.
+        List<BlockPos> ok = new ArrayList<>(blocks.size());
+        List<PreviewBlock> meshBlocks = new ArrayList<>();
+        List<PreviewBlock> animatedBlocks = new ArrayList<>();
+        int minX = Integer.MAX_VALUE;
+        int minY = Integer.MAX_VALUE;
+        int minZ = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE;
+        int maxY = Integer.MIN_VALUE;
+        int maxZ = Integer.MIN_VALUE;
+        for (BlockEntry entry : blocks.values()) {
+            BlockPos pos = entry.blockPos;
+            int x = pos.getX();
+            int y = pos.getY();
+            int z = pos.getZ();
+            if (x < minX) {
+                minX = x;
+            }
+            if (x > maxX) {
+                maxX = x;
+            }
+            if (y < minY) {
+                minY = y;
+            }
+            if (y > maxY) {
+                maxY = y;
+            }
+            if (z < minZ) {
+                minZ = z;
+            }
+            if (z > maxZ) {
+                maxZ = z;
+            }
+            ok.add(pos);
+            if (base == null) {
+                continue;
+            }
+            BlockState resolved = base;
+            if (trowel && entry.item instanceof BlockItem randomBlock) {
+                resolved = trowelCache.computeIfAbsent(entry.item,
+                        item -> resolveBaseState(mc, player, randomBlock, new ItemStack(item), firstHit, hit));
+            }
+            if (resolved == null) {
+                continue;
+            }
+            // No modifiers ran, so transforms are identity — skipped.
+            if (resolved.getRenderShape() == RenderShape.ENTITYBLOCK_ANIMATED) {
+                animatedBlocks.add(new PreviewBlock(pos, resolved));
+            } else {
+                meshBlocks.add(new PreviewBlock(pos, resolved));
+            }
+        }
+
+        // Wrap, don't copy: these lists are never mutated after publish.
+        int alpha = key.blockAlpha();
+        this.breakable = Collections.unmodifiableList(ok);
+        this.unbreakable = List.of();
+        this.all = this.breakable;
+        this.animated = animatedBlocks.isEmpty() ? List.of() : Collections.unmodifiableList(animatedBlocks);
+        // O(1) honesty: the count line still goes red past the cap even
+        // though nothing was culled — placement will enforce it.
+        this.overLimit = ok.size() > key.maxBlocks();
+        this.wantsBlocks = wantBlocks && !meshBlocks.isEmpty();
+        this.shapedKey = key;
+        this.shapedLevel = level;
+        this.simplePreview = false;
+        this.lastShapeNanos = System.nanoTime();
+
+        // Same async-boundary rule as the detailed path: the overlay is the
+        // shape, so it still bakes — just with no rejected list.
+        if (!key.asyncBoundary() || !this.wantsBlocks) {
+            this.overlayMesh.adopt(level, PreviewOverlayMesh.bake(ok, List.of(), this.isBreaking));
+            this.hasOverlay = !this.overlayMesh.isEmpty();
+        }
+
+        // Sound + action-bar feedback, exactly like the detailed path.
+        RenderHandler.updateFeedbackSimple(ok.size(),
+                new BlockPos(minX, minY, minZ), new BlockPos(maxX, maxY, maxZ),
+                state != null, state, this.overLimit);
+
+        if (this.wantsBlocks) {
+            this.pendingMeshBlocks = Collections.unmodifiableList(meshBlocks);
+            this.pendingAlpha = alpha;
+            submitMeshTask(mc, level, key);
+        } else {
+            // Nothing for the worker: drop stale ghosts now, cancel any bake.
+            PreviewBuildWorker.cancel();
+            this.blockMesh.clear();
+            this.meshKey = key;
+            this.submittedKey = key;
+            this.pendingMeshBlocks = List.of();
+        }
+    }
+
     // Full-fidelity path for sensibly-sized shapes: constraints, ghosts,
     // exact per-block overlay. Bounded by DETAILED_PREVIEW_BLOCK_LIMIT, so
     // every O(N log N) step here has a hard ceiling.
@@ -591,6 +731,8 @@ public final class PreviewRenderCache {
         // preview a different subset (closest-first blob) than placed.
         this.overlayMesh.setIsSimple(false);
         BuildPipeline.BuildState action = state != null ? state : BuildPipeline.BuildState.PLACING;
+        // Full placement logic: modifiers, reach caps, max-blocks capping,
+        // tile-entity scans, survival checks, replacement handling.
         try (SableCompat.SelectionScope ignored = SableCompat.pushSelection(level, anchor)) {
             BuildPipelineClient.CLIENT.processBlocks(blocks, player, action);
         }

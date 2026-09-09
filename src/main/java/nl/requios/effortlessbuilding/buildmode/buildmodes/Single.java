@@ -24,14 +24,15 @@ public class Single extends BaseBuildMode {
     }
 
     @Override
-    public void getCommonBlocks(BlockSet blocks, Player player) {
+    public void getPlacementBlocks(BlockSet blocks, Player player, boolean fast) {
+        // Single block either way; nothing to stream.
         if (this.pos != null) {
             blocks.setStartPos(new BlockEntry(this.pos));
         }
     }
 
     @Override
-    public List<BlockPos> getCommonBlocks(Player player, BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos, @Nullable BlockPos fourthPos) {
+    public List<BlockPos> getPlacementBlocks(Player player, BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos, @Nullable BlockPos fourthPos) {
         return List.of(firstPos);
     }
 

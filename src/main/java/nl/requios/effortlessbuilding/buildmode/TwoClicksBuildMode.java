@@ -82,7 +82,7 @@ public abstract class TwoClicksBuildMode extends BaseBuildMode {
     }
 
     @Override
-    public void getCommonBlocks(BlockSet blocks, Player player) {
+    public void getPlacementBlocks(BlockSet blocks, Player player, boolean fast) {
         if (this.clicks == 0 || this.firstBlockEntry == null || this.firstBlockEntry.blockPos == null) {
             return;
         }
@@ -91,8 +91,13 @@ public abstract class TwoClicksBuildMode extends BaseBuildMode {
         if (secondPos != null) {
             blocks.clear();
 
-            // Streams bare packed longs straight into the set — no intermediate list.
-            this.forEachCommonBlock(player, firstPos, secondPos, null, null, blocks::addPacked);
+            if (fast) {
+                // Bare positions only: streams packed longs, no intermediate list.
+                this.forEachCommonBlock(player, firstPos, secondPos, null, null, blocks::addPacked);
+            } else {
+                // Detailed path: exact list first, then insert.
+                blocks.addAllPositions(this.getPlacementBlocks(player, firstPos, secondPos, null, null));
+            }
 
             blocks.firstPos = firstPos;
             blocks.lastPos = secondPos;
@@ -100,7 +105,7 @@ public abstract class TwoClicksBuildMode extends BaseBuildMode {
     }
 
     @Override
-    public List<BlockPos> getCommonBlocks(Player player, BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos, @Nullable BlockPos fourthPos) {
+    public List<BlockPos> getPlacementBlocks(Player player, BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos, @Nullable BlockPos fourthPos) {
         BlockPos clampedSecond = clampPos(firstPos, secondPos, Config.getBuildingMaxBlocksPerAxis(player));
         // Preserve endpoint order: circle starting modes treat the first
         // point as the center/corner anchor, so min/max reordering here

@@ -154,9 +154,9 @@ public abstract class ThreeClicksBuildMode extends BaseBuildMode {
     }
 
     @Override
-    public void getCommonBlocks(BlockSet blocks, Player player) {
+    public void getPlacementBlocks(BlockSet blocks, Player player, boolean fast) {
         if (this.twoPointBuild) {
-            this.findTwoPointCoordinates(blocks, player);
+            this.findTwoPointCoordinates(blocks, player, fast);
             return;
         }
 
@@ -173,8 +173,13 @@ public abstract class ThreeClicksBuildMode extends BaseBuildMode {
             }
 
             blocks.clear();
-            // Streams bare packed longs straight into the set — no intermediate list.
-            this.forEachCommon(player, firstPos, secondPos, null, false, blocks::addPacked);
+            if (fast) {
+                // Bare positions only: streams packed longs, no intermediate list.
+                this.forEachCommon(player, firstPos, secondPos, null, false, blocks::addPacked);
+            } else {
+                // Detailed path: exact list first, then insert.
+                blocks.addAllPositions(this.commonBlocks(player, firstPos, secondPos, null, false));
+            }
 
             blocks.firstPos = firstPos;
             blocks.lastPos = secondPos;
@@ -189,7 +194,11 @@ public abstract class ThreeClicksBuildMode extends BaseBuildMode {
             }
 
             blocks.clear();
-            this.forEachCommon(player, firstPos, secondPos, thirdPos, false, blocks::addPacked);
+            if (fast) {
+                this.forEachCommon(player, firstPos, secondPos, thirdPos, false, blocks::addPacked);
+            } else {
+                blocks.addAllPositions(this.commonBlocks(player, firstPos, secondPos, thirdPos, false));
+            }
 
             blocks.firstPos = firstPos;
             blocks.lastPos = thirdPos;
@@ -203,7 +212,7 @@ public abstract class ThreeClicksBuildMode extends BaseBuildMode {
      * for that case (see {@link #getServerBlocks}).
      */
     @Override
-    public List<BlockPos> getCommonBlocks(Player player, BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos, @Nullable BlockPos fourthPos) {
+    public List<BlockPos> getPlacementBlocks(Player player, BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos, @Nullable BlockPos fourthPos) {
         return this.commonBlocks(player, firstPos, secondPos, thirdPos,
                 this.supportsTwoPointBuild() && ModeOptions.isTwoPointBuild());
     }
@@ -215,7 +224,7 @@ public abstract class ThreeClicksBuildMode extends BaseBuildMode {
     }
 
     /**
-     * Shared clamp + dispatch core behind both {@link #getCommonBlocks}
+     * Shared clamp + dispatch core behind both {@link #getPlacementBlocks}
      * overloads. The two-point flag is explicit so in-progress selections
      * keep the mode captured at first click instead of the live option.
      */
@@ -298,7 +307,7 @@ public abstract class ThreeClicksBuildMode extends BaseBuildMode {
         if (thirdPos == null && !(this.supportsTwoPointBuild() && ModeOptions.isTwoPointBuild())) {
             return List.of();
         }
-        return this.getCommonBlocks(player, firstPos, secondPos, thirdPos, fourthPos);
+        return this.getPlacementBlocks(player, firstPos, secondPos, thirdPos, fourthPos);
     }
 
     public static BlockPos findHeight(Player player, BlockPos secondPos, boolean skipRaytrace) {
@@ -382,7 +391,7 @@ public abstract class ThreeClicksBuildMode extends BaseBuildMode {
         return this.twoPointBuild ? ModeOptions.ActionEnum.TWO_POINT_BUILD : ModeOptions.ActionEnum.THREE_POINT_BUILD;
     }
 
-    private void findTwoPointCoordinates(BlockSet blocks, Player player) {
+    private void findTwoPointCoordinates(BlockSet blocks, Player player, boolean fast) {
         if (this.clicks == 0 || this.firstBlockEntry == null) {
             return;
         }
@@ -395,7 +404,11 @@ public abstract class ThreeClicksBuildMode extends BaseBuildMode {
         BlockPos firstPos = this.firstBlockEntry.blockPos;
         BlockPos boundedSecondPos = this.limitToBuildRange(player, firstPos, secondPos);
         blocks.clear();
-        this.forEachTwoPointBlocks(player, firstPos, boundedSecondPos, blocks::addPacked);
+        if (fast) {
+            this.forEachTwoPointBlocks(player, firstPos, boundedSecondPos, blocks::addPacked);
+        } else {
+            blocks.addAllPositions(this.getTwoPointBlocks(player, firstPos, boundedSecondPos));
+        }
 
         blocks.firstPos = firstPos;
         blocks.lastPos = boundedSecondPos;

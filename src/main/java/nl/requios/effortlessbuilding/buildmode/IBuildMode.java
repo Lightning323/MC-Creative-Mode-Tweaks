@@ -24,13 +24,15 @@ public interface IBuildMode {
    boolean onClick(BlockSet var1, BlockPos var2, Player var3);
 
    /**
-    * Resolves the in-progress click-state points and streams the shape as
-    * bare packed positions ({@link BlockPos#asLong()}) straight into the
-    * set — no intermediate {@code List<BlockPos>}, no per-block object in
-    * the generators. Serves both the per-frame render preview and the
-    * one-shot click path.
+    * Resolves the in-progress click-state points and fills the set.
+    *
+    * @param fast true = bare positions only: streams packed longs straight
+    *             into the set, no intermediate list, no per-block handling.
+    *             false = detailed path: builds the exact position list first
+    *             so replacement logic, boundaries and any per-block handling
+    *             apply before insertion.
     */
-   void getCommonBlocks(BlockSet blocks, Player player);
+   void getPlacementBlocks(BlockSet blocks, Player player, boolean fast);
 
    /**
     * Canonical exact shape from explicit points: the single implementation
@@ -39,18 +41,18 @@ public interface IBuildMode {
     * and {@code getServerBlocks}). Points are already resolved — clamping to
     * the per-axis build limit happens in here.
     */
-   List<BlockPos> getCommonBlocks(Player player, BlockPos firstPos, BlockPos secondPos,
-                                  @Nullable BlockPos thirdPos, @Nullable BlockPos fourthPos);
+   List<BlockPos> getPlacementBlocks(Player player, BlockPos firstPos, BlockPos secondPos,
+                                     @Nullable BlockPos thirdPos, @Nullable BlockPos fourthPos);
 
    /**
-    * Primitive twin of {@link #getCommonBlocks}: emits the same shape as
+    * Primitive twin of {@link #getPlacementBlocks}: emits the same shape as
     * packed {@code long}s into {@code out} with bare-int loops. The default
     * packs the exact list; hot shapes override with allocation-free emitters.
     */
    default void forEachCommonBlock(Player player, BlockPos firstPos, BlockPos secondPos,
                                    @Nullable BlockPos thirdPos, @Nullable BlockPos fourthPos,
                                    LongConsumer out) {
-      List<BlockPos> common = getCommonBlocks(player, firstPos, secondPos, thirdPos, fourthPos);
+      List<BlockPos> common = getPlacementBlocks(player, firstPos, secondPos, thirdPos, fourthPos);
       for (int i = 0, n = common.size(); i < n; i++) {
          out.accept(common.get(i).asLong());
       }
@@ -89,7 +91,7 @@ public interface IBuildMode {
    }
 
    default List<BlockPos> getServerBlocks(Player player, BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos, @Nullable BlockPos fourthPos) {
-      return getCommonBlocks(player, firstPos, secondPos, thirdPos, fourthPos);
+      return getPlacementBlocks(player, firstPos, secondPos, thirdPos, fourthPos);
    }
 
    default @Nullable BlockPos getIntermediatePos() {

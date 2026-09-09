@@ -9,7 +9,6 @@ import nl.requios.effortlessbuilding.buildmode.BuildSettings;
 import nl.requios.effortlessbuilding.buildmode.ModeOptions;
 import org.lightning323.creative_mode_tweaks.Config;
 import nl.requios.effortlessbuilding.item.TrowelItem;
-import nl.requios.effortlessbuilding.mixin.BucketItemAccessor;
 import nl.requios.effortlessbuilding.modifier.ModifierSystem;
 import nl.requios.effortlessbuilding.network.BreakBuildModePacket;
 import nl.requios.effortlessbuilding.network.PacketHandler;
@@ -29,16 +28,13 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.BucketItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.SoundType;
-import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
-import net.minecraft.world.phys.AABB;
 import org.jetbrains.annotations.Nullable;
 
 public class BuildPipelineClient {
@@ -183,7 +179,7 @@ public class BuildPipelineClient {
             BlockSet blocks = new BlockSet();
             boolean shouldPlace = mode.instance.onClick(blocks, clickedPos, player);
             if (shouldPlace) {
-               mode.instance.getCommonBlocks(blocks, player);
+               mode.instance.getPlacementBlocks(blocks, player, false);
                CLIENT.processBlocks(blocks, player, action);
                if (blocks.firstPos != null && blocks.lastPos != null) {
                if (blocks.hasEntriesWithStatus(BlockStatus.OUTSIDE_REACH)) {
