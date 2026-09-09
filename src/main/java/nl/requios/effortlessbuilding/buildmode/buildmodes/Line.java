@@ -2,6 +2,7 @@ package nl.requios.effortlessbuilding.buildmode.buildmodes;
 
 import java.util.ArrayList;
 import java.util.List;
+import it.unimi.dsi.fastutil.longs.LongConsumer;
 import nl.requios.effortlessbuilding.buildmode.BuildModes;
 import nl.requios.effortlessbuilding.buildmode.TwoClicksBuildMode;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipeline;
@@ -60,57 +61,48 @@ public class Line extends TwoClicksBuildMode {
    }
 
    public static void addXLineBlocks(List<BlockPos> list, int x1, int x2, int y, int z) {
-      int x = x1;
+      forEachXLineBlocks(x1, x2, y, z, packed -> list.add(BlockPos.of(packed)));
+   }
 
-      while(true) {
-         if (x1 < x2) {
-            if (x > x2) {
-               break;
-            }
-         } else if (x < x2) {
+   /** Bare-int twin of {@link #addXLineBlocks}: same order, packed longs, no allocation. */
+   public static void forEachXLineBlocks(int x1, int x2, int y, int z, LongConsumer out) {
+      int step = x1 < x2 ? 1 : -1;
+      for (int x = x1; ; x += step) {
+         out.accept(BlockPos.asLong(x, y, z));
+         if (x == x2) {
             break;
          }
-
-         list.add(new BlockPos(x, y, z));
-         x += x1 < x2 ? 1 : -1;
       }
-
    }
 
    public static void addYLineBlocks(List<BlockPos> list, int y1, int y2, int x, int z) {
-      int y = y1;
+      forEachYLineBlocks(y1, y2, x, z, packed -> list.add(BlockPos.of(packed)));
+   }
 
-      while(true) {
-         if (y1 < y2) {
-            if (y > y2) {
-               break;
-            }
-         } else if (y < y2) {
+   /** Bare-int twin of {@link #addYLineBlocks}: same order, packed longs, no allocation. */
+   public static void forEachYLineBlocks(int y1, int y2, int x, int z, LongConsumer out) {
+      int step = y1 < y2 ? 1 : -1;
+      for (int y = y1; ; y += step) {
+         out.accept(BlockPos.asLong(x, y, z));
+         if (y == y2) {
             break;
          }
-
-         list.add(new BlockPos(x, y, z));
-         y += y1 < y2 ? 1 : -1;
       }
-
    }
 
    public static void addZLineBlocks(List<BlockPos> list, int z1, int z2, int x, int y) {
-      int z = z1;
+      forEachZLineBlocks(z1, z2, x, y, packed -> list.add(BlockPos.of(packed)));
+   }
 
-      while(true) {
-         if (z1 < z2) {
-            if (z > z2) {
-               break;
-            }
-         } else if (z < z2) {
+   /** Bare-int twin of {@link #addZLineBlocks}: same order, packed longs, no allocation. */
+   public static void forEachZLineBlocks(int z1, int z2, int x, int y, LongConsumer out) {
+      int step = z1 < z2 ? 1 : -1;
+      for (int z = z1; ; z += step) {
+         out.accept(BlockPos.asLong(x, y, z));
+         if (z == z2) {
             break;
          }
-
-         list.add(new BlockPos(x, y, z));
-         z += z1 < z2 ? 1 : -1;
       }
-
    }
 
    protected BlockPos findSecondPos(Player player, BlockPos firstPos, boolean skipRaytrace) {
@@ -119,6 +111,17 @@ public class Line extends TwoClicksBuildMode {
 
    protected List<BlockPos> getAllBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2) {
       return getLineBlocks(player, x1, y1, z1, x2, y2, z2);
+   }
+
+   @Override
+   protected void forEachAllBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2, LongConsumer out) {
+      if (x1 != x2) {
+         forEachXLineBlocks(x1, x2, y1, z1, out);
+      } else if (y1 != y2) {
+         forEachYLineBlocks(y1, y2, x1, z1, out);
+      } else {
+         forEachZLineBlocks(z1, z2, x1, y1, out);
+      }
    }
 
    static class Criteria {

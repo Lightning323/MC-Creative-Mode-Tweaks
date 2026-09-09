@@ -2,6 +2,7 @@ package nl.requios.effortlessbuilding.buildmode.buildmodes;
 
 import java.util.ArrayList;
 import java.util.List;
+import it.unimi.dsi.fastutil.longs.LongConsumer;
 import nl.requios.effortlessbuilding.buildmode.ModeOptions;
 import nl.requios.effortlessbuilding.buildmode.ThreeClicksBuildMode;
 import net.minecraft.core.BlockPos;
@@ -49,58 +50,44 @@ public class Cube extends ThreeClicksBuildMode {
    }
 
    public static void addCubeBlocks(List<BlockPos> list, int x1, int x2, int y1, int y2, int z1, int z2) {
-      int l = x1;
+      forEachCubeBlocks(x1, x2, y1, y2, z1, z2, packed -> list.add(BlockPos.of(packed)));
+   }
 
-      while(true) {
-         if (x1 < x2) {
-            if (l > x2) {
+   /** Bare-int twin of {@link #addCubeBlocks}: same order, packed longs, no allocation. */
+   public static void forEachCubeBlocks(int x1, int x2, int y1, int y2, int z1, int z2, LongConsumer out) {
+      int xStep = x1 < x2 ? 1 : -1;
+      int zStep = z1 < z2 ? 1 : -1;
+      int yStep = y1 < y2 ? 1 : -1;
+      for (int l = x1; ; l += xStep) {
+         for (int n = z1; ; n += zStep) {
+            for (int m = y1; ; m += yStep) {
+               out.accept(BlockPos.asLong(l, m, n));
+               if (m == y2) {
+                  break;
+               }
+            }
+            if (n == z2) {
                break;
             }
-         } else if (l < x2) {
+         }
+         if (l == x2) {
             break;
          }
-
-         int n = z1;
-
-         while(true) {
-            if (z1 < z2) {
-               if (n > z2) {
-                  break;
-               }
-            } else if (n < z2) {
-               break;
-            }
-
-            int m = y1;
-
-            while(true) {
-               if (y1 < y2) {
-                  if (m > y2) {
-                     break;
-                  }
-               } else if (m < y2) {
-                  break;
-               }
-
-               list.add(new BlockPos(l, m, n));
-               m += y1 < y2 ? 1 : -1;
-            }
-
-            n += z1 < z2 ? 1 : -1;
-         }
-
-         l += x1 < x2 ? 1 : -1;
       }
-
    }
 
    public static void addHollowCubeBlocks(List<BlockPos> list, int x1, int x2, int y1, int y2, int z1, int z2) {
-      Wall.addXWallBlocks(list, x1, y1, y2, z1, z2);
-      Wall.addXWallBlocks(list, x2, y1, y2, z1, z2);
-      Wall.addZWallBlocks(list, x1, x2, y1, y2, z1);
-      Wall.addZWallBlocks(list, x1, x2, y1, y2, z2);
-      Floor.addFloorBlocks(list, x1, x2, y1, z1, z2);
-      Floor.addFloorBlocks(list, x1, x2, y2, z1, z2);
+      forEachHollowCubeBlocks(x1, x2, y1, y2, z1, z2, packed -> list.add(BlockPos.of(packed)));
+   }
+
+   /** Bare-int twin of {@link #addHollowCubeBlocks}: same order, packed longs, no allocation. */
+   public static void forEachHollowCubeBlocks(int x1, int x2, int y1, int y2, int z1, int z2, LongConsumer out) {
+      Wall.forEachXWallBlocks(x1, y1, y2, z1, z2, out);
+      Wall.forEachXWallBlocks(x2, y1, y2, z1, z2, out);
+      Wall.forEachZWallBlocks(x1, x2, y1, y2, z1, out);
+      Wall.forEachZWallBlocks(x1, x2, y1, y2, z2, out);
+      Floor.forEachFloorBlocks(x1, x2, y1, z1, z2, out);
+      Floor.forEachFloorBlocks(x1, x2, y2, z1, z2, out);
    }
 
    public static void addSkeletonCubeBlocks(List<BlockPos> list, int x1, int x2, int y1, int y2, int z1, int z2) {
@@ -134,7 +121,40 @@ public class Cube extends ThreeClicksBuildMode {
       return getFloorBlocksUsingCubeFill(player, x1, y1, z1, x2, y2, z2);
    }
 
+   @Override
+   protected void forEachIntermediateBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2, LongConsumer out) {
+      if (ModeOptions.getCubeFill() == ModeOptions.ActionEnum.CUBE_SKELETON) {
+         Floor.forEachHollowFloorBlocks(x1, x2, y1, z1, z2, out);
+      } else {
+         Floor.forEachFloorBlocks(x1, x2, y1, z1, z2, out);
+      }
+   }
+
    protected List<BlockPos> getFinalBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2, int x3, int y3, int z3) {
       return getCubeBlocks(player, x1, y1, z1, x3, y3, z3);
+   }
+
+   @Override
+   protected void forEachFinalBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2, int x3, int y3, int z3, LongConsumer out) {
+      switch (ModeOptions.getCubeFill()) {
+         case CUBE_FULL -> forEachCubeBlocks(x1, x3, y1, y3, z1, z3, out);
+         case CUBE_HOLLOW -> forEachHollowCubeBlocks(x1, x3, y1, y3, z1, z3, out);
+         case CUBE_SKELETON -> {
+            // Same edge trace as addSkeletonCubeBlocks, streaming packed longs.
+            Line.forEachXLineBlocks(x1, x3, y1, z1, out);
+            Line.forEachXLineBlocks(x1, x3, y1, z3, out);
+            Line.forEachXLineBlocks(x1, x3, y3, z1, out);
+            Line.forEachXLineBlocks(x1, x3, y3, z3, out);
+            Line.forEachYLineBlocks(y1, y3, x1, z1, out);
+            Line.forEachYLineBlocks(y1, y3, x1, z3, out);
+            Line.forEachYLineBlocks(y1, y3, x3, z1, out);
+            Line.forEachYLineBlocks(y1, y3, x3, z3, out);
+            Line.forEachZLineBlocks(z1, z3, x1, y1, out);
+            Line.forEachZLineBlocks(z1, z3, x1, y3, out);
+            Line.forEachZLineBlocks(z1, z3, x3, y1, out);
+            Line.forEachZLineBlocks(z1, z3, x3, y3, out);
+         }
+         default -> throw new IllegalStateException("Unknown cube fill: " + ModeOptions.getCubeFill());
+      }
    }
 }

@@ -2,6 +2,7 @@ package nl.requios.effortlessbuilding.buildmode;
 
 import java.util.List;
 
+import it.unimi.dsi.fastutil.longs.LongConsumer;
 import net.minecraft.world.phys.AABB;
 import nl.requios.effortlessbuilding.utilities.BlockSet;
 import net.minecraft.core.BlockPos;
@@ -22,7 +23,38 @@ public interface IBuildMode {
 
    boolean onClick(BlockSet var1, BlockPos var2, Player var3);
 
-   void getClientBlocks(BlockSet var1, Player var2);
+   /**
+    * Resolves the in-progress click-state points and streams the shape as
+    * bare packed positions ({@link BlockPos#asLong()}) straight into the
+    * set — no intermediate {@code List<BlockPos>}, no per-block object in
+    * the generators. Serves both the per-frame render preview and the
+    * one-shot click path.
+    */
+   void getCommonBlocks(BlockSet blocks, Player player);
+
+   /**
+    * Canonical exact shape from explicit points: the single implementation
+    * shared by the client click path and the server placement path (which
+    * used to duplicate this logic between the old {@code getClientBlocks}
+    * and {@code getServerBlocks}). Points are already resolved — clamping to
+    * the per-axis build limit happens in here.
+    */
+   List<BlockPos> getCommonBlocks(Player player, BlockPos firstPos, BlockPos secondPos,
+                                  @Nullable BlockPos thirdPos, @Nullable BlockPos fourthPos);
+
+   /**
+    * Primitive twin of {@link #getCommonBlocks}: emits the same shape as
+    * packed {@code long}s into {@code out} with bare-int loops. The default
+    * packs the exact list; hot shapes override with allocation-free emitters.
+    */
+   default void forEachCommonBlock(Player player, BlockPos firstPos, BlockPos secondPos,
+                                   @Nullable BlockPos thirdPos, @Nullable BlockPos fourthPos,
+                                   LongConsumer out) {
+      List<BlockPos> common = getCommonBlocks(player, firstPos, secondPos, thirdPos, fourthPos);
+      for (int i = 0, n = common.size(); i < n; i++) {
+         out.accept(common.get(i).asLong());
+      }
+   }
 
    default void setFirstClickFace(Direction face) {
    }
@@ -57,7 +89,7 @@ public interface IBuildMode {
    }
 
    default List<BlockPos> getServerBlocks(Player player, BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos, @Nullable BlockPos fourthPos) {
-      return List.of();
+      return getCommonBlocks(player, firstPos, secondPos, thirdPos, fourthPos);
    }
 
    default @Nullable BlockPos getIntermediatePos() {

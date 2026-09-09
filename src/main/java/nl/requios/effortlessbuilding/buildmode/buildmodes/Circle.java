@@ -2,6 +2,7 @@ package nl.requios.effortlessbuilding.buildmode.buildmodes;
 
 import java.util.ArrayList;
 import java.util.List;
+import it.unimi.dsi.fastutil.longs.LongConsumer;
 import nl.requios.effortlessbuilding.buildmode.ModeOptions;
 import nl.requios.effortlessbuilding.buildmode.TwoClicksBuildMode;
 import net.minecraft.core.BlockPos;
@@ -38,77 +39,79 @@ public class Circle extends TwoClicksBuildMode {
    }
 
    public static void addCircleBlocks(List<BlockPos> list, int x1, int y1, int z1, int x2, int y2, int z2, float centerX, float centerZ, float radiusX, float radiusZ) {
-      int l = x1;
+      forEachCircleBlocks(x1, y1, z1, x2, y2, z2, centerX, centerZ, radiusX, radiusZ, packed -> list.add(BlockPos.of(packed)));
+   }
 
-      while(true) {
-         if (x1 < x2) {
-            if (l > x2) {
-               break;
-            }
-         } else if (l < x2) {
-            break;
-         }
-
-         int n = z1;
-
-         while(true) {
-            if (z1 < z2) {
-               if (n > z2) {
-                  break;
-               }
-            } else if (n < z2) {
-               break;
-            }
-
-            float distance = distance((float)l, (float)n, centerX, centerZ);
+   /** Bare-int twin of {@link #addCircleBlocks}: same order, packed longs, no allocation. */
+   public static void forEachCircleBlocks(int x1, int y1, int z1, int x2, int y2, int z2, float centerX, float centerZ, float radiusX, float radiusZ, LongConsumer out) {
+      int xStep = x1 < x2 ? 1 : -1;
+      int zStep = z1 < z2 ? 1 : -1;
+      for (int l = x1; ; l += xStep) {
+         for (int n = z1; ; n += zStep) {
+            float distance = distance((float) l, (float) n, centerX, centerZ);
             float radius = calculateEllipseRadius(centerX, centerZ, radiusX, radiusZ, l, n);
             if (distance < radius + 0.4F) {
-               list.add(new BlockPos(l, y1, n));
+               out.accept(BlockPos.asLong(l, y1, n));
             }
-
-            n += z1 < z2 ? 1 : -1;
+            if (n == z2) {
+               break;
+            }
          }
-
-         l += x1 < x2 ? 1 : -1;
+         if (l == x2) {
+            break;
+         }
       }
-
    }
 
    public static void addHollowCircleBlocks(List<BlockPos> list, int x1, int y1, int z1, int x2, int y2, int z2, float centerX, float centerZ, float radiusX, float radiusZ) {
-      int l = x1;
+      forEachHollowCircleBlocks(x1, y1, z1, x2, y2, z2, centerX, centerZ, radiusX, radiusZ, packed -> list.add(BlockPos.of(packed)));
+   }
 
-      while(true) {
-         if (x1 < x2) {
-            if (l > x2) {
-               break;
-            }
-         } else if (l < x2) {
-            break;
-         }
-
-         int n = z1;
-
-         while(true) {
-            if (z1 < z2) {
-               if (n > z2) {
-                  break;
-               }
-            } else if (n < z2) {
-               break;
-            }
-
-            float distance = distance((float)l, (float)n, centerX, centerZ);
+   /** Bare-int twin of {@link #addHollowCircleBlocks}: same order, packed longs, no allocation. */
+   public static void forEachHollowCircleBlocks(int x1, int y1, int z1, int x2, int y2, int z2, float centerX, float centerZ, float radiusX, float radiusZ, LongConsumer out) {
+      int xStep = x1 < x2 ? 1 : -1;
+      int zStep = z1 < z2 ? 1 : -1;
+      for (int l = x1; ; l += xStep) {
+         for (int n = z1; ; n += zStep) {
+            float distance = distance((float) l, (float) n, centerX, centerZ);
             float radius = calculateEllipseRadius(centerX, centerZ, radiusX, radiusZ, l, n);
             if (distance < radius + 0.4F && distance > radius - 0.6F) {
-               list.add(new BlockPos(l, y1, n));
+               out.accept(BlockPos.asLong(l, y1, n));
             }
-
-            n += z1 < z2 ? 1 : -1;
+            if (n == z2) {
+               break;
+            }
          }
+         if (l == x2) {
+            break;
+         }
+      }
+   }
 
-         l += x1 < x2 ? 1 : -1;
+   /**
+    * Streams {@link #getCircleBlocks} as packed longs: same center/radius
+    * resolution, no intermediate list.
+    */
+   public static void forEachCircleBlocksOption(int x1, int y1, int z1, int x2, int y2, int z2, boolean full, LongConsumer out) {
+      float centerX = (float) x1;
+      float centerZ = (float) z1;
+      int bx1 = x1;
+      int bz1 = z1;
+      if (ModeOptions.getCircleStart() == ModeOptions.ActionEnum.CIRCLE_START_CORNER) {
+         centerX = (float) x1 + (float) (x2 - x1) / 2.0F;
+         centerZ = (float) z1 + (float) (z2 - z1) / 2.0F;
+      } else {
+         bx1 = (int) (centerX - ((float) x2 - centerX));
+         bz1 = (int) (centerZ - ((float) z2 - centerZ));
       }
 
+      float radiusX = Mth.abs((float) x2 - centerX);
+      float radiusZ = Mth.abs((float) z2 - centerZ);
+      if (full) {
+         forEachCircleBlocks(bx1, y1, bz1, x2, y2, z2, centerX, centerZ, radiusX, radiusZ, out);
+      } else {
+         forEachHollowCircleBlocks(bx1, y1, bz1, x2, y2, z2, centerX, centerZ, radiusX, radiusZ, out);
+      }
    }
 
    private static float distance(float x1, float z1, float x2, float z2) {
@@ -152,5 +155,10 @@ public class Circle extends TwoClicksBuildMode {
 
    protected List<BlockPos> getAllBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2) {
       return getCircleBlocks(player, x1, y1, z1, x2, y2, z2);
+   }
+
+   @Override
+   protected void forEachAllBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2, LongConsumer out) {
+      forEachCircleBlocksOption(x1, y1, z1, x2, y2, z2, ModeOptions.getFill() == ModeOptions.ActionEnum.FULL, out);
    }
 }

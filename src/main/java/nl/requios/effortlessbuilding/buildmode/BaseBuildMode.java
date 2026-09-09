@@ -16,7 +16,7 @@ public abstract class BaseBuildMode implements IBuildMode {
       return false;
    }
 
-   public void getClientBlocks(BlockSet blocks, Player player) {
+   public void getCommonBlocks(BlockSet blocks, Player player) {
    }
 
    public boolean isFirstClick() {

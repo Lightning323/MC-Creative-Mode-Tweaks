@@ -11,7 +11,7 @@ import org.jetbrains.annotations.Nullable;
  * <ol>
  *   <li>On every selection update the caller reports the candidate boundary
  *       from {@code getClientBoundary} together with the candidate block count
- *       from {@code getClientBlocks}.</li>
+ *       from {@code getCommonBlocks}.</li>
  *   <li>If the count exceeds the limit, the selection mode becomes
  *       {@link SelectionMode#OVERSIZED}.</li>
  *   <li>While oversized, only a candidate whose boundary box is
@@ -65,7 +65,7 @@ public final class BuildSelectionGuard {
      *
      * @param candidateBoundary boundary from {@code getClientBoundary}, or null
      *                          when there is no active selection.
-     * @param candidateBlockCount raw size from {@code getClientBlocks}, before
+     * @param candidateBlockCount raw size from {@code getCommonBlocks}, before
      *                          constraint capping.
      * @param maxBlocks block-set limit from configs
      *                  ({@code Config.getBuildingMaxBlocksPlaced}).

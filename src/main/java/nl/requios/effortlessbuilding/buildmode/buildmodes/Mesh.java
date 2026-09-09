@@ -95,7 +95,11 @@ public class Mesh extends BaseBuildMode {
       return new AABB(minX, minY, minZ, maxX + 1, maxY + 1, maxZ + 1);
    }
 
-   public void getClientBlocks(BlockSet blocks, Player player) {
+   @Override
+   public void getCommonBlocks(BlockSet blocks, Player player) {
+      // Same partial-shape preview as before (single points and open edges
+      // still draw while the face is unfinished); streams packed longs
+      // instead of copying through addAllPositions.
       List<BlockPos> selectedPoints = new ArrayList(this.points);
       if (selectedPoints.size() < this.requiredPointCount() && this.previewPoint != null) {
          selectedPoints.add(this.previewPoint);
@@ -106,15 +110,19 @@ public class Mesh extends BaseBuildMode {
       }
 
       List<BlockPos> boundedPoints = this.limitToBuildRange(player, selectedPoints);
-      List<BlockPos> meshBlocks = this.getMeshBlocks(boundedPoints);
       blocks.clear();
-      blocks.addAllPositions(meshBlocks);
+      List<BlockPos> meshBlocks = this.getMeshBlocks(boundedPoints);
+      for (int i = 0, n = meshBlocks.size(); i < n; i++) {
+         blocks.addPacked(meshBlocks.get(i).asLong());
+      }
 
-      blocks.firstPos = (BlockPos)boundedPoints.getFirst();
-      blocks.lastPos = (BlockPos)boundedPoints.getLast();
+      blocks.firstPos = (BlockPos) boundedPoints.getFirst();
+      blocks.lastPos = (BlockPos) boundedPoints.getLast();
    }
 
-   public List<BlockPos> getServerBlocks(Player player, BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos, @Nullable BlockPos fourthPos) {
+   @Override
+   public List<BlockPos> getCommonBlocks(Player player, BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos, @Nullable BlockPos fourthPos) {
+      // Placement needs a complete face; partial point sets preview only.
       if (thirdPos == null) {
          return List.of();
       }

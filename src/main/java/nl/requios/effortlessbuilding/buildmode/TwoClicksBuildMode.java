@@ -2,6 +2,7 @@ package nl.requios.effortlessbuilding.buildmode;
 
 import java.util.List;
 
+import it.unimi.dsi.fastutil.longs.LongConsumer;
 import net.minecraft.world.phys.AABB;
 import org.lightning323.creative_mode_tweaks.Config;
 import nl.requios.effortlessbuilding.utilities.BlockEntry;
@@ -80,65 +81,56 @@ public abstract class TwoClicksBuildMode extends BaseBuildMode {
         return target;
     }
 
-    public void getClientBlocks(BlockSet blocks, Player player) {
+    @Override
+    public void getCommonBlocks(BlockSet blocks, Player player) {
         if (this.clicks == 0 || this.firstBlockEntry == null || this.firstBlockEntry.blockPos == null) {
             return;
         }
         BlockPos firstPos = this.firstBlockEntry.blockPos;
         BlockPos secondPos = this.findSecondPos(player, firstPos, true);
         if (secondPos != null) {
-            BlockPos clampedSecond = clampPos(firstPos, secondPos, Config.getBuildingMaxBlocksPerAxis(player));
-
             blocks.clear();
 
-            // Preserve endpoint order: circle starting modes treat the first
-            // point as the center/corner anchor, so min/max reordering here
-            // would mirror around the wrong point.
-            blocks.addAllPositions(this.getAllBlocks(player,
-                    firstPos.getX(), firstPos.getY(), firstPos.getZ(),
-                    clampedSecond.getX(), clampedSecond.getY(), clampedSecond.getZ()));
+            // Streams bare packed longs straight into the set — no intermediate list.
+            this.forEachCommonBlock(player, firstPos, secondPos, null, null, blocks::addPacked);
 
             blocks.firstPos = firstPos;
             blocks.lastPos = secondPos;
         }
     }
 
-    public List<BlockPos> getServerBlocks(Player player, BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos, @Nullable BlockPos fourthPos) {
-        int axisLimit = Config.getBuildingMaxBlocksPerAxis(player);
-        int x1 = firstPos.getX();
-        int x2 = secondPos.getX();
-        int y1 = firstPos.getY();
-        int y2 = secondPos.getY();
-        int z1 = firstPos.getZ();
-        int z2 = secondPos.getZ();
-        if (x2 - x1 >= axisLimit) {
-            x2 = x1 + axisLimit - 1;
-        }
+    @Override
+    public List<BlockPos> getCommonBlocks(Player player, BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos, @Nullable BlockPos fourthPos) {
+        BlockPos clampedSecond = clampPos(firstPos, secondPos, Config.getBuildingMaxBlocksPerAxis(player));
+        // Preserve endpoint order: circle starting modes treat the first
+        // point as the center/corner anchor, so min/max reordering here
+        // would mirror around the wrong point.
+        return this.getAllBlocks(player,
+                firstPos.getX(), firstPos.getY(), firstPos.getZ(),
+                clampedSecond.getX(), clampedSecond.getY(), clampedSecond.getZ());
+    }
 
-        if (x1 - x2 >= axisLimit) {
-            x2 = x1 - axisLimit + 1;
-        }
-
-        if (y2 - y1 >= axisLimit) {
-            y2 = y1 + axisLimit - 1;
-        }
-
-        if (y1 - y2 >= axisLimit) {
-            y2 = y1 - axisLimit + 1;
-        }
-
-        if (z2 - z1 >= axisLimit) {
-            z2 = z1 + axisLimit - 1;
-        }
-
-        if (z1 - z2 >= axisLimit) {
-            z2 = z1 - axisLimit + 1;
-        }
-
-        return this.getAllBlocks(player, x1, y1, z1, x2, y2, z2);
+    @Override
+    public void forEachCommonBlock(Player player, BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos, @Nullable BlockPos fourthPos, LongConsumer out) {
+        BlockPos clampedSecond = clampPos(firstPos, secondPos, Config.getBuildingMaxBlocksPerAxis(player));
+        this.forEachAllBlocks(player,
+                firstPos.getX(), firstPos.getY(), firstPos.getZ(),
+                clampedSecond.getX(), clampedSecond.getY(), clampedSecond.getZ(), out);
     }
 
     protected abstract BlockPos findSecondPos(Player var1, BlockPos var2, boolean var3);
 
     protected abstract List<BlockPos> getAllBlocks(Player var1, int var2, int var3, int var4, int var5, int var6, int var7);
+
+    /**
+     * Primitive twin of {@link #getAllBlocks}: emits the same shape as packed
+     * longs. Defaults to packing the exact list; hot shapes override with
+     * bare-int loops.
+     */
+    protected void forEachAllBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2, LongConsumer out) {
+        List<BlockPos> all = this.getAllBlocks(player, x1, y1, z1, x2, y2, z2);
+        for (int i = 0, n = all.size(); i < n; i++) {
+            out.accept(all.get(i).asLong());
+        }
+    }
 }

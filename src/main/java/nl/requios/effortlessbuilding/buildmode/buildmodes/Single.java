@@ -23,13 +23,15 @@ public class Single extends BaseBuildMode {
         return true;
     }
 
-    public void getClientBlocks(BlockSet blocks, Player player) {
+    @Override
+    public void getCommonBlocks(BlockSet blocks, Player player) {
         if (this.pos != null) {
             blocks.setStartPos(new BlockEntry(this.pos));
         }
     }
 
-    public List<BlockPos> getServerBlocks(Player player, BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos, @Nullable BlockPos fourthPos) {
+    @Override
+    public List<BlockPos> getCommonBlocks(Player player, BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos, @Nullable BlockPos fourthPos) {
         return List.of(firstPos);
     }
 

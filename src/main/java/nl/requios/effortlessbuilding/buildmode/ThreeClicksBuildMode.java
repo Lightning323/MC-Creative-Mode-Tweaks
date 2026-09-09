@@ -3,6 +3,7 @@ package nl.requios.effortlessbuilding.buildmode;
 import java.util.ArrayList;
 import java.util.List;
 
+import it.unimi.dsi.fastutil.longs.LongConsumer;
 import net.minecraft.world.phys.AABB;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipeline;
 import org.lightning323.creative_mode_tweaks.Config;
@@ -152,7 +153,8 @@ public abstract class ThreeClicksBuildMode extends BaseBuildMode {
         return new AABB(minX, minY, minZ, maxX + 1, maxY + 1, maxZ + 1);
     }
 
-    public void getClientBlocks(BlockSet blocks, Player player) {
+    @Override
+    public void getCommonBlocks(BlockSet blocks, Player player) {
         if (this.twoPointBuild) {
             this.findTwoPointCoordinates(blocks, player);
             return;
@@ -162,7 +164,6 @@ public abstract class ThreeClicksBuildMode extends BaseBuildMode {
             return;
         }
 
-        int axisLimit = Config.getBuildingMaxBlocksPerAxis(player);
         BlockPos firstPos = this.firstBlockEntry.blockPos;
 
         if (this.clicks == 1) {
@@ -171,13 +172,9 @@ public abstract class ThreeClicksBuildMode extends BaseBuildMode {
                 return;
             }
 
-            BlockPos clampedSecond = clampPos(firstPos, secondPos, axisLimit);
-
             blocks.clear();
-            blocks.addAllPositions(this.getIntermediateBlocks(
-                    player,
-                    firstPos.getX(), firstPos.getY(), firstPos.getZ(),
-                    clampedSecond.getX(), clampedSecond.getY(), clampedSecond.getZ()));
+            // Streams bare packed longs straight into the set — no intermediate list.
+            this.forEachCommon(player, firstPos, secondPos, null, false, blocks::addPacked);
 
             blocks.firstPos = firstPos;
             blocks.lastPos = secondPos;
@@ -191,19 +188,80 @@ public abstract class ThreeClicksBuildMode extends BaseBuildMode {
                 return;
             }
 
-            BlockPos clampedSecond = clampPos(firstPos, secondPos, axisLimit);
-            BlockPos clampedThird = clampPos(firstPos, thirdPos, axisLimit);
-
             blocks.clear();
-            blocks.addAllPositions(this.getFinalBlocks(
-                    player,
-                    firstPos.getX(), firstPos.getY(), firstPos.getZ(),
-                    clampedSecond.getX(), clampedSecond.getY(), clampedSecond.getZ(),
-                    clampedThird.getX(), clampedThird.getY(), clampedThird.getZ()));
+            this.forEachCommon(player, firstPos, secondPos, thirdPos, false, blocks::addPacked);
 
             blocks.firstPos = firstPos;
             blocks.lastPos = thirdPos;
         }
+    }
+
+    /**
+     * Canonical exact shape from explicit points, shared by the client click
+     * path and the server placement path. A null third point previews the
+     * intermediate shape; the server override keeps its legacy empty result
+     * for that case (see {@link #getServerBlocks}).
+     */
+    @Override
+    public List<BlockPos> getCommonBlocks(Player player, BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos, @Nullable BlockPos fourthPos) {
+        return this.commonBlocks(player, firstPos, secondPos, thirdPos,
+                this.supportsTwoPointBuild() && ModeOptions.isTwoPointBuild());
+    }
+
+    @Override
+    public void forEachCommonBlock(Player player, BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos, @Nullable BlockPos fourthPos, LongConsumer out) {
+        this.forEachCommon(player, firstPos, secondPos, thirdPos,
+                this.supportsTwoPointBuild() && ModeOptions.isTwoPointBuild(), out);
+    }
+
+    /**
+     * Shared clamp + dispatch core behind both {@link #getCommonBlocks}
+     * overloads. The two-point flag is explicit so in-progress selections
+     * keep the mode captured at first click instead of the live option.
+     */
+    private List<BlockPos> commonBlocks(Player player, BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos, boolean twoPoint) {
+        int axisLimit = Config.getBuildingMaxBlocksPerAxis(player);
+        if (twoPoint && this.supportsTwoPointBuild()) {
+            return this.getTwoPointBlocks(player, firstPos, secondPos);
+        }
+        if (thirdPos == null) {
+            BlockPos clampedSecond = clampPos(firstPos, secondPos, axisLimit);
+            return this.getIntermediateBlocks(
+                    player,
+                    firstPos.getX(), firstPos.getY(), firstPos.getZ(),
+                    clampedSecond.getX(), clampedSecond.getY(), clampedSecond.getZ());
+        }
+        BlockPos clampedSecond = clampPos(firstPos, secondPos, axisLimit);
+        BlockPos clampedThird = clampPos(firstPos, thirdPos, axisLimit);
+        return this.getFinalBlocks(
+                player,
+                firstPos.getX(), firstPos.getY(), firstPos.getZ(),
+                clampedSecond.getX(), clampedSecond.getY(), clampedSecond.getZ(),
+                clampedThird.getX(), clampedThird.getY(), clampedThird.getZ());
+    }
+
+    /** Primitive twin of {@link #commonBlocks}: same clamp + dispatch, bare packed longs. */
+    private void forEachCommon(Player player, BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos, boolean twoPoint, LongConsumer out) {
+        int axisLimit = Config.getBuildingMaxBlocksPerAxis(player);
+        if (twoPoint && this.supportsTwoPointBuild()) {
+            this.forEachTwoPointBlocks(player, firstPos, secondPos, out);
+            return;
+        }
+        if (thirdPos == null) {
+            BlockPos clampedSecond = clampPos(firstPos, secondPos, axisLimit);
+            this.forEachIntermediateBlocks(
+                    player,
+                    firstPos.getX(), firstPos.getY(), firstPos.getZ(),
+                    clampedSecond.getX(), clampedSecond.getY(), clampedSecond.getZ(), out);
+            return;
+        }
+        BlockPos clampedSecond = clampPos(firstPos, secondPos, axisLimit);
+        BlockPos clampedThird = clampPos(firstPos, thirdPos, axisLimit);
+        this.forEachFinalBlocks(
+                player,
+                firstPos.getX(), firstPos.getY(), firstPos.getZ(),
+                clampedSecond.getX(), clampedSecond.getY(), clampedSecond.getZ(),
+                clampedThird.getX(), clampedThird.getY(), clampedThird.getZ(), out);
     }
 
     /**
@@ -233,74 +291,14 @@ public abstract class ThreeClicksBuildMode extends BaseBuildMode {
         return !this.twoPointBuild && this.secondBlockEntry != null ? this.secondBlockEntry.blockPos : null;
     }
 
+    @Override
     public List<BlockPos> getServerBlocks(Player player, BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos, @Nullable BlockPos fourthPos) {
-        if (this.supportsTwoPointBuild() && ModeOptions.isTwoPointBuild()) {
-            return this.getTwoPointBlocks(player, firstPos, secondPos);
-        }
-
-        if (thirdPos == null) {
+        // Legacy placement semantics: no third point means nothing to place.
+        // (getCommonBlocks resolves the intermediate preview shape instead.)
+        if (thirdPos == null && !(this.supportsTwoPointBuild() && ModeOptions.isTwoPointBuild())) {
             return List.of();
-        } else {
-            int axisLimit = Config.getBuildingMaxBlocksPerAxis(player);
-            int x1 = firstPos.getX();
-            int x2 = secondPos.getX();
-            int x3 = thirdPos.getX();
-            int y1 = firstPos.getY();
-            int y2 = secondPos.getY();
-            int y3 = thirdPos.getY();
-            int z1 = firstPos.getZ();
-            int z2 = secondPos.getZ();
-            int z3 = thirdPos.getZ();
-            if (x2 - x1 >= axisLimit) {
-                x2 = x1 + axisLimit - 1;
-            }
-
-            if (x1 - x2 >= axisLimit) {
-                x2 = x1 - axisLimit + 1;
-            }
-
-            if (y2 - y1 >= axisLimit) {
-                y2 = y1 + axisLimit - 1;
-            }
-
-            if (y1 - y2 >= axisLimit) {
-                y2 = y1 - axisLimit + 1;
-            }
-
-            if (z2 - z1 >= axisLimit) {
-                z2 = z1 + axisLimit - 1;
-            }
-
-            if (z1 - z2 >= axisLimit) {
-                z2 = z1 - axisLimit + 1;
-            }
-
-            if (x3 - x1 >= axisLimit) {
-                x3 = x1 + axisLimit - 1;
-            }
-
-            if (x1 - x3 >= axisLimit) {
-                x3 = x1 - axisLimit + 1;
-            }
-
-            if (y3 - y1 >= axisLimit) {
-                y3 = y1 + axisLimit - 1;
-            }
-
-            if (y1 - y3 >= axisLimit) {
-                y3 = y1 - axisLimit + 1;
-            }
-
-            if (z3 - z1 >= axisLimit) {
-                z3 = z1 + axisLimit - 1;
-            }
-
-            if (z1 - z3 >= axisLimit) {
-                z3 = z1 - axisLimit + 1;
-            }
-
-            return this.getFinalBlocks(player, x1, y1, z1, x2, y2, z2, x3, y3, z3);
         }
+        return this.getCommonBlocks(player, firstPos, secondPos, thirdPos, fourthPos);
     }
 
     public static BlockPos findHeight(Player player, BlockPos secondPos, boolean skipRaytrace) {
@@ -346,6 +344,32 @@ public abstract class ThreeClicksBuildMode extends BaseBuildMode {
 
     protected abstract List<BlockPos> getFinalBlocks(Player var1, int var2, int var3, int var4, int var5, int var6, int var7, int var8, int var9, int var10);
 
+    /**
+     * Primitive twins of the exact generators: emit the same shapes as packed
+     * longs. Defaults pack the exact lists; hot shapes override with bare-int
+     * loops.
+     */
+    protected void forEachIntermediateBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2, LongConsumer out) {
+        List<BlockPos> intermediate = this.getIntermediateBlocks(player, x1, y1, z1, x2, y2, z2);
+        for (int i = 0, n = intermediate.size(); i < n; i++) {
+            out.accept(intermediate.get(i).asLong());
+        }
+    }
+
+    protected void forEachFinalBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2, int x3, int y3, int z3, LongConsumer out) {
+        List<BlockPos> fin = this.getFinalBlocks(player, x1, y1, z1, x2, y2, z2, x3, y3, z3);
+        for (int i = 0, n = fin.size(); i < n; i++) {
+            out.accept(fin.get(i).asLong());
+        }
+    }
+
+    protected void forEachTwoPointBlocks(Player player, BlockPos firstPos, BlockPos secondPos, LongConsumer out) {
+        List<BlockPos> twoPoint = this.getTwoPointBlocks(player, firstPos, secondPos);
+        for (int i = 0, n = twoPoint.size(); i < n; i++) {
+            out.accept(twoPoint.get(i).asLong());
+        }
+    }
+
     public void setPreviewPoint(@Nullable BlockPos pos) {
         this.previewSecondPoint = pos;
     }
@@ -371,7 +395,7 @@ public abstract class ThreeClicksBuildMode extends BaseBuildMode {
         BlockPos firstPos = this.firstBlockEntry.blockPos;
         BlockPos boundedSecondPos = this.limitToBuildRange(player, firstPos, secondPos);
         blocks.clear();
-        blocks.addAllPositions(this.getTwoPointBlocks(player, firstPos, boundedSecondPos));
+        this.forEachTwoPointBlocks(player, firstPos, boundedSecondPos, blocks::addPacked);
 
         blocks.firstPos = firstPos;
         blocks.lastPos = boundedSecondPos;

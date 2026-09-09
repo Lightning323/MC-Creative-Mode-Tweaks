@@ -1,6 +1,8 @@
 package nl.requios.effortlessbuilding.buildmode.buildmodes;
 
 import java.util.List;
+import it.unimi.dsi.fastutil.longs.LongConsumer;
+import nl.requios.effortlessbuilding.buildmode.ModeOptions;
 import nl.requios.effortlessbuilding.buildmode.BuildModes;
 import nl.requios.effortlessbuilding.buildmode.TwoClicksBuildMode;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipeline;
@@ -66,6 +68,16 @@ public class Plane extends TwoClicksBuildMode {
          case Y -> Floor.getFloorBlocks(player, x1, y1, z1, x2, y2, z2);
          case X, Z -> Wall.getWallBlocks(player, x1, y1, z1, x2, y2, z2);
       };
+   }
+
+   @Override
+   protected void forEachAllBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2, LongConsumer out) {
+      switch (planeFace(x1, y1, z1, x2, y2, z2)) {
+         case Y -> Floor.forEachFloorBlocksOption(x1, x2, y1, z1, z2,
+                 ModeOptions.getFill() == ModeOptions.ActionEnum.FULL, out);
+         case X, Z -> Wall.forEachWallBlocks(x1, y1, z1, x2, y2, z2,
+                 ModeOptions.getFill() == ModeOptions.ActionEnum.FULL, out);
+      }
    }
 
    private static BlockPos findWallOnAxis(Player player, BlockPos firstPos, Direction.Axis axis, boolean skipRaytrace) {

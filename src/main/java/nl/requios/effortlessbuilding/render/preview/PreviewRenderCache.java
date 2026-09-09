@@ -93,7 +93,7 @@ public final class PreviewRenderCache {
      * the box tracking the cursor at ~12Hz instead of hitching the game.
      * Clicks, mode/item/config changes always rebuild immediately.
      */
-    private static final long HUGE_SHAPE_RESHAPE_MIN_NANOS = 100_000_000L;
+    private static final long HUGE_SHAPE_RESHAPE_MIN_NANOS = 35_000_000L;
     private static final long SHAPE_RESHAPE_MIN_NANOS = 35_000_000L;
 
     /**
@@ -416,7 +416,7 @@ public final class PreviewRenderCache {
         BlockPos anchor = key.selectionOrigin() != null ? key.selectionOrigin() : player.blockPosition();
         // Boundary first: pure coordinate math (first/second/third points +
         // clamps + mode-specific expansion), no block enumeration. Huge shapes
-        // render from this alone and never pay for getClientBlocks.
+        // render from this alone and never pay for block enumeration.
         AABB previewBoundary = mode.instance.getClientBoundary(player);
         if (previewBoundary == null) {
             clear();
@@ -430,8 +430,8 @@ public final class PreviewRenderCache {
         long boundaryVol = boundaryVolume(previewBoundary);
 
         // Oversized freeze without enumeration: while the guard is oversized,
-        // a non-shrinking boundary is rejected on volume alone — no
-        // getClientBlocks, no rebake, the frozen preview just keeps drawing.
+        // a non-shrinking boundary is rejected on volume alone — no block
+        // enumeration, no rebake, the frozen preview just keeps drawing.
         if (BuildSelectionGuard.CLIENT.isOversized()) {
             AABB lastBoundary = BuildSelectionGuard.CLIENT.getLastBoundary();
             if (lastBoundary != null
@@ -451,7 +451,9 @@ public final class PreviewRenderCache {
         int est = (int) Math.min(boundaryVol, (long) maxBlocks * 2L);
         BlockSet blocks = new BlockSet(Math.max(16, Math.min(est, PRESIZE_CAP)));
         try (SableCompat.SelectionScope ignored = SableCompat.pushSelection(level, anchor)) {
-            mode.instance.getClientBlocks(blocks, player); //Get the blocks from the selected anchor points, first pos, second pos, etc...
+            // Preview path: streams the shape from the resolved anchor
+            // points, never the exact placement list.
+            mode.instance.getCommonBlocks(blocks, player);
         }
         throttleNanoseconds = blocks.size() > configPreviewRenderThrottleBlocks ?
                 HUGE_SHAPE_RESHAPE_MIN_NANOS : //Throttle the speed at which the shape is rebuilt to save performance
@@ -536,45 +538,45 @@ public final class PreviewRenderCache {
      * {@link #hasPreview()} stays true — exact per-block lists are
      * unavailable on this path by design.</p>
      */
-    private void shapeSimple(Level level, BuildPipeline.@Nullable BuildState state,
-                             PreviewShapeKey key, AABB previewBoundary, int maxBlocks) {
-        BlockPos min = boundaryMin(previewBoundary);
-        BlockPos max = boundaryMax(previewBoundary);
-        long volume = boundaryVolume(previewBoundary);
-        int estimatedCount = volume > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) volume;
-        boolean overCap = volume > maxBlocks;
-        this.isBreaking = (state != null ? state : BuildPipeline.BuildState.PLACING)
-                == BuildPipeline.BuildState.BREAKING;
-        // Corners only: keeps hasPreview() true without enumerating blocks.
-        // Deduplicate the single-block case so the lists never hold the same
-        // corner twice.
-        List<BlockPos> corners = min.equals(max) ? List.of(min) : List.of(min, max);
-        this.breakable = corners;
-        this.unbreakable = List.of();
-        this.all = this.breakable;
-        this.animated = List.of();
-        this.overLimit = overCap;
-        this.wantsBlocks = false;
-        this.shapedKey = key;
-        this.shapedLevel = level;
-        this.simplePreview = true;
-        this.lastShapeNanos = System.nanoTime();
-
-        // Box overlay bakes synchronously — it is microseconds, never a hitch.
-        this.overlayMesh.adopt(level, PreviewOverlayMesh.bakeBoundingBox(min, max, this.isBreaking));
-        this.overlayMesh.setIsSimple(true);
-        this.hasOverlay = !this.overlayMesh.isEmpty();
-
-        // No worker traffic at all: drop stale ghosts, retire any bake.
-        PreviewBuildWorker.cancel();
-        this.blockMesh.clear();
-        this.meshKey = key;
-        this.submittedKey = key;
-        this.pendingMeshBlocks = List.of();
-
-        // Count + dims from the already-known bounds: no list rescan.
-        RenderHandler.updateFeedbackSimple(estimatedCount, min, max, state != null, state, overCap);
-    }
+//    private void shapeSimple(Level level, BuildPipeline.@Nullable BuildState state,
+//                             PreviewShapeKey key, AABB previewBoundary, int maxBlocks) {
+//        BlockPos min = boundaryMin(previewBoundary);
+//        BlockPos max = boundaryMax(previewBoundary);
+//        long volume = boundaryVolume(previewBoundary);
+//        int estimatedCount = volume > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) volume;
+//        boolean overCap = volume > maxBlocks;
+//        this.isBreaking = (state != null ? state : BuildPipeline.BuildState.PLACING)
+//                == BuildPipeline.BuildState.BREAKING;
+//        // Corners only: keeps hasPreview() true without enumerating blocks.
+//        // Deduplicate the single-block case so the lists never hold the same
+//        // corner twice.
+//        List<BlockPos> corners = min.equals(max) ? List.of(min) : List.of(min, max);
+//        this.breakable = corners;
+//        this.unbreakable = List.of();
+//        this.all = this.breakable;
+//        this.animated = List.of();
+//        this.overLimit = overCap;
+//        this.wantsBlocks = false;
+//        this.shapedKey = key;
+//        this.shapedLevel = level;
+//        this.simplePreview = true;
+//        this.lastShapeNanos = System.nanoTime();
+//
+//        // Box overlay bakes synchronously — it is microseconds, never a hitch.
+//        this.overlayMesh.adopt(level, PreviewOverlayMesh.bakeBoundingBox(min, max, this.isBreaking));
+//        this.overlayMesh.setIsSimple(true);
+//        this.hasOverlay = !this.overlayMesh.isEmpty();
+//
+//        // No worker traffic at all: drop stale ghosts, retire any bake.
+//        PreviewBuildWorker.cancel();
+//        this.blockMesh.clear();
+//        this.meshKey = key;
+//        this.submittedKey = key;
+//        this.pendingMeshBlocks = List.of();
+//
+//        // Count + dims from the already-known bounds: no list rescan.
+//        RenderHandler.updateFeedbackSimple(estimatedCount, min, max, state != null, state, overCap);
+//    }
 
     // Full-fidelity path for sensibly-sized shapes: constraints, ghosts,
     // exact per-block overlay. Bounded by DETAILED_PREVIEW_BLOCK_LIMIT, so

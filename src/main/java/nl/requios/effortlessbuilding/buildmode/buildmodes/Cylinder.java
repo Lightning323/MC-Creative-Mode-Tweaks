@@ -2,6 +2,8 @@ package nl.requios.effortlessbuilding.buildmode.buildmodes;
 
 import java.util.ArrayList;
 import java.util.List;
+import it.unimi.dsi.fastutil.longs.LongArrayList;
+import it.unimi.dsi.fastutil.longs.LongConsumer;
 import net.minecraft.world.phys.AABB;
 import nl.requios.effortlessbuilding.buildmode.ModeOptions;
 import nl.requios.effortlessbuilding.buildmode.ThreeClicksBuildMode;
@@ -25,6 +27,26 @@ public class Cylinder extends ThreeClicksBuildMode {
       return list;
    }
 
+   /**
+    * Bare-int twin of {@link #getCylinderBlocks}: reuses the circle's packed
+    * emitter and extrudes over the height — no intermediate disc list, no
+    * {@code BlockPos} allocation in the generator.
+    */
+   public static void forEachCylinderBlocks(int x1, int y1, int z1, int x2, int y2, int z2, int y3, boolean full, LongConsumer out) {
+      int lowest = Math.min(y1, y3);
+      int highest = Math.max(y1, y3);
+      // Per-height slice around the base disc. The slice buffer is tiny
+      // (one disc); the volume-length loop below streams packed longs.
+      LongArrayList disc = new LongArrayList();
+      Circle.forEachCircleBlocksOption(x1, y1, z1, x2, y2, z2, full, disc::add);
+      for (int y = lowest; y <= highest; ++y) {
+         for (int i = 0, n = disc.size(); i < n; i++) {
+            long packed = disc.getLong(i);
+            out.accept(BlockPos.asLong(BlockPos.getX(packed), y, BlockPos.getZ(packed)));
+         }
+      }
+   }
+
    public BlockPos findSecondPos(Player player, BlockPos firstPos, boolean skipRaytrace) {
       return Floor.findFloor(player, firstPos, skipRaytrace);
    }
@@ -37,8 +59,18 @@ public class Cylinder extends ThreeClicksBuildMode {
        return Circle.getCircleBlocks(player, x1, y1, z1, x2, y2, z2);
     }
 
+    @Override
+    protected void forEachIntermediateBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2, LongConsumer out) {
+       Circle.forEachCircleBlocksOption(x1, y1, z1, x2, y2, z2, ModeOptions.getFill() == ModeOptions.ActionEnum.FULL, out);
+    }
+
     public List<BlockPos> getFinalBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2, int x3, int y3, int z3) {
        return getCylinderBlocks(player, x1, y1, z1, x2, y2, z2, x3, y3, z3);
+    }
+
+    @Override
+    protected void forEachFinalBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2, int x3, int y3, int z3, LongConsumer out) {
+       forEachCylinderBlocks(x1, y1, z1, x2, y2, z2, y3, ModeOptions.getFill() == ModeOptions.ActionEnum.FULL, out);
     }
 
     @Override

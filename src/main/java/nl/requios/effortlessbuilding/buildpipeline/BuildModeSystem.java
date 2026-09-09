@@ -26,7 +26,7 @@ public class BuildModeSystem implements IBuildSystem {
       if (ctx != null) {
          ModeOptions.applyForCalculation(ctx.fill(), ctx.cubeFill(), ctx.raisedEdge(), ctx.circleStart(), ctx.pointBuild(), ctx.sides());
          ctx.mode().instance.setFirstClickFace(ctx.firstClickFace());
-         List<BlockPos> rawPositions = ctx.mode().instance.getServerBlocks(player, ctx.firstPos(), ctx.secondPos(), ctx.thirdPos(), ctx.fourthPos());
+         List<BlockPos> rawPositions = ctx.mode().instance.getCommonBlocks(player, ctx.firstPos(), ctx.secondPos(), ctx.thirdPos(), ctx.fourthPos());
          if (!rawPositions.isEmpty()) {
             blocks.addAllPositions(rawPositions);
             blocks.firstPos = (BlockPos)rawPositions.getFirst();

@@ -81,22 +81,42 @@ public class BlockSet implements Iterable<BlockEntry> {
       }
    }
 
-   /**
-    * Bulk insert of plain positions, wrapping each in a {@link BlockEntry}.
-    * Indexed loop (no iterator garbage), one table probe per position, same
-    * first-wins dedup semantics as {@link #add(BlockEntry)}.
-    */
-   public void addAllPositions(List<BlockPos> positions) {
-      for (int i = 0, n = positions.size(); i < n; i++) {
-         BlockPos pos = positions.get(i);
-         long key = pos.asLong();
-         if (!this.entries.containsKey(key)) {
-            this.entries.put(key, new BlockEntry(pos));
-         } else if (logging) {
-            Constants.LOG.debug("BlockSet already contains block at {}", pos);
-         }
-      }
-   }
+    /**
+     * Bulk insert of plain positions, wrapping each in a {@link BlockEntry}.
+     * Indexed loop (no iterator garbage), one table probe per position, same
+     * first-wins dedup semantics as {@link #add(BlockEntry)}.
+     */
+    public void addAllPositions(List<BlockPos> positions) {
+       for (int i = 0, n = positions.size(); i < n; i++) {
+          BlockPos pos = positions.get(i);
+          long key = pos.asLong();
+          if (!this.entries.containsKey(key)) {
+             this.entries.put(key, new BlockEntry(pos));
+          } else if (logging) {
+             Constants.LOG.debug("BlockSet already contains block at {}", pos);
+          }
+       }
+    }
+
+    /**
+     * Fast-path insert of one packed position ({@link BlockPos#asLong()}).
+     * Same first-wins dedup as {@link #add(BlockEntry)}; unpacks to a
+     * {@code BlockPos} only for the stored entry. Used by
+     * {@code getCommonBlocks} streaming, which emits bare packed longs
+     * with no intermediate {@code List<BlockPos>}.
+     */
+    public void addPacked(long packedPos) {
+       if (!this.entries.containsKey(packedPos)) {
+          this.entries.put(packedPos, new BlockEntry(BlockPos.of(packedPos)));
+       } else if (logging) {
+          Constants.LOG.debug("BlockSet already contains block at {}", BlockPos.of(packedPos));
+       }
+    }
+
+    /** Pre-sizes the table so a known-size stream fill never rehashes mid-way. */
+    public void ensureCapacity(int expectedSize) {
+       this.entries.ensureCapacity(expectedSize);
+    }
 
    public @Nullable BlockEntry get(BlockPos pos) {
       return pos == null ? null : this.entries.get(pos.asLong());

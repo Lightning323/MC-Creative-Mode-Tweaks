@@ -2,6 +2,7 @@ package nl.requios.effortlessbuilding.buildmode.buildmodes;
 
 import java.util.ArrayList;
 import java.util.List;
+import it.unimi.dsi.fastutil.longs.LongConsumer;
 import nl.requios.effortlessbuilding.buildmode.BuildModes;
 import nl.requios.effortlessbuilding.buildmode.ModeOptions;
 import nl.requios.effortlessbuilding.buildmode.TwoClicksBuildMode;
@@ -45,35 +46,24 @@ public class Floor extends TwoClicksBuildMode {
    }
 
    public static void addFloorBlocks(List<BlockPos> list, int x1, int x2, int y, int z1, int z2) {
-      int l = x1;
+      forEachFloorBlocks(x1, x2, y, z1, z2, packed -> list.add(BlockPos.of(packed)));
+   }
 
-      while(true) {
-         if (x1 < x2) {
-            if (l > x2) {
+   /** Bare-int twin of {@link #addFloorBlocks}: same order, packed longs, no allocation. */
+   public static void forEachFloorBlocks(int x1, int x2, int y, int z1, int z2, LongConsumer out) {
+      int xStep = x1 < x2 ? 1 : -1;
+      int zStep = z1 < z2 ? 1 : -1;
+      for (int l = x1; ; l += xStep) {
+         for (int n = z1; ; n += zStep) {
+            out.accept(BlockPos.asLong(l, y, n));
+            if (n == z2) {
                break;
             }
-         } else if (l < x2) {
+         }
+         if (l == x2) {
             break;
          }
-
-         int n = z1;
-
-         while(true) {
-            if (z1 < z2) {
-               if (n > z2) {
-                  break;
-               }
-            } else if (n < z2) {
-               break;
-            }
-
-            list.add(new BlockPos(l, y, n));
-            n += z1 < z2 ? 1 : -1;
-         }
-
-         l += x1 < x2 ? 1 : -1;
       }
-
    }
 
    public static void addHollowFloorBlocks(List<BlockPos> list, int x1, int x2, int y, int z1, int z2) {
@@ -83,12 +73,34 @@ public class Floor extends TwoClicksBuildMode {
       Line.addZLineBlocks(list, z1, z2, x2, y);
    }
 
+   /** Bare-int twin of {@link #addHollowFloorBlocks}: same order, packed longs, no allocation. */
+   public static void forEachHollowFloorBlocks(int x1, int x2, int y, int z1, int z2, LongConsumer out) {
+      Line.forEachXLineBlocks(x1, x2, y, z1, out);
+      Line.forEachXLineBlocks(x1, x2, y, z2, out);
+      Line.forEachZLineBlocks(z1, z2, x1, y, out);
+      Line.forEachZLineBlocks(z1, z2, x2, y, out);
+   }
+
+   /** Streams {@link #getFloorBlocks} as packed longs: no intermediate list. */
+   public static void forEachFloorBlocksOption(int x1, int x2, int y, int z1, int z2, boolean full, LongConsumer out) {
+      if (full) {
+         forEachFloorBlocks(x1, x2, y, z1, z2, out);
+      } else {
+         forEachHollowFloorBlocks(x1, x2, y, z1, z2, out);
+      }
+   }
+
    protected BlockPos findSecondPos(Player player, BlockPos firstPos, boolean skipRaytrace) {
       return findFloor(player, firstPos, skipRaytrace);
    }
 
    protected List<BlockPos> getAllBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2) {
       return getFloorBlocks(player, x1, y1, z1, x2, y2, z2);
+   }
+
+   @Override
+   protected void forEachAllBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2, LongConsumer out) {
+      forEachFloorBlocksOption(x1, x2, y1, z1, z2, ModeOptions.getFill() == ModeOptions.ActionEnum.FULL, out);
    }
 
    static class Criteria {
