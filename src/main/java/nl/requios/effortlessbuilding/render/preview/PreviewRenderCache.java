@@ -360,18 +360,8 @@ public final class PreviewRenderCache {
             this.shapedLevel = level;
             return;
         }
-        int maxBlocks = key.maxBlocks();
-        // Blocks are always a subset of the boundary, so the boundary volume
-        // is a cheap upper bound on the block count: a small volume guarantees
-        // a small shape without enumerating anything.
-        long boundaryVolume = boundaryVolume(previewBoundary);
-        if (boundaryVolume > maxBlocks * 2) {
-            // Too many blocks for per-block overlay + ghosts: bounding box,
-            // without ever calculating client blocks.
-            shapeSimple(level, state, key, previewBoundary, maxBlocks);
-            return;
-        }
 
+        int maxBlocks = key.maxBlocks();
         BlockSet blocks = new BlockSet();
         try (SableCompat.SelectionScope ignored = SableCompat.pushSelection(level, anchor)) {
             mode.instance.getClientBlocks(blocks, player); //Get the blocks from the selected anchor points, first pos, second pos, etc...
