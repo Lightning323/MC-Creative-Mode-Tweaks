@@ -155,7 +155,7 @@ public class Config {
     public static final ModConfigSpec.IntValue BUILDING_CREATIVE_MAX_BLOCKS_PLACED =
             COMMON_BUILDER.comment("Maximum number of blocks creative players can place or break in a single action.")
                     .translation("creative_mode_tweaks.config.max_blocks_placed")
-                    .defineInRange("building.creative.max_blocks_placed", 1000000, 1, Integer.MAX_VALUE);
+                    .defineInRange("building.creative.max_blocks_placed", 500000, 1, Integer.MAX_VALUE);
 
 
 
