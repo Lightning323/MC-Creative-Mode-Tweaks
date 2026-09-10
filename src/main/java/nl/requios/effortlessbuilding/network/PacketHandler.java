@@ -133,14 +133,14 @@ public class PacketHandler {
 
     public static void handlePlaceBuildMode(PlaceBuildModePacket packet, ServerPlayer player) {
        if (!player.isCreative() && isAdventureOrSpectator(player)) {
-          player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.build_menu_unavailable"), true);
+//          player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.build_menu_unavailable"), true);
           return;
        }
        // DISABLED is plain single-block placement (trowel, Angel Placement),
        // governed by their own rules — only real build modes are gated here.
        if (!player.isCreative() && packet.buildMode() != BuildModeEnum.DISABLED
                && !Config.BUILDING_SURVIVAL_ALLOW_BUILD_MODES.get()) {
-          player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.build_modes_disabled"), true);
+//          player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.build_modes_disabled"), true);
           return;
        }
        if (!validateSelection(packet.firstPos(), packet.secondPos(), packet.thirdPos(), packet.fourthPos(), player)
