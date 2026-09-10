@@ -21,8 +21,9 @@ import org.jetbrains.annotations.Nullable;
  * on the render thread, key-gated) and only runs them through vanilla's chunk
  * baker into CPU-side meshes. That keeps every world/model read here in the
  * same class vanilla's own chunk-meshing workers already perform off-thread,
- * while the border/overlay never waits on it — it bakes and draws
- * independently on the render thread (or here too if async-boundary is on).</p>
+ * while the border either rides along here (async-boundary on) or bakes
+ * independently on {@link PreviewBoundaryWorker} (async-boundary off) —
+ * never on the render thread either way.</p>
  *
  * <p><b>Why one thread, not a pool:</b> every build for a newer key makes
  * older builds worthless, so work is strictly latest-only — a second thread
@@ -48,9 +49,9 @@ public final class PreviewBuildWorker {
     public record Task(long seq, int modelGeneration, PreviewShapeKey key,
                        Level level, BlockRenderDispatcher dispatcher,
                        List<PreviewBlock> meshBlocks, int alpha,
-                       // Overlay inputs ride along so async-boundary can bake
+                       // Overlay inputs ride along so async-boundary-on can bake
                        // the border here too; ignored (but still carried) when
-                       // the border bakes synchronously instead.
+                       // the border goes to the dedicated worker instead.
                        List<BlockPos> overlayOk, List<BlockPos> overlayBad,
                        boolean overlayBreaking) {
     }
@@ -114,8 +115,8 @@ public final class PreviewBuildWorker {
                 SectionMeshDraw.discardAllPending(sections);
                 return;
             }
-            // Optional async border: same pure-math bake the render thread
-            // would run, just here so big shapes don't hitch the frame.
+            // Coupled async border: same pure-math bake the dedicated worker
+            // would run, just here so border + ghosts share one handoff.
             PreviewOverlayMesh.Baked overlay = null;
             if (task.key().asyncBoundary()) {
                 overlay = PreviewOverlayMesh.bake(task.overlayOk(), task.overlayBad(), task.overlayBreaking());

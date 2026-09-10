@@ -86,11 +86,11 @@ public class Config {
                     .define("building.protect_tile_entities", true);
 
     public static final ModConfigSpec.BooleanValue BUILDING_ASYNC_BOUNDARY =
-            CLIENT_BUILDER.comment("Bake the preview border on the background thread along with the ghost blocks.",
-                            "On: smoother frames while dragging big shapes; the border lags the cursor by a bake.",
-                            "Off: the border updates instantly on the main thread while ghost blocks catch up.")
+            CLIENT_BUILDER.comment("Where the preview border bakes. Both options stay off the render thread.",
+                            "On: border rides the ghost-block worker (one bake, one handoff; lags behind slow ghosts).",
+                            "Off: border bakes on its own dedicated worker; the render loop picks it up from there.")
                     .translation("creative_mode_tweaks.config.async_boundary")
-                    .define("building.async_boundary", true);
+                    .define("building.async_boundary", false);
 
     public static final ModConfigSpec.BooleanValue BUILDING_SURVIVAL_ALLOW_ANGEL_PLACEMENT =
             COMMON_BUILDER.comment("Allow survival players to use Angel Placement to target air blocks at a distance.")
@@ -155,7 +155,7 @@ public class Config {
     public static final ModConfigSpec.IntValue BUILDING_CREATIVE_MAX_BLOCKS_PLACED =
             COMMON_BUILDER.comment("Maximum number of blocks creative players can place or break in a single action.")
                     .translation("creative_mode_tweaks.config.max_blocks_placed")
-                    .defineInRange("building.creative.max_blocks_placed", 1000000, 1, Integer.MAX_VALUE);
+                    .defineInRange("building.creative.max_blocks_placed", 500000, 1, Integer.MAX_VALUE);
 
 
 

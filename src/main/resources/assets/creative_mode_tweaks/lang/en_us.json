@@ -124,7 +124,7 @@
   "creative_mode_tweaks.message.angel_placement_disabled": "Angel Placement is disabled in survival.",
   "creative_mode_tweaks.message.too_hard": "Some blocks exceeded the maximum hardness",
   "creative_mode_tweaks.message.protected_tile_entity": "Some blocks were protected (tile entities)",
-  "creative_mode_tweaks.message.world_border": "Some blocks are outside the world border or build height",
+  "creative_mode_tweaks.message.world_border": "Some blocks were not placed due to size or world-border limitations",
   "creative_mode_tweaks.message.sublevel_out_of_bounds": "A selection must stay within one simulated contraption or the world",
   "creative_mode_tweaks.message.not_operator": "Only admins can edit functional settings.",
 

@@ -48,21 +48,23 @@ import org.lightning323.creative_mode_tweaks.Config;
 
 /**
  * Central preview cache: cheap per-frame key compare on the render thread,
- * shape + border resolved synchronously on change, ghost-block tessellation
- * on {@link PreviewBuildWorker}.
+ * shape resolved synchronously on change, ghost-block tessellation on
+ * {@link PreviewBuildWorker} and border baking on either worker.
  *
  * <p><b>Why the split is shaped this way:</b> ghost tessellation (baked
- * models, AO, thousands of quads) is the part that hitches, so only the model
- * tessellation goes async — the previous ghost mesh keeps drawing until the
- * new one swaps in: seamless, no flicker. Per key change the render thread
- * does raycast, coordinates, constraints, state resolution and (unless
- * async-boundary is on) the pure-math border bake immediately, so the overlay
- * and feedback stay live even while ghosts still bake.</p>
+ * models, AO, thousands of quads) and the pure-math border bake (fill culling
+ * + edge toggles + quad emission) are the parts that hitch, so both go async
+ * — the previous meshes keep drawing until the new ones swap in: seamless, no
+ * flicker. Per key change the render thread does raycast, coordinates,
+ * constraints and state resolution only, so feedback stays live even while
+ * meshes still bake.</p>
  *
- * <p>On by default, the border bakes on the worker together with the ghosts
- * (smoother shape-change frames, but the border lags with them). Set {@code
- * building.async_boundary} to false for a same-frame border baked on the
- * render thread.</p>
+ * <p>With {@code building.async_boundary} on (the default), the border rides
+ * the ghost worker together with the blocks (one bake, one handoff — but the
+ * border lags behind slow ghosts). With it off, the border bakes on its own
+ * dedicated {@link PreviewBoundaryWorker} thread and the render loop picks the
+ * finished bake up from there — still fully off the render thread, just
+ * independent of ghost progress.</p>
  *
  * <p><b>Huge shapes</b> (boundary volume past {@link #DETAILED_PREVIEW_BLOCK_LIMIT}
  * blocks, or past the configured max-blocks cap) skip all of that: the client
@@ -142,6 +144,18 @@ public final class PreviewRenderCache {
     private long submittedFrame;
     private long frame;
 
+    // Border-mesh tracking (dedicated worker, async-boundary off):
+    // boundaryKey = key whose overlay is uploaded, submittedBoundaryKey = key
+    // handed to PreviewBoundaryWorker. The overlay lists above (breakable /
+    // unbreakable) are always live; these only track the async handoff.
+    private PreviewShapeKey boundaryKey;
+    private PreviewShapeKey submittedBoundaryKey;
+    // Retained border inputs for the stuck-build retry (rare, see update).
+    private List<BlockPos> pendingBoundaryOk = List.of();
+    private List<BlockPos> pendingBoundaryBad = List.of();
+    private boolean pendingBoundaryBreaking;
+    private long submittedBoundaryFrame;
+
     // True while the live shape uses the huge-shape box path (no ghosts,
     // box overlay). Gates the hover-only reshape throttle in update().
     private boolean simplePreview;
@@ -202,7 +216,8 @@ public final class PreviewRenderCache {
             return;
         }
         if (BuildModes.CLIENT.getBuildMode() == BuildModeEnum.DISABLED) {
-            if (this.shapedKey != null || this.submittedKey != null || this.hasPreview()) {
+            if (this.shapedKey != null || this.submittedKey != null || this.submittedBoundaryKey != null
+                    || this.hasPreview()) {
                 clear();
             }
             RenderHandler.resetPreviewSize();
@@ -216,7 +231,8 @@ public final class PreviewRenderCache {
         // Single-block cursor with no sequence: old code explicitly showed no
         // big preview here, so keep everything empty (markers still draw).
         if (!inProgress && state == null) {
-            if (this.shapedKey != null || this.submittedKey != null || this.hasPreview()) {
+            if (this.shapedKey != null || this.submittedKey != null || this.submittedBoundaryKey != null
+                    || this.hasPreview()) {
                 clear();
                 RenderHandler.resetPreviewSize();
             }
@@ -239,7 +255,9 @@ public final class PreviewRenderCache {
         // stale — so the mesh updates one last time, then stays frozen.
         // Every other displayed output already follows shapedKey, so this
         // keeps ghosts consistent with the shown shape.
-        drainReady(this.shapedKey != null ? this.shapedKey : key, level);
+        PreviewShapeKey liveKey = this.shapedKey != null ? this.shapedKey : key;
+        drainReady(liveKey, level);
+        drainBoundaryReady(liveKey, level);
         this.frame++;
 
         if (!key.equals(this.shapedKey) || level != this.shapedLevel) {
@@ -263,6 +281,12 @@ public final class PreviewRenderCache {
             // Worker bake vanished without a trace (dropped race + no
             // follow-up change). Re-hand the retained inputs, no shape redo.
             submitMeshTask(mc, level, key);
+        } else if (!key.asyncBoundary() && !key.equals(this.boundaryKey)
+                && this.submittedBoundaryKey != null
+                && this.frame - this.submittedBoundaryFrame > 120) {
+            // Same retry for the dedicated border worker: re-hand the retained
+            // overlay inputs so a dropped border bake can't stick forever.
+            submitBoundaryTask(level, key);
         }
     }
 
@@ -361,7 +385,8 @@ public final class PreviewRenderCache {
      * True when nothing is cached, submitted or shaped: clear() would be a no-op.
      */
     public boolean isIdle() {
-        return this.shapedKey == null && this.submittedKey == null && !hasPreview();
+        return this.shapedKey == null && this.submittedKey == null && this.submittedBoundaryKey == null
+                && !hasPreview();
     }
 
     /**
@@ -369,18 +394,23 @@ public final class PreviewRenderCache {
      */
     public void clear() {
         PreviewBuildWorker.cancel();
+        PreviewBoundaryWorker.cancel();
         BuildSelectionGuard.CLIENT.reset();
         this.blockMesh.clear();
         this.overlayMesh.clear();
         this.shapedKey = null;
         this.meshKey = null;
         this.submittedKey = null;
+        this.boundaryKey = null;
+        this.submittedBoundaryKey = null;
         this.shapedLevel = null;
         this.breakable = List.of();
         this.unbreakable = List.of();
         this.all = List.of();
         this.animated = List.of();
         this.pendingMeshBlocks = List.of();
+        this.pendingBoundaryOk = List.of();
+        this.pendingBoundaryBad = List.of();
         this.hasOverlay = false;
         this.wantsBlocks = false;
         this.overLimit = false;
@@ -403,10 +433,11 @@ public final class PreviewRenderCache {
 
     // -- shape path (render thread, key-gated) --------------------------------
 
-    // Everything except ghost tessellation, done the moment the key changes:
-    // hover publish, coordinates, constraints, state resolution, overlay bake,
-    // feedback — then the ghosts go to the worker. The overlay/message are
-    // therefore instantaneous even while ghosts still bake.
+    // Everything except mesh baking, done the moment the key changes: hover
+    // publish, coordinates, constraints, state resolution, feedback — then the
+    // ghosts go to PreviewBuildWorker and (when async-boundary is off) the
+    // border goes to PreviewBoundaryWorker. The previous meshes keep drawing
+    // until each worker's bake swaps in.
     private void shapeOnRenderThread(Minecraft mc, Player player, Level level,
                                      BuildModeEnum mode, BuildPipeline.@Nullable BuildState state,
                                      @Nullable BlockHitResult hit, PreviewShapeKey key) {
@@ -572,16 +603,22 @@ public final class PreviewRenderCache {
         this.lastShapeNanos = System.nanoTime();
 
         // Box overlay bakes synchronously — it is microseconds, never a hitch.
+        // Exempt from the boundary-worker path for the same reason.
         this.overlayMesh.adopt(level, PreviewOverlayMesh.bakeBoundingBox(min, max, this.isBreaking));
         this.overlayMesh.setIsSimple(true);
         this.hasOverlay = !this.overlayMesh.isEmpty();
 
-        // No worker traffic at all: drop stale ghosts, retire any bake.
+        // No worker traffic at all: drop stale ghosts and borders, retire any bake.
         PreviewBuildWorker.cancel();
+        PreviewBoundaryWorker.cancel();
         this.blockMesh.clear();
         this.meshKey = key;
         this.submittedKey = key;
+        this.boundaryKey = key;
+        this.submittedBoundaryKey = key;
         this.pendingMeshBlocks = List.of();
+        this.pendingBoundaryOk = List.of();
+        this.pendingBoundaryBad = List.of();
 
         // Count + dims from the already-known bounds: no list rescan.
         RenderHandler.updateFeedbackSimple(estimatedCount, min, max, state != null, state, overCap);
@@ -686,11 +723,23 @@ public final class PreviewRenderCache {
         this.simplePreview = false;
         this.lastShapeNanos = System.nanoTime();
 
-        // Same async-boundary rule as the detailed path: the overlay is the
-        // shape, so it still bakes — just with no rejected list.
-        if (!key.asyncBoundary() || !this.wantsBlocks) {
-            this.overlayMesh.adopt(level, PreviewOverlayMesh.bake(ok, List.of(), this.isBreaking));
-            this.hasOverlay = !this.overlayMesh.isEmpty();
+        // Border routing (same rule as the detailed path): coupled when
+        // async-boundary is on (rides the ghost worker, falls back to sync
+        // when there are no ghosts to ride with), dedicated async worker when
+        // off — never baked on the render thread. The old overlay keeps
+        // drawing until the new bake swaps in.
+        if (key.asyncBoundary()) {
+            PreviewBoundaryWorker.cancel();
+            this.submittedBoundaryKey = null;
+            this.pendingBoundaryOk = List.of();
+            this.pendingBoundaryBad = List.of();
+            if (!this.wantsBlocks) {
+                this.overlayMesh.adopt(level, PreviewOverlayMesh.bake(ok, List.of(), this.isBreaking));
+                this.hasOverlay = !this.overlayMesh.isEmpty();
+                this.boundaryKey = key;
+            }
+        } else {
+            submitBoundaryTask(level, key);
         }
 
         // Sound + action-bar feedback, exactly like the detailed path.
@@ -858,14 +907,23 @@ public final class PreviewRenderCache {
         this.simplePreview = false;
         this.lastShapeNanos = System.nanoTime();
 
-        // Border: synchronous when async-boundary is off so it lands the same
-        // frame as the shape. With async-boundary on (the default), it rides
-        // the worker with the ghosts and swaps in a bake later — but previews
-        // with no worker task (breaking, ghost-less) bake it inline, or the
-        // box would never appear at all.
-        if (!key.asyncBoundary() || !this.wantsBlocks) {
-            this.overlayMesh.adopt(level, PreviewOverlayMesh.bake(ok, bad, this.isBreaking));
-            this.hasOverlay = !this.overlayMesh.isEmpty();
+        // Border routing: coupled when async-boundary is on (rides the ghost
+        // worker and swaps in later — but previews with no worker task
+        // (breaking, ghost-less) bake it inline, or the box would never appear
+        // at all). When off, the border goes to its own dedicated worker and
+        // the render loop picks it up from there — never baked here.
+        if (key.asyncBoundary()) {
+            PreviewBoundaryWorker.cancel();
+            this.submittedBoundaryKey = null;
+            this.pendingBoundaryOk = List.of();
+            this.pendingBoundaryBad = List.of();
+            if (!this.wantsBlocks) {
+                this.overlayMesh.adopt(level, PreviewOverlayMesh.bake(ok, bad, this.isBreaking));
+                this.hasOverlay = !this.overlayMesh.isEmpty();
+                this.boundaryKey = key;
+            }
+        } else {
+            submitBoundaryTask(level, key);
         }
 
         // Sound + action-bar feedback, exactly like the old per-frame call —
@@ -931,6 +989,22 @@ public final class PreviewRenderCache {
         this.submittedFrame = this.frame;
     }
 
+    // Hands the live overlay lists to the dedicated border worker. The lists
+    // are unmodifiable snapshots that are never mutated after publish, so
+    // sharing them with the worker is safe. The previous overlay keeps
+    // drawing until the new bake swaps in: seamless, no flicker.
+    private void submitBoundaryTask(Level level, PreviewShapeKey key) {
+        this.pendingBoundaryOk = this.breakable;
+        this.pendingBoundaryBad = this.unbreakable;
+        this.pendingBoundaryBreaking = this.isBreaking;
+        PreviewBoundaryWorker.submit(new PreviewBoundaryWorker.Task(
+                PreviewBoundaryWorker.nextSeq(), this.modelGeneration, key,
+                level,
+                this.pendingBoundaryOk, this.pendingBoundaryBad, this.pendingBoundaryBreaking));
+        this.submittedBoundaryKey = key;
+        this.submittedBoundaryFrame = this.frame;
+    }
+
     // -- swap-in (render thread: GL upload) -----------------------------------
 
     // Takes a finished bake if it is still the live shape; anything older
@@ -960,6 +1034,34 @@ public final class PreviewRenderCache {
             this.hasOverlay = false;
         }
         this.meshKey = liveKey;
+    }
+
+    // Takes a finished dedicated-border bake if it is still the live shape;
+    // anything older (superseded key, level hop, pre-reload bake) is freed
+    // un-drawn. Render thread only (GL upload).
+    private void drainBoundaryReady(PreviewShapeKey liveKey, Level liveLevel) {
+        // Coupled path never produces boundary-worker output; polling would
+        // only ever return stale discards, so skip it entirely.
+        if (liveKey.asyncBoundary()) {
+            return;
+        }
+        BuiltBoundary ready = PreviewBoundaryWorker.pollReady();
+        if (ready == null) {
+            return;
+        }
+        if (ready.modelGeneration() != this.modelGeneration
+                || ready.level() != liveLevel
+                || !ready.key().equals(liveKey)) {
+            ready.discard();
+            return;
+        }
+        try {
+            this.overlayMesh.adopt(liveLevel, ready.overlay());
+            this.hasOverlay = !this.overlayMesh.isEmpty();
+        } catch (RuntimeException glFailure) {
+            this.hasOverlay = false;
+        }
+        this.boundaryKey = liveKey;
     }
 
     // -- per-frame cost guards -------------------------------------------------

@@ -73,12 +73,16 @@ public abstract class InventoryMixin {
     }
 
     /**
-     * Changes the selection size constant.
+     * NOTE: there is deliberately NO override of getSelectionSize() here.
+     * It used to unconditionally return 36 for every player on both sides,
+     * but vanilla declares it static/player-less, so it cannot be gated per
+     * player — and external mods (e.g. Quark's chest Insert button) size
+     * their hotbar math with it, breaking outright even in survival with our
+     * features off. Our own needs are covered without lying to the game:
+     * server slot validation is already per-player in
+     * MixinServerGamePacketListener, and hotbar rendering is custom in
+     * GuiMixin. Nothing in this mod calls getSelectionSize() anymore.
      */
-    @Inject(method = "getSelectionSize", at = @At("HEAD"), cancellable = true)
-    private static void onGetSelectionSize(CallbackInfoReturnable<Integer> cir) {
-        cir.setReturnValue(HotbarUtil.INVENTORY_SIZE);
-    }
 
 
     /**

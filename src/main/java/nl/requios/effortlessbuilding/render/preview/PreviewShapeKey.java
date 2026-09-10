@@ -38,9 +38,9 @@ import org.jetbrains.annotations.Nullable;
  *   <li>maxBlocks / axisLimit / protectTiles / fill options — server-synced
  *       limits and shape options from the radial menu.</li>
  *   <li>creative — creative vs survival changes reach and limits.</li>
- *   <li>asyncBoundary — where the border bakes (worker vs main thread).
- *       Doesn't change WHAT renders, but flipping it must rebuild so the
- *       new path actually runs.</li>
+  *   <li>asyncBoundary — which worker bakes the border (ghost worker when on,
+  *       dedicated border worker when off). Doesn't change WHAT renders, but
+  *       flipping it must rebuild so the new path actually runs.</li>
  * </ul>
  *
  * <p>Deliberately NOT tracked: live world edits (a newly placed tile entity
