@@ -227,6 +227,10 @@ public class Config {
         return player.isCreative() ? CREATIVE_BUILDING_REACH.get() : SURVIVAL_BUILDING_REACH.get();
     }
 
+    public static int getSingleReach(Player player) {
+        return CREATIVE_SINGLE_REACH.get();
+    }
+
     public static int getAngelPlacementDistance(Player player) {
         return player.level().isClientSide() ? clientAngelPlacementDistance : BUILDING_ANGEL_PLACEMENT_DISTANCE.get();
     }

@@ -15,6 +15,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(Player.class)
 public abstract class PlayerMixin extends LivingEntity implements Player_I {
@@ -50,6 +51,26 @@ public abstract class PlayerMixin extends LivingEntity implements Player_I {
     @Override
     public void setNoClip(boolean noClip) {
         this.noClipEnabled = noClip;
+    }
+
+    /**
+     * Single-block reach, handled the same way as build-mode reach: read the
+     * configured distance on every call instead of applying a one-time
+     * transient attribute modifier (which vanilla drops on death/respawn,
+     * resetting reach to 5 until the next login/gamemode change).
+     */
+    @Inject(method = "blockInteractionRange", at = @At("HEAD"), cancellable = true)
+    private void creativeModeTweaks$overrideBlockReach(CallbackInfoReturnable<Double> cir) {
+        if (this.isCreative()) {
+            cir.setReturnValue((double) Config.getSingleReach((Player) (Object) this));
+        }
+    }
+
+    @Inject(method = "entityInteractionRange", at = @At("HEAD"), cancellable = true)
+    private void creativeModeTweaks$overrideEntityReach(CallbackInfoReturnable<Double> cir) {
+        if (this.isCreative()) {
+            cir.setReturnValue((double) Config.getSingleReach((Player) (Object) this));
+        }
     }
 
     @Inject(

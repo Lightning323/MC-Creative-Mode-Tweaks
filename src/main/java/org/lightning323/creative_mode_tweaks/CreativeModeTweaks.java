@@ -3,7 +3,6 @@ package org.lightning323.creative_mode_tweaks;
 import com.mojang.logging.LogUtils;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.level.GameType;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
@@ -16,7 +15,6 @@ import net.neoforged.neoforge.network.PacketDistributor;
 import nl.requios.effortlessbuilding.EffortlessBuilding;
 import org.lightning323.creative_mode_tweaks.network.packets.ClientboundSyncConfigPayload;
 import org.lightning323.creative_mode_tweaks.network.packets.PacketGameModeChanged;
-import org.lightning323.creative_mode_tweaks.utils.ServerSettings;
 import org.slf4j.Logger;
 
 // The value here should match an entry in the META-INF/neoforge.mods.toml file
@@ -38,19 +36,11 @@ public class CreativeModeTweaks {
         modEventBus.addListener(CreativeModeTweaks::onRegisterTests);
     }
 
-    public static void serverGameModeChanged(ServerPlayer player, GameType gameType) {
-        LOG.debug("Server game mode set to {}", gameType);
-        if (gameType == GameType.CREATIVE) {
-            double dist = Config.CREATIVE_SINGLE_REACH.get();
-            ServerSettings.changeRangeModifier(player, dist);
-        } else if (gameType == GameType.ADVENTURE || gameType == GameType.SURVIVAL) {
-            ServerSettings.clearRangeModifier(player);
-        }
-    }
-
     public static void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
-            serverGameModeChanged(player, player.gameMode.getGameModeForPlayer());
+            // Single-block reach is resolved live via PlayerMixin from
+            // Config.getSingleReach (same stateless pattern as build-mode
+            // reach), so there is no attribute modifier to re-apply here.
             //Update the client-side config
             PacketDistributor.sendToPlayer(player, new ClientboundSyncConfigPayload());
         }
@@ -58,7 +48,6 @@ public class CreativeModeTweaks {
 
     public static void onGameModeChange(PlayerEvent.PlayerChangeGameModeEvent event) {
         ServerPlayer player = (ServerPlayer) event.getEntity();
-        serverGameModeChanged(player, event.getNewGameMode());
         PacketDistributor.sendToPlayer(player, new PacketGameModeChanged(event.getNewGameMode().getId()));
     }
 
