@@ -93,7 +93,7 @@ public final class PreviewRenderCache {
      * the box tracking the cursor at ~12Hz instead of hitching the game.
      * Clicks, mode/item/config changes always rebuild immediately.
      */
-    private static final long THROTTLE_SHAPE_RESHAPE_MIN_NANOS = 35_000_000L;
+    private static final long THROTTLE_SHAPE_RESHAPE_MIN_NANOS = 100_000_000L;
     private static final long SHAPE_RESHAPE_MIN_NANOS = 35_000_000L;
 
     /**
