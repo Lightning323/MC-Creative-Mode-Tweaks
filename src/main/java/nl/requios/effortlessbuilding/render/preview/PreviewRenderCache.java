@@ -1015,6 +1015,7 @@ public final class PreviewRenderCache {
                 && oldKey.cubeFill() == key.cubeFill()
                 && oldKey.sides() == key.sides()
                 && oldKey.pointBuild() == key.pointBuild()
+                && oldKey.planeAlign() == key.planeAlign()
                 && oldKey.creative() == key.creative()
                 && oldKey.asyncBoundary() == key.asyncBoundary()
                 && oldKey.dimension().equals(key.dimension());
@@ -1208,6 +1209,7 @@ public final class PreviewRenderCache {
                 ModeOptions.getCubeFill(),
                 ModeOptions.getSides(),
                 ModeOptions.getPointBuild(),
+                ModeOptions.getPlaneAlign(),
                 player.getAbilities().instabuild,
                 this.configAsyncBoundary,
                 dimensionId(level));

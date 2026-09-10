@@ -111,9 +111,7 @@ public class ClientModEvents {
 
     static {
         for (BuildModeEnum mode : BuildModeEnum.values()) {
-            if (mode != BuildModeEnum.FLOOR && mode != BuildModeEnum.WALL) {
-                BUILD_MODE_KEYS.put(mode, new KeyMapping(mode.getNameKey(), InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(), BUILD_MODES_CATEGORY));
-            }
+            BUILD_MODE_KEYS.put(mode, new KeyMapping(mode.getNameKey(), InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(), BUILD_MODES_CATEGORY));
         }
     }
 
@@ -180,6 +178,7 @@ public class ClientModEvents {
         BuildPipelineClient.cancelCurrentSequence();
         BuildModes.CLIENT.setBuildMode(BuildModeEnum.DISABLED);
         ModeOptions.resetPointBuildToDefault();
+        ModeOptions.resetPlaneAlignToDefault();
 
         if (Minecraft.getInstance().gameMode != null) {
             GameType currentMode = Minecraft.getInstance().gameMode.getPlayerMode();
@@ -195,6 +194,7 @@ public class ClientModEvents {
         BuildPipelineClient.cancelCurrentSequence();
         BuildModes.CLIENT.setBuildMode(BuildModeEnum.DISABLED);
         ModeOptions.resetPointBuildToDefault();
+        ModeOptions.resetPlaneAlignToDefault();
     }
 
     @SubscribeEvent

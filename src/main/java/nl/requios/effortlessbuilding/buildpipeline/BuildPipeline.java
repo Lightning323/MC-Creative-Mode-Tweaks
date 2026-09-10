@@ -118,8 +118,8 @@ public class BuildPipeline {
       this.systems.add(system);
    }
 
-   public @Nullable BlockSet runServerPipeline(BuildModeEnum mode, BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos, @Nullable BlockPos fourthPos, Direction firstClickFace, Player player, BuildState action, ModeOptions.ActionEnum fill, ModeOptions.ActionEnum cubeFill, ModeOptions.ActionEnum raisedEdge, ModeOptions.ActionEnum circleStart, ModeOptions.ActionEnum pointBuild, ModeOptions.ActionEnum sides, boolean protectTileEntities) {
-      BuildModeSystem.setContext(new BuildModeSystem.Context(mode, firstPos, secondPos, thirdPos, fourthPos, firstClickFace, fill, cubeFill, raisedEdge, circleStart, pointBuild, sides));
+   public @Nullable BlockSet runServerPipeline(BuildModeEnum mode, BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos, @Nullable BlockPos fourthPos, Direction firstClickFace, Player player, BuildState action, ModeOptions.ActionEnum fill, ModeOptions.ActionEnum cubeFill, ModeOptions.ActionEnum raisedEdge, ModeOptions.ActionEnum circleStart, ModeOptions.ActionEnum pointBuild, ModeOptions.ActionEnum sides, ModeOptions.ActionEnum planeAlign, boolean protectTileEntities) {
+      BuildModeSystem.setContext(new BuildModeSystem.Context(mode, firstPos, secondPos, thirdPos, fourthPos, firstClickFace, fill, cubeFill, raisedEdge, circleStart, pointBuild, sides, planeAlign));
       ConstraintSystem.setPlacementContext(new ConstraintSystem.PlacementContext(protectTileEntities));
 
       BlockSet var13;

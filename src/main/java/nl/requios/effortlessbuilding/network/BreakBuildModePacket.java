@@ -10,7 +10,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
-public record BreakBuildModePacket(BuildModeEnum buildMode, BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos, @Nullable BlockPos fourthPos, Direction firstClickFace, ModeOptions.ActionEnum fill, ModeOptions.ActionEnum cubeFill, ModeOptions.ActionEnum raisedEdge, ModeOptions.ActionEnum circleStart, ModeOptions.ActionEnum pointBuild, ModeOptions.ActionEnum sides, boolean protectTileEntities, boolean angelPlacement) implements CustomPacketPayload {
+public record BreakBuildModePacket(BuildModeEnum buildMode, BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos, @Nullable BlockPos fourthPos, Direction firstClickFace, ModeOptions.ActionEnum fill, ModeOptions.ActionEnum cubeFill, ModeOptions.ActionEnum raisedEdge, ModeOptions.ActionEnum circleStart, ModeOptions.ActionEnum pointBuild, ModeOptions.ActionEnum sides, ModeOptions.ActionEnum planeAlign, boolean protectTileEntities, boolean angelPlacement) implements CustomPacketPayload {
    public static final CustomPacketPayload.Type<BreakBuildModePacket> TYPE = new CustomPacketPayload.Type(ResourceLocation.fromNamespaceAndPath("creative_mode_tweaks", "break_build_mode"));
    public static final StreamCodec<FriendlyByteBuf, BreakBuildModePacket> STREAM_CODEC = StreamCodec.of(BreakBuildModePacket::encode, BreakBuildModePacket::decode);
 
@@ -35,6 +35,7 @@ public record BreakBuildModePacket(BuildModeEnum buildMode, BlockPos firstPos, B
       buf.writeVarInt(p.circleStart.ordinal());
       buf.writeVarInt(p.pointBuild.ordinal());
       buf.writeVarInt(p.sides.ordinal());
+      buf.writeVarInt(p.planeAlign.ordinal());
       buf.writeBoolean(p.protectTileEntities);
       buf.writeBoolean(p.angelPlacement);
    }
@@ -52,9 +53,10 @@ public record BreakBuildModePacket(BuildModeEnum buildMode, BlockPos firstPos, B
       ModeOptions.ActionEnum circleStart = ModeOptions.ActionEnum.values()[buf.readVarInt()];
       ModeOptions.ActionEnum pointBuild = ModeOptions.ActionEnum.values()[buf.readVarInt()];
       ModeOptions.ActionEnum sides = ModeOptions.ActionEnum.values()[buf.readVarInt()];
+      ModeOptions.ActionEnum planeAlign = ModeOptions.ActionEnum.values()[buf.readVarInt()];
       boolean protectTileEntities = buf.readBoolean();
       boolean angelPlacement = buf.readBoolean();
-      return new BreakBuildModePacket(buildMode, firstPos, secondPos, thirdPos, fourthPos, firstClickFace, fill, cubeFill, raisedEdge, circleStart, pointBuild, sides, protectTileEntities, angelPlacement);
+      return new BreakBuildModePacket(buildMode, firstPos, secondPos, thirdPos, fourthPos, firstClickFace, fill, cubeFill, raisedEdge, circleStart, pointBuild, sides, planeAlign, protectTileEntities, angelPlacement);
    }
 
    public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {

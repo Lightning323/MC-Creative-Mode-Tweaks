@@ -39,7 +39,7 @@
 
   "creative_mode_tweaks.modedescription.normal": "Single block placement",
   "creative_mode_tweaks.modedescription.line": "",
-  "creative_mode_tweaks.modedescription.plane": "Builds a floor or wall based on the targeted face",
+  "creative_mode_tweaks.modedescription.plane": "Builds a horizontal floor or vertical wall; align mode chooses the orientation",
   "creative_mode_tweaks.modedescription.wall": "",
   "creative_mode_tweaks.modedescription.floor": "",
   "creative_mode_tweaks.modedescription.mesh": "Choose a triangle or quad, then click its vertices to build an angled face.",
@@ -113,6 +113,13 @@
   "creative_mode_tweaks.action.sides": "Sides",
   "creative_mode_tweaks.action.three_sided": "Triangle (3 Sides)",
   "creative_mode_tweaks.action.four_sided": "Square (4 Sides)",
+  "creative_mode_tweaks.action.align_mode": "Align Mode",
+  "creative_mode_tweaks.action.align_auto": "Auto",
+  "creative_mode_tweaks.action.align_auto.description": "Automatically switch between floor and wall based on look direction.",
+  "creative_mode_tweaks.action.align_horizontal": "Horizontal",
+  "creative_mode_tweaks.action.align_horizontal.description": "Always build a horizontal floor.",
+  "creative_mode_tweaks.action.align_vertical": "Vertical",
+  "creative_mode_tweaks.action.align_vertical.description": "Always build a vertical wall.",
 
   "creative_mode_tweaks.message.undo": "Undo: restored %s blocks",
   "creative_mode_tweaks.message.redo": "Redo: re-applied %s blocks",

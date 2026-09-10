@@ -6,9 +6,7 @@ import nl.requios.effortlessbuilding.buildmode.buildmodes.*;
 public enum BuildModeEnum {
    DISABLED("normal", new Single(), BuildModeCategoryEnum.DEFAULT, AllIcons.I_SINGLE, new ModeOptions.OptionEnum[0]),
    LINE("line", new Line(), BuildModeCategoryEnum.BASIC, AllIcons.I_LINE, new ModeOptions.OptionEnum[0]),
-   PLANE("plane", new Plane(), BuildModeCategoryEnum.BASIC, AllIcons.I_FLOOR, new ModeOptions.OptionEnum[]{ModeOptions.OptionEnum.FILL}),
-   WALL("wall", new Wall(), BuildModeCategoryEnum.BASIC, AllIcons.I_WALL, new ModeOptions.OptionEnum[]{ModeOptions.OptionEnum.FILL}),
-   FLOOR("floor", new Floor(), BuildModeCategoryEnum.BASIC, AllIcons.I_FLOOR, new ModeOptions.OptionEnum[]{ModeOptions.OptionEnum.FILL}),
+   PLANE("plane", new Plane(), BuildModeCategoryEnum.BASIC, AllIcons.I_FLOOR, new ModeOptions.OptionEnum[]{ModeOptions.OptionEnum.FILL, ModeOptions.OptionEnum.PLANE_ALIGN}),
    CUBE("cube", new Cube(), BuildModeCategoryEnum.BASIC, AllIcons.I_CUBE, new ModeOptions.OptionEnum[]{ModeOptions.OptionEnum.CUBE_FILL, ModeOptions.OptionEnum.POINT_BUILD}),
 
    DIAGONAL_LINE("diagonal_line", new DiagonalLine(), BuildModeCategoryEnum.DIAGONAL, AllIcons.I_DIAGONAL_LINE, new ModeOptions.OptionEnum[]{ModeOptions.OptionEnum.POINT_BUILD}),
@@ -46,6 +44,6 @@ public enum BuildModeEnum {
 
    // $FF: synthetic method
    private static BuildModeEnum[] $values() {
-      return new BuildModeEnum[]{DISABLED, LINE, PLANE, WALL, FLOOR, CUBE, MESH, DIAGONAL_LINE, DIAGONAL_WALL, SLOPE_FLOOR, CIRCLE, CYLINDER, SPHERE, DOME, PYRAMID};
+      return new BuildModeEnum[]{DISABLED, LINE, PLANE, CUBE, MESH, DIAGONAL_LINE, DIAGONAL_WALL, SLOPE_FLOOR, CIRCLE, CYLINDER, SPHERE, DOME, PYRAMID};
    }
 }

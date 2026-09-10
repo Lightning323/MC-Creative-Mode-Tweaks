@@ -12,7 +12,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 
-/** Builds a floor or wall based on the axis of the face targeted on the first click. */
+/** Builds a horizontal floor or vertical wall. Align mode forces one orientation or auto-switches from look direction. */
 public class Plane extends TwoClicksBuildMode {
    private Direction.Axis firstFaceAxis = Direction.Axis.Y;
    private Direction.Axis lastWallAxis = Direction.Axis.Z;
@@ -64,6 +64,13 @@ public class Plane extends TwoClicksBuildMode {
 
    @Override
    protected List<BlockPos> getAllBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2) {
+      ModeOptions.ActionEnum align = ModeOptions.getPlaneAlign();
+      if (align == ModeOptions.ActionEnum.ALIGN_HORIZONTAL) {
+         return Floor.getFloorBlocks(player, x1, y1, z1, x2, y2, z2);
+      }
+      if (align == ModeOptions.ActionEnum.ALIGN_VERTICAL) {
+         return Wall.getWallBlocks(player, x1, y1, z1, x2, y2, z2);
+      }
       return switch (planeFace(x1, y1, z1, x2, y2, z2)) {
          case Y -> Floor.getFloorBlocks(player, x1, y1, z1, x2, y2, z2);
          case X, Z -> Wall.getWallBlocks(player, x1, y1, z1, x2, y2, z2);
@@ -72,6 +79,17 @@ public class Plane extends TwoClicksBuildMode {
 
    @Override
    protected void forEachAllBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2, LongConsumer out) {
+      ModeOptions.ActionEnum align = ModeOptions.getPlaneAlign();
+      if (align == ModeOptions.ActionEnum.ALIGN_HORIZONTAL) {
+         Floor.forEachFloorBlocksOption(x1, x2, y1, z1, z2,
+                 ModeOptions.getFill() == ModeOptions.ActionEnum.FULL, out);
+         return;
+      }
+      if (align == ModeOptions.ActionEnum.ALIGN_VERTICAL) {
+         Wall.forEachWallBlocks(x1, y1, z1, x2, y2, z2,
+                 ModeOptions.getFill() == ModeOptions.ActionEnum.FULL, out);
+         return;
+      }
       switch (planeFace(x1, y1, z1, x2, y2, z2)) {
          case Y -> Floor.forEachFloorBlocksOption(x1, x2, y1, z1, z2,
                  ModeOptions.getFill() == ModeOptions.ActionEnum.FULL, out);
@@ -96,10 +114,26 @@ public class Plane extends TwoClicksBuildMode {
 
    /** Keeps wall previews and placements perpendicular to the current horizontal look direction. */
    private Direction.Axis updateWallAxisFromLook(Player player) {
+      ModeOptions.ActionEnum align = ModeOptions.getPlaneAlign();
+      if (align == ModeOptions.ActionEnum.ALIGN_HORIZONTAL) {
+         this.firstFaceAxis = Direction.Axis.Y;
+         return Direction.Axis.Y;
+      }
       Vec3 look = BuildPipeline.getPlayerLookVec(player);
-      double absY = Math.abs(look.y);
-      double absX = Math.abs(look.x);
-      double absZ = Math.abs(look.z);
+      if (align == ModeOptions.ActionEnum.ALIGN_VERTICAL) {
+         // Forced wall: pick the wall plane from the horizontal look only,
+         // never snap to a floor even when looking steeply up/down.
+         if (Math.abs(look.x) > Math.abs(look.z)) {
+            this.lastWallAxis = Direction.Axis.X;
+         } else if (Math.abs(look.z) > Math.abs(look.x)) {
+            this.lastWallAxis = Direction.Axis.Z;
+         }
+         this.firstFaceAxis = this.lastWallAxis;
+         return this.firstFaceAxis;
+      }
+       double absY = Math.abs(look.y);
+       double absX = Math.abs(look.x);
+       double absZ = Math.abs(look.z);
 //TODO: Come up with a more intelligent way to switch between floor and wall that allows for player look and toggling
 //      if (this.firstFaceAxis == Direction.Axis.Y) {
          if (absY > Math.max(absX,absZ)) return Direction.Axis.Y;

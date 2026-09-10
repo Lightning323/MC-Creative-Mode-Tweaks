@@ -71,6 +71,7 @@ public record PreviewShapeKey(
         ModeOptions.ActionEnum cubeFill,
         ModeOptions.ActionEnum sides,
         ModeOptions.ActionEnum pointBuild,
+        ModeOptions.ActionEnum planeAlign,
         boolean creative,
         boolean asyncBoundary,
         String dimension

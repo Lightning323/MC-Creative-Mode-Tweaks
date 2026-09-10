@@ -18,6 +18,7 @@ public class ModeOptions {
    private static ActionEnum pointBuild;
    private static ActionEnum meshFace;
    private static ActionEnum sides;
+   private static ActionEnum planeAlign;
 
    public static ActionEnum getBuildSpeed() {
       return buildSpeed;
@@ -68,13 +69,31 @@ public class ModeOptions {
       return sides;
    }
 
-   public static void applyForCalculation(ActionEnum fill, ActionEnum cubeFill, ActionEnum raisedEdge, ActionEnum circleStart, ActionEnum pointBuild, ActionEnum sides) {
+   public static ActionEnum getPlaneAlign() {
+      return planeAlign;
+   }
+
+   public static boolean isPlaneAlignAuto() {
+      return planeAlign == ActionEnum.ALIGN_AUTO;
+   }
+
+   /**
+    * Restores the default plane align option (auto). Called on world enter
+    * so the plane tool always starts from auto unless the player opts into
+    * a forced horizontal/vertical alignment via the radial menu.
+    */
+   public static void resetPlaneAlignToDefault() {
+      planeAlign = ActionEnum.ALIGN_AUTO;
+   }
+
+   public static void applyForCalculation(ActionEnum fill, ActionEnum cubeFill, ActionEnum raisedEdge, ActionEnum circleStart, ActionEnum pointBuild, ActionEnum sides, ActionEnum planeAlign) {
       ModeOptions.fill = fill;
       ModeOptions.cubeFill = cubeFill;
       ModeOptions.raisedEdge = raisedEdge;
       ModeOptions.circleStart = circleStart;
       ModeOptions.pointBuild = pointBuild;
       ModeOptions.sides = sides;
+      ModeOptions.planeAlign = planeAlign;
    }
 
    public static void performAction(Player player, ActionEnum action) {
@@ -161,6 +180,16 @@ public class ModeOptions {
                break;
             case 30:
                sides = ActionEnum.FOUR_SIDED;
+               break;
+            case 33:
+               planeAlign = ActionEnum.ALIGN_AUTO;
+               break;
+            case 34:
+               planeAlign = ActionEnum.ALIGN_HORIZONTAL;
+               break;
+            case 35:
+               planeAlign = ActionEnum.ALIGN_VERTICAL;
+               break;
          }
 
          if (player.level().isClientSide && action != ActionEnum.OPEN_MODIFIER_SETTINGS && action != ActionEnum.PREVIOUS_BUILD_MODE && action != ActionEnum.DISABLE_BUILD_MODE_TOGGLE && action != ActionEnum.UNDO && action != ActionEnum.REDO) {
@@ -188,6 +217,7 @@ public class ModeOptions {
       pointBuild = ActionEnum.TWO_POINT_BUILD;
       meshFace = ActionEnum.MESH_TRIANGLE;
       sides = ActionEnum.FOUR_SIDED;
+      planeAlign = ActionEnum.ALIGN_AUTO;
    }
 
    public static enum ActionEnum {
@@ -223,7 +253,10 @@ public class ModeOptions {
       THREE_SIDED("three_sided", AllIcons.I_MESH_TRIANGLE),
       FOUR_SIDED("four_sided", AllIcons.I_MESH_QUAD),
       TOGGLE_NIGHT_VISION("toggle_night_vision", AllIcons.I_EYE_ON),
-      TOGGLE_NOCLIP("toggle_noclip", AllIcons.I_PLAYER);
+      TOGGLE_NOCLIP("toggle_noclip", AllIcons.I_PLAYER),
+      ALIGN_AUTO("align_auto", AllIcons.I_ALIGN_AUTO),
+      ALIGN_HORIZONTAL("align_horizontal", AllIcons.I_ALIGN_HORIZONTAL),
+      ALIGN_VERTICAL("align_vertical", AllIcons.I_ALIGN_VERTICAL);
 
       public String name;
       public AllIcons icon;
@@ -247,7 +280,7 @@ public class ModeOptions {
 
       // $FF: synthetic method
       private static ActionEnum[] $values() {
-         return new ActionEnum[]{UNDO, REDO, OPEN_MODIFIER_SETTINGS, PREVIOUS_BUILD_MODE, DISABLE_BUILD_MODE_TOGGLE, CYCLE_REPLACE_MODE, REPLACE_ONLY_AIR, REPLACE_BLOCKS_AND_AIR, REPLACE_ONLY_BLOCKS, REPLACE_FILTERED_BY_OFFHAND, NORMAL_SPEED, FAST_SPEED, FULL, HOLLOW, CUBE_FULL, CUBE_HOLLOW, CUBE_SKELETON, SHORT_EDGE, LONG_EDGE, THICKNESS_1, THICKNESS_3, THICKNESS_5, CIRCLE_START_CORNER, CIRCLE_START_CENTER, TOGGLE_ANGEL_PLACEMENT, TWO_POINT_BUILD, THREE_POINT_BUILD, MESH_TRIANGLE, MESH_QUAD, THREE_SIDED, FOUR_SIDED, TOGGLE_NIGHT_VISION, TOGGLE_NOCLIP};
+         return new ActionEnum[]{UNDO, REDO, OPEN_MODIFIER_SETTINGS, PREVIOUS_BUILD_MODE, DISABLE_BUILD_MODE_TOGGLE, CYCLE_REPLACE_MODE, REPLACE_ONLY_AIR, REPLACE_BLOCKS_AND_AIR, REPLACE_ONLY_BLOCKS, REPLACE_FILTERED_BY_OFFHAND, NORMAL_SPEED, FAST_SPEED, FULL, HOLLOW, CUBE_FULL, CUBE_HOLLOW, CUBE_SKELETON, SHORT_EDGE, LONG_EDGE, THICKNESS_1, THICKNESS_3, THICKNESS_5, CIRCLE_START_CORNER, CIRCLE_START_CENTER, TOGGLE_ANGEL_PLACEMENT, TWO_POINT_BUILD, THREE_POINT_BUILD, MESH_TRIANGLE, MESH_QUAD, THREE_SIDED, FOUR_SIDED, TOGGLE_NIGHT_VISION, TOGGLE_NOCLIP, ALIGN_AUTO, ALIGN_HORIZONTAL, ALIGN_VERTICAL};
       }
    }
 
@@ -260,7 +293,8 @@ public class ModeOptions {
       CIRCLE_START("creative_mode_tweaks.action.circle_start", new ActionEnum[]{ActionEnum.CIRCLE_START_CORNER, ActionEnum.CIRCLE_START_CENTER}),
       POINT_BUILD("creative_mode_tweaks.action.point_build", new ActionEnum[]{ActionEnum.TWO_POINT_BUILD, ActionEnum.THREE_POINT_BUILD}),
       MESH_FACE("creative_mode_tweaks.action.mesh_face", new ActionEnum[]{ActionEnum.MESH_TRIANGLE, ActionEnum.MESH_QUAD}),
-      SIDES("creative_mode_tweaks.action.sides", new ActionEnum[]{ActionEnum.THREE_SIDED, ActionEnum.FOUR_SIDED});
+      SIDES("creative_mode_tweaks.action.sides", new ActionEnum[]{ActionEnum.THREE_SIDED, ActionEnum.FOUR_SIDED}),
+      PLANE_ALIGN("creative_mode_tweaks.action.align_mode", new ActionEnum[]{ActionEnum.ALIGN_AUTO, ActionEnum.ALIGN_HORIZONTAL, ActionEnum.ALIGN_VERTICAL});
 
       public String name;
       public ActionEnum[] actions;
@@ -272,7 +306,7 @@ public class ModeOptions {
 
       // $FF: synthetic method
       private static OptionEnum[] $values() {
-         return new OptionEnum[]{BUILD_SPEED, FILL, CUBE_FILL, RAISED_EDGE, LINE_THICKNESS, CIRCLE_START, POINT_BUILD, MESH_FACE, SIDES};
+         return new OptionEnum[]{BUILD_SPEED, FILL, CUBE_FILL, RAISED_EDGE, LINE_THICKNESS, CIRCLE_START, POINT_BUILD, MESH_FACE, SIDES, PLANE_ALIGN};
       }
    }
 }
