@@ -73,7 +73,7 @@ public class Config {
     public static final ModConfigSpec.IntValue BUILDING_PREVIEW_RENDER_THROTTLE_BLOCKS =
             CLIENT_BUILDER.comment("How big the number of blocks should be when throttling the preview rendering.")
                     .translation("creative_mode_tweaks.config.render_throttle_blocks")
-                    .defineInRange("building.creative.render_throttle_blocks", 600000, 1, Integer.MAX_VALUE);
+                    .defineInRange("building.creative.render_throttle_blocks", 200000, 1, Integer.MAX_VALUE);
 
     public static final ModConfigSpec.DoubleValue BUILDING_PREVIEW_BLOCK_TRANSPARENCY =
             CLIENT_BUILDER.comment("Transparency of block previews. 0% = invisible, 100% = solid.")

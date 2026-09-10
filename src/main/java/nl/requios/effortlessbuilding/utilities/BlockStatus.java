@@ -10,6 +10,7 @@ public enum BlockStatus {
    WORLD_BORDER,
    PROTECTED_TILE_ENTITY,
    INSUFFICIENT_ITEMS,
+   NOT_REPLACEABLE,
    BREAKING_DISABLED;
 
    public boolean isValid() {

@@ -4,6 +4,7 @@ import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import java.util.HashMap;
 import java.util.Map;
 import org.lightning323.creative_mode_tweaks.Config;
+import nl.requios.effortlessbuilding.buildmode.BuildSettings;
 import nl.requios.effortlessbuilding.utilities.BlockEntry;
 import nl.requios.effortlessbuilding.utilities.BlockSet;
 import nl.requios.effortlessbuilding.utilities.BlockStatus;
@@ -177,16 +178,36 @@ public class ConstraintSystem implements IBuildSystem {
                         }
                      }
 
-                     if (Config.BUILDING_SURVIVAL_REQUIRE_TOOLS.get() && state.requiresCorrectToolForDrops() && !InventoryHelper.hasCorrectToolForBlock(player, state)) {
-                        entry.markRejected(BlockStatus.MISSING_TOOL);
-                     }
-                  }
-               }
-            }
+                   if (Config.BUILDING_SURVIVAL_REQUIRE_TOOLS.get() && state.requiresCorrectToolForDrops() && !InventoryHelper.hasCorrectToolForBlock(player, state)) {
+                         entry.markRejected(BlockStatus.MISSING_TOOL);
+                      }
+                   }
+                }
+             }
 
-         }
-      }
-   }
+          }
+       }
+
+       // Replacement preview for every gamemode: the server filters each
+       // position through canPlaceAt at placement time (PacketHandler), so
+       // the preview must show the same verdict — otherwise creative shows
+       // white ghosts for blocks that will silently never place, and the
+       // red rejected overlay effectively only ever appears in survival.
+       // Runs last so survival keeps its more specific statuses (first
+       // rejection wins). Client-only: BuildSettings.CLIENT touches
+       // Minecraft; the server enforces the same rule inline when placing.
+       if (!isBreaking && level.isClientSide()) {
+          BuildSettings.ReplaceMode replaceMode = BuildSettings.CLIENT.getReplaceMode();
+          if (replaceMode != BuildSettings.ReplaceMode.BLOCKS_AND_AIR) {
+             ItemStack offHand = player.getOffhandItem();
+             for (BlockEntry entry : blocks.values()) {
+                if (entry.isValid() && !BuildSettings.canPlaceAt(level, entry.blockPos, replaceMode, offHand)) {
+                   entry.markRejected(BlockStatus.NOT_REPLACEABLE);
+                }
+             }
+          }
+       }
+    }
 
    /**
     * Survival stock cap. Mirrors the server placement accounting (which

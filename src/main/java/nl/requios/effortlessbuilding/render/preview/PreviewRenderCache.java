@@ -93,7 +93,7 @@ public final class PreviewRenderCache {
      * the box tracking the cursor at ~12Hz instead of hitching the game.
      * Clicks, mode/item/config changes always rebuild immediately.
      */
-    private static final long HUGE_SHAPE_RESHAPE_MIN_NANOS = 35_000_000L;
+    private static final long THROTTLE_SHAPE_RESHAPE_MIN_NANOS = 35_000_000L;
     private static final long SHAPE_RESHAPE_MIN_NANOS = 35_000_000L;
 
     /**
@@ -107,7 +107,6 @@ public final class PreviewRenderCache {
      * Refresh period for the config snapshot (see config fields below).
      */
     private static final long CONFIG_CACHE_NANOS = 500_000_000L;
-    private long throttleNanoseconds = SHAPE_RESHAPE_MIN_NANOS;
 
     public static PreviewRenderCache get() {
         return INSTANCE;
@@ -249,10 +248,11 @@ public final class PreviewRenderCache {
             // (~12Hz); detailed shapes refresh at ~28Hz — a frame or two of
             // border lag for much less hitch. Clicks, mode/item/config changes
             // always rebuild immediately via hoverOnlyChange.
-            long throttleNanos = this.throttleNanoseconds;
+
 
             if (level == this.shapedLevel && hoverOnlyChange(this.shapedKey, key)
-                    && System.nanoTime() - this.lastShapeNanos < throttleNanos) {
+                    && System.nanoTime() - this.lastShapeNanos < (this.throttleMode ? THROTTLE_SHAPE_RESHAPE_MIN_NANOS : SHAPE_RESHAPE_MIN_NANOS)) {
+
                 // Stale shape stays on screen; the next frame retries with a
                 // newer key, so the preview converges within the window.
             } else {
@@ -467,14 +467,8 @@ public final class PreviewRenderCache {
             // Preview path: bare positions only, never the exact placement list.
             mode.instance.getPlacementBlocks(blocks, player, false);
         }
-        // Fast gate on the raw count: past the throttle count the preview
-        // drops every calculation that isn't shape + mesh (no modifiers, no
-        // reach caps, no survival checks, no replacement logic). At or under
-        // it, the preview runs the exact same logic as placement.
         this.throttleMode = blocks.size() > configPreviewRenderThrottleBlocks;
-        throttleNanoseconds = this.throttleMode ?
-                HUGE_SHAPE_RESHAPE_MIN_NANOS : //Throttle the speed at which the shape is rebuilt to save performance
-                SHAPE_RESHAPE_MIN_NANOS;
+
 
         if (blocks.isEmpty()) {
             clear();
@@ -553,45 +547,45 @@ public final class PreviewRenderCache {
      * {@link #hasPreview()} stays true — exact per-block lists are
      * unavailable on this path by design.</p>
      */
-//    private void shapeSimple(Level level, BuildPipeline.@Nullable BuildState state,
-//                             PreviewShapeKey key, AABB previewBoundary, int maxBlocks) {
-//        BlockPos min = boundaryMin(previewBoundary);
-//        BlockPos max = boundaryMax(previewBoundary);
-//        long volume = boundaryVolume(previewBoundary);
-//        int estimatedCount = volume > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) volume;
-//        boolean overCap = volume > maxBlocks;
-//        this.isBreaking = (state != null ? state : BuildPipeline.BuildState.PLACING)
-//                == BuildPipeline.BuildState.BREAKING;
-//        // Corners only: keeps hasPreview() true without enumerating blocks.
-//        // Deduplicate the single-block case so the lists never hold the same
-//        // corner twice.
-//        List<BlockPos> corners = min.equals(max) ? List.of(min) : List.of(min, max);
-//        this.breakable = corners;
-//        this.unbreakable = List.of();
-//        this.all = this.breakable;
-//        this.animated = List.of();
-//        this.overLimit = overCap;
-//        this.wantsBlocks = false;
-//        this.shapedKey = key;
-//        this.shapedLevel = level;
-//        this.simplePreview = true;
-//        this.lastShapeNanos = System.nanoTime();
-//
-//        // Box overlay bakes synchronously — it is microseconds, never a hitch.
-//        this.overlayMesh.adopt(level, PreviewOverlayMesh.bakeBoundingBox(min, max, this.isBreaking));
-//        this.overlayMesh.setIsSimple(true);
-//        this.hasOverlay = !this.overlayMesh.isEmpty();
-//
-//        // No worker traffic at all: drop stale ghosts, retire any bake.
-//        PreviewBuildWorker.cancel();
-//        this.blockMesh.clear();
-//        this.meshKey = key;
-//        this.submittedKey = key;
-//        this.pendingMeshBlocks = List.of();
-//
-//        // Count + dims from the already-known bounds: no list rescan.
-//        RenderHandler.updateFeedbackSimple(estimatedCount, min, max, state != null, state, overCap);
-//    }
+    private void shapeSimple(Level level, BuildPipeline.@Nullable BuildState state,
+                             PreviewShapeKey key, AABB previewBoundary, int maxBlocks) {
+        BlockPos min = boundaryMin(previewBoundary);
+        BlockPos max = boundaryMax(previewBoundary);
+        long volume = boundaryVolume(previewBoundary);
+        int estimatedCount = volume > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) volume;
+        boolean overCap = volume > maxBlocks;
+        this.isBreaking = (state != null ? state : BuildPipeline.BuildState.PLACING)
+                == BuildPipeline.BuildState.BREAKING;
+        // Corners only: keeps hasPreview() true without enumerating blocks.
+        // Deduplicate the single-block case so the lists never hold the same
+        // corner twice.
+        List<BlockPos> corners = min.equals(max) ? List.of(min) : List.of(min, max);
+        this.breakable = corners;
+        this.unbreakable = List.of();
+        this.all = this.breakable;
+        this.animated = List.of();
+        this.overLimit = overCap;
+        this.wantsBlocks = false;
+        this.shapedKey = key;
+        this.shapedLevel = level;
+        this.simplePreview = true;
+        this.lastShapeNanos = System.nanoTime();
+
+        // Box overlay bakes synchronously — it is microseconds, never a hitch.
+        this.overlayMesh.adopt(level, PreviewOverlayMesh.bakeBoundingBox(min, max, this.isBreaking));
+        this.overlayMesh.setIsSimple(true);
+        this.hasOverlay = !this.overlayMesh.isEmpty();
+
+        // No worker traffic at all: drop stale ghosts, retire any bake.
+        PreviewBuildWorker.cancel();
+        this.blockMesh.clear();
+        this.meshKey = key;
+        this.submittedKey = key;
+        this.pendingMeshBlocks = List.of();
+
+        // Count + dims from the already-known bounds: no list rescan.
+        RenderHandler.updateFeedbackSimple(estimatedCount, min, max, state != null, state, overCap);
+    }
 
     /**
      * Breakneck path for over-throttle shapes: selection shape + block mesh,
@@ -909,6 +903,7 @@ public final class PreviewRenderCache {
                 && Objects.equals(oldKey.firstHitPos(), key.firstHitPos())
                 && oldKey.firstHitFace() == key.firstHitFace()
                 && oldKey.heldItem() == key.heldItem()
+                && oldKey.offhand() == key.offhand()
                 && oldKey.trowel() == key.trowel()
                 && oldKey.replaceMode() == key.replaceMode()
                 && oldKey.blockAlpha() == key.blockAlpha()
@@ -1057,6 +1052,7 @@ public final class PreviewRenderCache {
                 hoverPoint != null ? hoverPoint.immutable() : null,
                 BlockPos.containing(eye),
                 heldItem,
+                player.getOffhandItem().getItem(),
                 trowel,
                 BuildSettings.CLIENT.getReplaceMode(),
                 this.configBlockAlpha,

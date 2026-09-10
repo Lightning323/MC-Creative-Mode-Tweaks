@@ -33,6 +33,8 @@ import org.jetbrains.annotations.Nullable;
  *       to blocks, so block-level eye movement is enough to catch changes.</li>
  *   <li>heldItem / trowel / replaceMode / blockAlpha — ghost appearance. A
  *       different held block (or opacity setting) re-tessellates with new states.</li>
+ *   <li>offhand — the {@code FILTERED_BY_OFFHAND} replace verdict depends on
+ *       it, so swapping it rebuilds the preview.</li>
  *   <li>maxBlocks / axisLimit / protectTiles / fill options — server-synced
  *       limits and shape options from the radial menu.</li>
  *   <li>creative — creative vs survival changes reach and limits.</li>
@@ -58,6 +60,7 @@ public record PreviewShapeKey(
         @Nullable BlockPos hoverPoint,
         @Nullable BlockPos eyeBlock,
         @Nullable Item heldItem,
+        @Nullable Item offhand,
         boolean trowel,
         BuildSettings.ReplaceMode replaceMode,
         int blockAlpha,
