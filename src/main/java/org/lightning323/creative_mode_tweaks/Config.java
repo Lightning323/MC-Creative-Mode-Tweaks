@@ -52,7 +52,7 @@ public class Config {
 
     public static final ModConfigSpec.DoubleValue HOTBAR_FULL_INVENTORY_PREVIEW_HOLD_SECONDS =
             CLIENT_BUILDER.comment("How long (in seconds) the 4x9 full-inventory preview stays open after releasing a Shift Inventory Rows key. 0 closes immediately on release.")
-                    .defineInRange("hotbar.full_inventory_preview_hold_seconds", 2.0, 0.0, 10.0);
+                    .defineInRange("hotbar.full_inventory_preview_hold_seconds", 2.5, 0.0, 10.0);
 
     public static final ModConfigSpec.IntValue CREATIVE_BUILDING_REACH =
             COMMON_BUILDER.comment("How far creative players can place and break blocks with build modes.")
