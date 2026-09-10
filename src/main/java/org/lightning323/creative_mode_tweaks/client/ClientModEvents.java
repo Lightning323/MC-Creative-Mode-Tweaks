@@ -47,19 +47,33 @@ public class ClientModEvents {
     //Dumb keys
     public static final KeyMapping KEY_ROTATE_INV_UP = new KeyBase("key." + MODID + ".rotate_inv_up", GLFW.GLFW_KEY_UP, DEFAULT_CATEGORY) {
         @Override
+        public void onKeyPress(LocalPlayer player) {
+            ClientHotbarUtil.rotateUpHeld = true;
+        }
+
+        @Override
         public void onKeyRelease(LocalPlayer player) {
+            ClientHotbarUtil.rotateUpHeld = false;
             if (player.isCreative() || Config.allowInventoryRotationInSurvival) {
                 ClientHotbarUtil.rotateInventoryAndSync(player, 9, false);
             }
+            ClientHotbarUtil.extendPreviewHold();
         }
     };
 
     public static final KeyMapping KEY_ROTATE_INV_DOWN = new KeyBase("key." + MODID + ".rotate_inv_down", GLFW.GLFW_KEY_DOWN, DEFAULT_CATEGORY) {
         @Override
+        public void onKeyPress(LocalPlayer player) {
+            ClientHotbarUtil.rotateDownHeld = true;
+        }
+
+        @Override
         public void onKeyRelease(LocalPlayer player) {
+            ClientHotbarUtil.rotateDownHeld = false;
             if (player.isCreative() || Config.allowInventoryRotationInSurvival) {
                 ClientHotbarUtil.rotateInventoryAndSync(player, -9, false);
             }
+            ClientHotbarUtil.extendPreviewHold();
         }
     };
 
@@ -96,6 +110,9 @@ public class ClientModEvents {
     public static final KeyMapping KEY_TOGGLE_ANGEL_PLACEMENT = new KeyMapping(
             "key." + MODID + ".toggle_angel_placement", InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(), DEFAULT_CATEGORY);
 
+    // Baseline for detecting hotbar selection changes (scroll / number keys) each tick.
+    private static int lastPreviewSelectedSlot = -1;
+
     static {
         for (BuildModeEnum mode : BuildModeEnum.values()) {
             if (mode != BuildModeEnum.FLOOR && mode != BuildModeEnum.WALL) {
@@ -127,6 +144,8 @@ public class ClientModEvents {
     public static void onScreenEventOpening(ScreenEvent.Opening event) {
         LocalPlayer player = Minecraft.getInstance().player;
         if (player == null) return;
+        // Opening a screen cancels any lingering post-release preview hold.
+        ClientHotbarUtil.previewVisibleUntilMillis = 0;
         if (
                 (event.getNewScreen() instanceof CreativeModeInventoryScreen && Config.enhanceCreativeHotbar) ||
                         (event.getNewScreen() instanceof InventoryScreen && Config.enhanceSurvivalHotbar)
@@ -194,6 +213,27 @@ public class ClientModEvents {
 //        for (KeyMapping key : KeyBase.keys) {
 //        ((KeyBase) KEY_REPLACE).onClientTick(event);
 //        }
+        // Self-heal held flags if the physical key is no longer down
+        // (e.g. released while a screen was open, which skips onKeyInput).
+        if (!KEY_ROTATE_INV_UP.isDown()) {
+            ClientHotbarUtil.rotateUpHeld = false;
+        }
+        if (!KEY_ROTATE_INV_DOWN.isDown()) {
+            ClientHotbarUtil.rotateDownHeld = false;
+        }
+        // Scrolling or picking another hotbar slot while the 4x9 preview is open
+        // keeps it open by resetting the post-release hold timer.
+        Minecraft mc = Minecraft.getInstance();
+        LocalPlayer tickPlayer = mc.player;
+        if (tickPlayer != null) {
+            int selected = tickPlayer.getInventory().selected;
+            if (lastPreviewSelectedSlot != -1 && selected != lastPreviewSelectedSlot && isInventoryPreviewHeld()) {
+                ClientHotbarUtil.extendPreviewHold();
+            }
+            lastPreviewSelectedSlot = selected;
+        } else {
+            lastPreviewSelectedSlot = -1;
+        }
     }
 
     @SubscribeEvent
@@ -228,6 +268,30 @@ public class ClientModEvents {
         }
     }
 
+    /**
+     * True while either Shift Inventory Rows key is held (or within the configured
+     * post-release hold time) and the 4x9 preview should be shown.
+     * Respects the key remapping (checks the actual bound keys, not hardcoded arrows)
+     * and the {@code hotbar.show_full_inventory_while_rotating} config toggle.
+     */
+    public static boolean isInventoryPreviewHeld() {
+        if (!Config.showFullInventoryWhileRotating) return false;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.screen != null) return false;
+        if (mc.player == null) return false;
+        Player player = mc.player;
+        if (!(player.isCreative() || Config.allowInventoryRotationInSurvival)) return false;
+        if (KEY_ROTATE_INV_UP.isDown() || KEY_ROTATE_INV_DOWN.isDown()
+                || ClientHotbarUtil.rotateUpHeld || ClientHotbarUtil.rotateDownHeld) {
+            return true;
+        }
+        return ClientHotbarUtil.isPreviewHoldOpen();
+    }
+
+    private static boolean matchesKeyBinding(KeyMapping mapping, InputConstants.Key pressed) {
+        return mapping.getKey().equals(pressed);
+    }
+
     @SubscribeEvent
     public static void onKeyInput(InputEvent.Key event) {
         if (Minecraft.getInstance().screen != null) {
@@ -237,10 +301,29 @@ public class ClientModEvents {
 
         LocalPlayer player = Minecraft.getInstance().player;
         if (player != null) {
+            InputConstants.Key pressed = InputConstants.getKey(event.getKey(), event.getScanCode());
             for (KeyMapping key : KeyBase.keys) {
-                if (event.getKey() == key.getKey().getValue()) {
+                if (matchesKeyBinding(key, pressed)) {
                     if (event.getAction() == GLFW.GLFW_PRESS) ((KeyBase) key).onKeyPress(player);
-                    else ((KeyBase) key).onKeyRelease(player);
+                    else if (event.getAction() == GLFW.GLFW_RELEASE) ((KeyBase) key).onKeyRelease(player);
+                    // Ignore GLFW_REPEAT so holding doesn't retrigger press/release.
+                }
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void onMouseInput(InputEvent.MouseButton.Pre event) {
+        if (Minecraft.getInstance().screen != null) {
+            return;
+        }
+        LocalPlayer player = Minecraft.getInstance().player;
+        if (player != null) {
+            InputConstants.Key pressed = InputConstants.Type.MOUSE.getOrCreate(event.getButton());
+            for (KeyMapping key : KeyBase.keys) {
+                if (matchesKeyBinding(key, pressed)) {
+                    if (event.getAction() == GLFW.GLFW_PRESS) ((KeyBase) key).onKeyPress(player);
+                    else if (event.getAction() == GLFW.GLFW_RELEASE) ((KeyBase) key).onKeyRelease(player);
                 }
             }
         }

@@ -41,6 +41,14 @@ public class Config {
             CLIENT_BUILDER.comment("Maximum number of preview slots on either side when scrolling (setting this to the max value will always keep the selector in the center)")
                     .defineInRange("hotbar.hotbar_max_scroll_margin", 4, 0, 100);
 
+    public static final ModConfigSpec.BooleanValue HOTBAR_SHOW_FULL_INVENTORY_WHILE_ROTATING =
+            CLIENT_BUILDER.comment("While a Shift Inventory Rows key is held, expand the hotbar into a 4x9 grid showing the full inventory. Releases back to a single row on key release.")
+                    .define("hotbar.show_full_inventory_while_rotating", true);
+
+    public static final ModConfigSpec.DoubleValue HOTBAR_FULL_INVENTORY_PREVIEW_HOLD_SECONDS =
+            CLIENT_BUILDER.comment("How long (in seconds) the 4x9 full-inventory preview stays open after releasing a Shift Inventory Rows key. 0 closes immediately on release.")
+                    .defineInRange("hotbar.full_inventory_preview_hold_seconds", 2.0, 0.0, 10.0);
+
     public static final ModConfigSpec.IntValue CREATIVE_BUILDING_REACH =
             COMMON_BUILDER.comment("How far creative players can place and break blocks with build modes.")
                     .defineInRange("reach.creative_building_reach", 64, 1, 256);
@@ -210,6 +218,8 @@ public class Config {
     public static boolean allowInventoryRotationInSurvival;
     public static int hotbarMinScrollMargin;
     public static int hotbarMaxScrollMargin;
+    public static boolean showFullInventoryWhileRotating = true;
+    public static double fullInventoryPreviewHoldSeconds = 1.0;
     private static boolean clientAngelPlacementAllowed;
     private static int clientAngelPlacementDistance = 8;
 
@@ -269,6 +279,8 @@ public class Config {
             survivalHotbarMaxSize = SURVIVAL_HOTBAR_MAX_SIZE.get();
             hotbarMinScrollMargin = HOTBAR_MIN_SCROLL_MARGIN.get();
             hotbarMaxScrollMargin = HOTBAR_MAX_SCROLL_MARGIN.get();
+            showFullInventoryWhileRotating = HOTBAR_SHOW_FULL_INVENTORY_WHILE_ROTATING.get();
+            fullInventoryPreviewHoldSeconds = HOTBAR_FULL_INVENTORY_PREVIEW_HOLD_SECONDS.get();
         }
     }
 }
