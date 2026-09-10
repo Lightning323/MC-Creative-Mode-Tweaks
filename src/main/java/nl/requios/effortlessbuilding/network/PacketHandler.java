@@ -217,6 +217,12 @@ public class PacketHandler {
                      if (!finalState.equals(placedState)) {
                         level.setBlock(pos, finalState, 3);
                      }
+                     if (!finalState.canSurvive(level, pos)) {
+                        // Would pop without support: revert the vanilla
+                        // placement instead of leaving a breaking block.
+                        level.setBlock(pos, oldState, 3);
+                        continue;
+                     }
                      if (!oldState.equals(finalState)) {
                         undoChanges.put(pos.immutable(), new UndoManager.BlockChange(oldState, finalState));
                         used.merge(entry.item, 1, Integer::sum);
@@ -280,6 +286,12 @@ public class PacketHandler {
                      }
 
                      state = entry.applyTransforms(state);
+
+                     if (!state.canSurvive(level, pos)) {
+                        // Would pop without support: skip it entirely —
+                        // no world change, no consumption, no undo record.
+                        continue;
+                     }
 
                      level.setBlock(pos, state, 3);
                      transferBlockItemData(level, player, pos, held);

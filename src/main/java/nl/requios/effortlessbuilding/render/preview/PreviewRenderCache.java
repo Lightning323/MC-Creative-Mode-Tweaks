@@ -3,6 +3,7 @@ package nl.requios.effortlessbuilding.render.preview;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -869,8 +870,12 @@ public final class PreviewRenderCache {
         // Mesh stays strictly placeable-only: survival-stock cuts show red in
         // the overlay + red count line instead of rendering as ghosts.
         // Iterates the retained entry refs — no map lookups.
+        // Blocks that would pop without support are filtered here too (same
+        // verdict as the server placement skip): no ghost, moved to the red
+        // overlay list below.
         List<PreviewBlock> meshBlocks = new ArrayList<>();
         List<PreviewBlock> animatedBlocks = new ArrayList<>();
+        List<BlockPos> unsupported = null;
         if (wantBlocks && !ok.isEmpty()) {
             BlockHitResult firstHit = BuildPipelineClient.getFirstClickHit();
             BlockState base = resolveBaseState(mc, player, firstHit, hit);
@@ -890,6 +895,13 @@ public final class PreviewRenderCache {
                 if (entry != null) {
                     resolved = entry.applyTransforms(resolved);
                 }
+                if (!resolved.canSurvive(level, pos)) {
+                    if (unsupported == null) {
+                        unsupported = new ArrayList<>();
+                    }
+                    unsupported.add(pos);
+                    continue;
+                }
                 // Animated entities tick — immediate path, never the baked mesh.
                 if (resolved.getRenderShape() == RenderShape.ENTITYBLOCK_ANIMATED) {
                     animatedBlocks.add(new PreviewBlock(pos, resolved));
@@ -897,6 +909,24 @@ public final class PreviewRenderCache {
                     meshBlocks.add(new PreviewBlock(pos, resolved));
                 }
             }
+        }
+
+        if (unsupported != null) {
+            // Move unsupported positions from the placeable list to the
+            // rejected overlay list, keeping the parallel entry list in sync.
+            HashSet<BlockPos> unsupportedSet = new HashSet<>(unsupported);
+            List<BlockPos> supported = new ArrayList<>(ok.size() - unsupported.size());
+            List<BlockEntry> supportedEntries = new ArrayList<>(ok.size() - unsupported.size());
+            for (int i = 0, n = ok.size(); i < n; i++) {
+                if (unsupportedSet.contains(ok.get(i))) {
+                    bad.add(ok.get(i));
+                } else {
+                    supported.add(ok.get(i));
+                    supportedEntries.add(okEntries.get(i));
+                }
+            }
+            ok = supported;
+            okEntries = supportedEntries;
         }
 
         // Wrap, don't copy: these lists are never mutated after publish, so
