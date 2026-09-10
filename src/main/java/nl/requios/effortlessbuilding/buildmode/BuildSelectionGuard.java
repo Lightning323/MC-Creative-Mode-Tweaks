@@ -7,7 +7,11 @@ import org.jetbrains.annotations.Nullable;
  * Guards in-progress build-mode selections against exceeding the configured
  * block-set limit ({@code building.*.max_blocks_placed}).
  *
- * <p>Protocol, exactly as requested:</p>
+ * <p>This guard is the size control: it freezes the selection so it can't
+ * keep growing once over the limit. It deliberately never cuts blocks — an
+ * oversized shape that does get through shapes and places in full.</p>
+ *
+ * <p>Protocol:</p>
  * <ol>
  *   <li>On every selection update the caller reports the candidate boundary
  *       from {@code getClientBoundary} together with the candidate block count
@@ -66,7 +70,7 @@ public final class BuildSelectionGuard {
      * @param candidateBoundary boundary from {@code getClientBoundary}, or null
      *                          when there is no active selection.
      * @param candidateBlockCount raw size from {@code getCommonBlocks}, before
-     *                          constraint capping.
+     *                          constraints.
      * @param maxBlocks block-set limit from configs
      *                  ({@code Config.getBuildingMaxBlocksPlaced}).
      * @return true when the caller should use the candidate (normal selection

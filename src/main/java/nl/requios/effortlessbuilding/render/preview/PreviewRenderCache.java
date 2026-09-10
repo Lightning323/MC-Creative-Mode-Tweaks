@@ -128,8 +128,8 @@ public final class PreviewRenderCache {
     private List<PreviewBlock> animated = List.of();
     private boolean hasOverlay;
     private boolean isBreaking;
-    // True when the count cap (getBuildingMaxBlocksPlaced) cut blocks out of
-    // this shape. Drives the red count/dims warning.
+    // True when survival stock cut blocks out of this shape (the only
+    // remaining cutoff). Drives the red count/dims warning.
     private boolean overLimit;
     private boolean wantsBlocks;
 
@@ -476,6 +476,9 @@ public final class PreviewRenderCache {
         // Oversized freeze without enumeration: while the guard is oversized,
         // a non-shrinking boundary is rejected on volume alone — no block
         // enumeration, no rebake, the frozen preview just keeps drawing.
+        // This is what keeps the selection from growing too large. Note this
+        // never cuts blocks: an oversized shape that does get through shapes
+        // — and places — in full.
         if (BuildSelectionGuard.CLIENT.isOversized()) {
             AABB lastBoundary = BuildSelectionGuard.CLIENT.getLastBoundary();
             if (lastBoundary != null
@@ -513,7 +516,8 @@ public final class PreviewRenderCache {
         // block-set limit the selection becomes oversized, after which only a
         // strictly smaller boundary box may proceed. Growing (or same-size)
         // updates are rejected so the player must shrink back down instead of
-        // dragging an ever-larger unplaceable shape.
+        // dragging an ever-larger selection. Rejected here means frozen, not
+        // cut: no blocks are ever truncated for size.
         if (!BuildSelectionGuard.CLIENT.updateSelection(previewBoundary, blocks.size(), maxBlocks)) {
             if (mode.instance.usesDirectSecondPoint()) {
                 mode.instance.setPreviewPoint(
@@ -584,7 +588,8 @@ public final class PreviewRenderCache {
         BlockPos max = boundaryMax(previewBoundary);
         long volume = boundaryVolume(previewBoundary);
         int estimatedCount = volume > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) volume;
-        boolean overCap = volume > maxBlocks;
+        // No max-blocks cutoff: the box always represents the full shape.
+        boolean overCap = false;
         this.isBreaking = (state != null ? state : BuildPipeline.BuildState.PLACING)
                 == BuildPipeline.BuildState.BREAKING;
         // Corners only: keeps hasPreview() true without enumerating blocks.
@@ -626,12 +631,12 @@ public final class PreviewRenderCache {
 
     /**
      * Breakneck path for over-throttle shapes: selection shape + block mesh,
-     * nothing else. No modifiers, no reach caps, no max-blocks capping, no
-     * tile-entity scans, no survival checks, no replacement handling — zero
-     * world reads per block, every entry stays VALID. One linear pass builds
-     * positions, feedback bounds and ghosts together; no ok/bad/entry side
-     * lists. Placement (click path, server) still runs the full pipeline, so
-     * this preview is allowed to over-promise.
+     * nothing else. No modifiers, no reach caps, no tile-entity scans, no
+     * survival checks, no replacement handling — zero world reads per block,
+     * every entry stays VALID. One linear pass builds positions, feedback
+     * bounds and ghosts together; no ok/bad/entry side lists. Placement
+     * (click path, server) still runs the full pipeline, so this preview is
+     * allowed to over-promise.
      */
     private void shapeFast(Minecraft mc, Player player, Level level,
                            BuildPipeline.@Nullable BuildState state,
@@ -714,9 +719,9 @@ public final class PreviewRenderCache {
         this.unbreakable = List.of();
         this.all = this.breakable;
         this.animated = animatedBlocks.isEmpty() ? List.of() : Collections.unmodifiableList(animatedBlocks);
-        // O(1) honesty: the count line still goes red past the cap even
-        // though nothing was culled — placement will enforce it.
-        this.overLimit = ok.size() > key.maxBlocks();
+        // No max-blocks truncation: the count line never goes red for size —
+        // every enumerated block is kept and placed.
+        this.overLimit = false;
         this.wantsBlocks = wantBlocks && !meshBlocks.isEmpty();
         this.shapedKey = key;
         this.shapedLevel = level;
@@ -769,13 +774,13 @@ public final class PreviewRenderCache {
                                @Nullable BlockHitResult hit, PreviewShapeKey key,
                                BlockSet blocks, BlockPos anchor) {
         // NOTE: no sorting before processBlocks — and that is deliberate.
-        // ConstraintSystem keeps the first N blocks in GENERATION order, and
-        // the server pipeline caps the exact same way. Sorting first would
-        // preview a different subset (closest-first blob) than placed.
+        // ConstraintSystem preserves GENERATION order, and the server pipeline
+        // runs the exact same way. Sorting first would preview a different
+        // subset than placed.
         this.overlayMesh.setIsSimple(false);
         BuildPipeline.BuildState action = state != null ? state : BuildPipeline.BuildState.PLACING;
-        // Full placement logic: modifiers, reach caps, max-blocks capping,
-        // tile-entity scans, survival checks, replacement handling.
+        // Full placement logic: modifiers, reach caps, tile-entity scans,
+        // survival checks, replacement handling.
         try (SableCompat.SelectionScope ignored = SableCompat.pushSelection(level, anchor)) {
             BuildPipelineClient.CLIENT.processBlocks(blocks, player, action);
         }
@@ -833,8 +838,7 @@ public final class PreviewRenderCache {
                 if (entry.getStatus() == BlockStatus.OUTSIDE_REACH) {
                     outsideSublevel = true;
                 }
-                if (entry.getStatus() == BlockStatus.MAX_BLOCKS_EXCEEDED
-                        || entry.getStatus() == BlockStatus.INSUFFICIENT_ITEMS) {
+                if (entry.getStatus() == BlockStatus.INSUFFICIENT_ITEMS) {
                     overCap = true;
                 }
                 bad.add(pos);
@@ -853,9 +857,9 @@ public final class PreviewRenderCache {
 
         // Ghost states resolve here (was per-frame before caching). Trowel
         // rolls one random set per shape instead of shimmering every frame.
-        // Mesh stays strictly placeable-only: over-cap blocks show red in the
-        // overlay + red count line instead of rendering as ghosts. Iterates
-        // the retained entry refs — no map lookups.
+        // Mesh stays strictly placeable-only: survival-stock cuts show red in
+        // the overlay + red count line instead of rendering as ghosts.
+        // Iterates the retained entry refs — no map lookups.
         List<PreviewBlock> meshBlocks = new ArrayList<>();
         List<PreviewBlock> animatedBlocks = new ArrayList<>();
         if (wantBlocks && !ok.isEmpty()) {

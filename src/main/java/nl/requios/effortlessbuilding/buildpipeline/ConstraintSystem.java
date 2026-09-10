@@ -76,17 +76,9 @@ public class ConstraintSystem implements IBuildSystem {
          }
       }
 
-      int maxBlocks = Config.getBuildingMaxBlocksPlaced(player);
-      int validCount = 0;
-
-      for(BlockEntry entry : blocks.values()) {
-         if (entry.isValid()) {
-            ++validCount;
-            if (validCount > maxBlocks) {
-               entry.markRejected(BlockStatus.MAX_BLOCKS_EXCEEDED);
-            }
-         }
-      }
+      // No max-blocks truncation: every valid block in the shape is kept and
+      // placed, regardless of building.*.max_blocks_placed. (Survival stock
+      // below still applies.)
 
       // Survival stock: when the player cannot supply the whole shape, cut
       // it to what can actually be set — red count text plus affordable-only
@@ -214,7 +206,7 @@ public class ConstraintSystem implements IBuildSystem {
     * places up to the available stock, then stops), so preview and
     * placement agree on the affordable subset in generation order.
     * Entries beyond stock are marked {@link BlockStatus#INSUFFICIENT_ITEMS},
-    * which the preview renders exactly like {@code MAX_BLOCKS_EXCEEDED}.
+    * which the preview renders red with a red count line.
     */
    private static void applySurvivalInventoryCap(BlockSet blocks, Player player) {
       ItemStack held = player.getMainHandItem();
