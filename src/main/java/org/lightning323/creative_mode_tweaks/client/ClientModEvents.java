@@ -192,6 +192,15 @@ public class ClientModEvents {
     }
 
     @SubscribeEvent
+    public static void onPlayerRespawn(ClientPlayerNetworkEvent.Clone event) {
+        // Dying resets the build tool to single-block, same as logging in, so a
+        // half-finished multi-block selection cannot survive death.
+        BuildPipelineClient.cancelCurrentSequence();
+        BuildModes.CLIENT.setBuildMode(BuildModeEnum.DISABLED);
+        ModeOptions.resetPointBuildToDefault();
+    }
+
+    @SubscribeEvent
     public static void registerKeyMappings(RegisterKeyMappingsEvent event) {
         for (KeyMapping key : KeyBase.keys) {
             event.register(key);
