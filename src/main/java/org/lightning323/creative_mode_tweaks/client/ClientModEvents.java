@@ -191,9 +191,16 @@ public class ClientModEvents {
     public static void onPlayerRespawn(ClientPlayerNetworkEvent.Clone event) {
         // Dying resets the build tool to single-block, same as logging in, so a
         // half-finished multi-block selection cannot survive death.
+        // (Reach overrides are keyed by UUID and intentionally survive death.)
         BuildPipelineClient.cancelCurrentSequence();
         BuildModes.CLIENT.setBuildMode(BuildModeEnum.DISABLED);
         ModeOptions.resetPointBuildToDefault();
+    }
+
+    @SubscribeEvent
+    public static void onPlayerLoggedOut(ClientPlayerNetworkEvent.LoggingOut event) {
+        // Drop the synced reach override so it can't leak into the next server.
+        Config.updateClientSingleReach(null);
     }
 
     @SubscribeEvent

@@ -29,6 +29,7 @@ public class CreativeModeTweaks {
         modContainer.registerConfig(ModConfig.Type.SERVER, Config.SERVER_SPEC);
         EffortlessBuilding.initialize(modEventBus);
         NeoForge.EVENT_BUS.addListener(PlayerEvent.PlayerLoggedInEvent.class, CreativeModeTweaks::onPlayerLogin);
+        NeoForge.EVENT_BUS.addListener(PlayerEvent.PlayerLoggedOutEvent.class, CreativeModeTweaks::onPlayerLogout);
         NeoForge.EVENT_BUS.addListener(PlayerEvent.PlayerChangeGameModeEvent.class, CreativeModeTweaks::onGameModeChange);
         // Silences per-block batch sounds from build-mode placement (the
         // action's single sound still plays client-side on click).
@@ -39,15 +40,28 @@ public class CreativeModeTweaks {
     public static void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
             // Single-block reach is resolved live via PlayerMixin from
-            // Config.getSingleReach (same stateless pattern as build-mode
-            // reach), so there is no attribute modifier to re-apply here.
+            // Config.getSingleCreativeReach (same stateless pattern as
+            // build-mode reach), so there is no attribute modifier to
+            // re-apply here.
             //Update the client-side config
-            PacketDistributor.sendToPlayer(player, new ClientboundSyncConfigPayload());
+            PacketDistributor.sendToPlayer(player, new ClientboundSyncConfigPayload(player));
         }
+    }
+
+    public static void onPlayerLogout(PlayerEvent.PlayerLoggedOutEvent event) {
+        // Reach adjustments are per-session: drop the override so a later
+        // login starts from the config values again.
+        Config.clearServerSingleReach(event.getEntity().getUUID());
     }
 
     public static void onGameModeChange(PlayerEvent.PlayerChangeGameModeEvent event) {
         ServerPlayer player = (ServerPlayer) event.getEntity();
+        if (!event.getNewGameMode().isCreative()) {
+            // Leaving creative drops the reach override; re-sync so the
+            // client falls back to the config values too.
+            Config.clearServerSingleReach(player.getUUID());
+            PacketDistributor.sendToPlayer(player, new ClientboundSyncConfigPayload(player));
+        }
         PacketDistributor.sendToPlayer(player, new PacketGameModeChanged(event.getNewGameMode().getId()));
     }
 

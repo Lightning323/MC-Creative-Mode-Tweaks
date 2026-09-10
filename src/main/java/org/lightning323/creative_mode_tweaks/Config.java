@@ -4,7 +4,12 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.event.config.ModConfigEvent;
 import net.neoforged.neoforge.common.ModConfigSpec;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
+
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 @EventBusSubscriber(modid = CreativeModeTweaks.MODID, bus = EventBusSubscriber.Bus.MOD)
 public class Config {
@@ -222,14 +227,75 @@ public class Config {
     public static double fullInventoryPreviewHoldSeconds = 1.0;
     private static boolean clientAngelPlacementAllowed;
     private static int clientAngelPlacementDistance = 8;
-    private static int singleCreativeReach = 256;
+
+    /** Bounds for reach, matching the reach.* config ranges (1..256). */
+    public static final int REACH_MIN = 5;
+    public static final int REACH_MAX = 256;
+
+    /**
+     * Server-side per-player creative single-reach overrides set via the
+     * Adjust Range key. Keyed by UUID so they survive death/respawn (unlike
+     * the old transient attribute modifiers); cleared on logout and when
+     * leaving creative, matching the old semantics.
+     */
+    private static final Map<UUID, Integer> serverSingleReachOverrides = new ConcurrentHashMap<>();
+
+    /**
+     * Client-side mirror of this client's override, synced from the server.
+     * Null means "no override, use the config value".
+     */
+    private static Integer clientSingleReachOverride = null;
+
+    /**
+     * Gap between creative building reach and creative single reach, as set
+     * in the configs. The Adjust Range key preserves this offset when it
+     * moves both ranges.
+     */
+    public static int getCreativeReachOffset() {
+        return CREATIVE_BUILDING_REACH.get() - CREATIVE_SINGLE_REACH.get();
+    }
+
+    public static int clampReach(double dist) {
+        return Mth.clamp((int) Math.round(dist), REACH_MIN, REACH_MAX);
+    }
+
+    /** Building reach derived from a single reach via the configured offset. */
+    public static int deriveBuildingReach(int singleReach) {
+        return Mth.clamp(singleReach + getCreativeReachOffset(), REACH_MIN, REACH_MAX);
+    }
 
     public static int getBuildingReach(Player player) {
-        return player.isCreative() ? CREATIVE_BUILDING_REACH.get() : SURVIVAL_BUILDING_REACH.get();
+        if (!player.isCreative()) {
+            return SURVIVAL_BUILDING_REACH.get();
+        }
+        return deriveBuildingReach(getSingleCreativeReach(player));
     }
 
     public static int getSingleCreativeReach(Player player) {
-        return singleCreativeReach;
+        if (player.level().isClientSide()) {
+            return clientSingleReachOverride != null ? clientSingleReachOverride : CREATIVE_SINGLE_REACH.get();
+        }
+        return serverSingleReachOverrides.getOrDefault(player.getUUID(), CREATIVE_SINGLE_REACH.get());
+    }
+
+    /** Server-side only. */
+    public static void setServerSingleReach(UUID playerId, int singleReach) {
+        serverSingleReachOverrides.put(playerId, Mth.clamp(singleReach, REACH_MIN, REACH_MAX));
+    }
+
+    /** Server-side only. */
+    public static void clearServerSingleReach(UUID playerId) {
+        serverSingleReachOverrides.remove(playerId);
+    }
+
+    /** Server-side only. Null = no override. */
+    public static Integer getServerSingleReachOverride(UUID playerId) {
+        return serverSingleReachOverrides.get(playerId);
+    }
+
+    /** Client-side only. Null = no override, use the config value. */
+    public static void updateClientSingleReach(Integer singleReach) {
+        clientSingleReachOverride = singleReach == null ? null : Mth.clamp(singleReach, REACH_MIN, REACH_MAX);
     }
 
     public static int getAngelPlacementDistance(Player player) {
@@ -279,7 +345,6 @@ public class Config {
             enhanceCreativeHotbar = ENHANCE_CREATIVE_HOTBAR.get();
             enhanceSurvivalHotbar = ENHANCE_SURVIVAL_HOTBAR.get();
             allowInventoryRotationInSurvival = ALLOW_INVENTORY_ROTATION_IN_SURVIVAL.get();
-            singleCreativeReach = CREATIVE_SINGLE_REACH.get();
         } else if (event.getConfig().getSpec() == CLIENT_SPEC) {
             creativeHotbarMaxSize = CREATIVE_HOTBAR_MAX_SIZE.get();
             survivalHotbarMaxSize = SURVIVAL_HOTBAR_MAX_SIZE.get();

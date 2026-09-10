@@ -29,12 +29,12 @@ public class PacketHandler {
 //                PacketReplace::handle
 //        );
 //
-//        // Register Adjust Range
-//        registrar.playToServer(
-//                PacketAdjustRange.TYPE,
-//                PacketAdjustRange.CODEC,
-//                PacketAdjustRange::handle
-//        );
+        // Register Adjust Range
+        registrar.playToServer(
+                PacketAdjustRange.TYPE,
+                PacketAdjustRange.CODEC,
+                PacketAdjustRange::handle
+        );
 
         registrar.playToClient(
                 PacketGameModeChanged.TYPE,
