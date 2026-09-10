@@ -9,6 +9,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.HumanoidArm;
+import net.minecraft.world.entity.PlayerRideableJumping;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
@@ -37,6 +38,12 @@ public abstract class GuiMixin {
     @Shadow
     protected abstract void renderSlot(GuiGraphics var1, int var2, int var3, DeltaTracker var4, Player var5, ItemStack var6, int var7);
 
+    @Shadow
+    public int leftHeight;
+
+    @Shadow
+    public int rightHeight;
+
     //Constants that dont change
     @Unique
     final int hotbarHeight = HOTBAR_SLOT_GUI_SIZE + 2;
@@ -58,6 +65,100 @@ public abstract class GuiMixin {
     private int hotbarY;
     @Unique
     private int x1;
+
+    /**
+     * Extra vertical space taken by the 4x9 full-inventory preview compared to a
+     * single hotbar row. The preview stacks 4 rows of {@code HOTBAR_SLOT_GUI_SIZE}
+     * (20px) where vanilla only uses one, so survival HUD anchored just above the
+     * hotbar must be raised by the 3 extra rows to keep vanilla spacing.
+     */
+    @Unique
+    private static final int creative_mode_tweaks$PREVIEW_HUD_LIFT = 3 * HOTBAR_SLOT_GUI_SIZE;
+
+    @Unique
+    private int creative_mode_tweaks$getPreviewHudLift() {
+        return ClientModEvents.isInventoryPreviewHeld() ? creative_mode_tweaks$PREVIEW_HUD_LIFT : 0;
+    }
+
+    /**
+     * Raises the vanilla survival-HUD anchors while the 4x9 preview is visible.
+     * {@code leftHeight}/{@code rightHeight} drive hearts, armor, hunger, air,
+     * vehicle hearts, the selected-item name and the action-bar overlay, so bumping
+     * the freshly reset (39) values here preserves their vanilla gaps above the
+     * now taller preview. The XP/jump bars use fixed Y positions and are shifted
+     * separately via pose translation below.
+     */
+    @Inject(
+            method = "render(Lnet/minecraft/client/gui/GuiGraphics;Lnet/minecraft/client/DeltaTracker;)V",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/neoforged/neoforge/client/gui/GuiLayerManager;render(Lnet/minecraft/client/gui/GuiGraphics;Lnet/minecraft/client/DeltaTracker;)V"
+            )
+    )
+    private void creative_mode_tweaks$liftSurvivalHudAnchors(GuiGraphics graphics, DeltaTracker deltaTracker, CallbackInfo ci) {
+        int lift = creative_mode_tweaks$getPreviewHudLift();
+        if (lift != 0) {
+            this.leftHeight += lift;
+            this.rightHeight += lift;
+        }
+    }
+
+    /**
+     * The XP bar, XP level number and jump meter use hardcoded Y offsets from the
+     * screen bottom, so the anchor bump above does not move them. Translate the
+     * pose for just these layers while the preview is open to keep the same
+     * vanilla gap above the taller grid. Always push/pop to stay balanced.
+     */
+    @Inject(
+            method = "renderExperienceBar(Lnet/minecraft/client/gui/GuiGraphics;I)V",
+            at = @At("HEAD")
+    )
+    private void creative_mode_tweaks$shiftExperienceBarHead(GuiGraphics graphics, int x, CallbackInfo ci) {
+        graphics.pose().pushPose();
+        graphics.pose().translate(0.0F, (float) -creative_mode_tweaks$getPreviewHudLift(), 0.0F);
+    }
+
+    @Inject(
+            method = "renderExperienceBar(Lnet/minecraft/client/gui/GuiGraphics;I)V",
+            at = @At("RETURN")
+    )
+    private void creative_mode_tweaks$shiftExperienceBarReturn(GuiGraphics graphics, int x, CallbackInfo ci) {
+        graphics.pose().popPose();
+    }
+
+    @Inject(
+            method = "renderExperienceLevel(Lnet/minecraft/client/gui/GuiGraphics;Lnet/minecraft/client/DeltaTracker;)V",
+            at = @At("HEAD")
+    )
+    private void creative_mode_tweaks$shiftExperienceLevelHead(GuiGraphics graphics, DeltaTracker deltaTracker, CallbackInfo ci) {
+        graphics.pose().pushPose();
+        graphics.pose().translate(0.0F, (float) -creative_mode_tweaks$getPreviewHudLift(), 0.0F);
+    }
+
+    @Inject(
+            method = "renderExperienceLevel(Lnet/minecraft/client/gui/GuiGraphics;Lnet/minecraft/client/DeltaTracker;)V",
+            at = @At("RETURN")
+    )
+    private void creative_mode_tweaks$shiftExperienceLevelReturn(GuiGraphics graphics, DeltaTracker deltaTracker, CallbackInfo ci) {
+        graphics.pose().popPose();
+    }
+
+    @Inject(
+            method = "renderJumpMeter(Lnet/minecraft/world/entity/PlayerRideableJumping;Lnet/minecraft/client/gui/GuiGraphics;I)V",
+            at = @At("HEAD")
+    )
+    private void creative_mode_tweaks$shiftJumpMeterHead(PlayerRideableJumping rideable, GuiGraphics graphics, int x, CallbackInfo ci) {
+        graphics.pose().pushPose();
+        graphics.pose().translate(0.0F, (float) -creative_mode_tweaks$getPreviewHudLift(), 0.0F);
+    }
+
+    @Inject(
+            method = "renderJumpMeter(Lnet/minecraft/world/entity/PlayerRideableJumping;Lnet/minecraft/client/gui/GuiGraphics;I)V",
+            at = @At("RETURN")
+    )
+    private void creative_mode_tweaks$shiftJumpMeterReturn(PlayerRideableJumping rideable, GuiGraphics graphics, int x, CallbackInfo ci) {
+        graphics.pose().popPose();
+    }
 
 
     @Inject(
