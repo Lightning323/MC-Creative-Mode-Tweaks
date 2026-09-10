@@ -461,7 +461,15 @@ public final class PreviewRenderCache {
         // Boundary first: pure coordinate math (first/second/third points +
         // clamps + mode-specific expansion), no block enumeration. Huge shapes
         // render from this alone and never pay for block enumeration.
-        AABB previewBoundary = mode.instance.getClientBoundary(player);
+        // Must run inside the selection scope: findSecondPos/findThirdPos read
+        // the eye/look through SableCompat, which transforms them into the
+        // anchor's selection space. Outside the scope the eye stays global
+        // while the first point is plot-local on contraptions, so the reach
+        // check always fails, the boundary is null and the preview vanishes.
+        AABB previewBoundary;
+        try (SableCompat.SelectionScope ignored = SableCompat.pushSelection(level, anchor)) {
+            previewBoundary = mode.instance.getClientBoundary(player);
+        }
         if (previewBoundary == null) {
             clear();
             RenderHandler.resetPreviewSize();

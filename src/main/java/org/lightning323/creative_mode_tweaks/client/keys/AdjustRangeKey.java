@@ -11,7 +11,6 @@
 //import net.neoforged.neoforge.network.PacketDistributor;
 //import org.lightning323.creative_mode_tweaks.Config;
 //import org.lightning323.creative_mode_tweaks.client.rendering.TextRenderer;
-//import org.lightning323.creative_mode_tweaks.network.packets.PacketAdjustRange;
 //
 //@OnlyIn(Dist.CLIENT)
 //public class AdjustRangeKey extends KeyBase implements LayeredDraw.Layer {

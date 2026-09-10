@@ -222,13 +222,14 @@ public class Config {
     public static double fullInventoryPreviewHoldSeconds = 1.0;
     private static boolean clientAngelPlacementAllowed;
     private static int clientAngelPlacementDistance = 8;
+    private static int singleCreativeReach = 256;
 
     public static int getBuildingReach(Player player) {
         return player.isCreative() ? CREATIVE_BUILDING_REACH.get() : SURVIVAL_BUILDING_REACH.get();
     }
 
-    public static int getSingleReach(Player player) {
-        return CREATIVE_SINGLE_REACH.get();
+    public static int getSingleCreativeReach(Player player) {
+        return singleCreativeReach;
     }
 
     public static int getAngelPlacementDistance(Player player) {
@@ -278,6 +279,7 @@ public class Config {
             enhanceCreativeHotbar = ENHANCE_CREATIVE_HOTBAR.get();
             enhanceSurvivalHotbar = ENHANCE_SURVIVAL_HOTBAR.get();
             allowInventoryRotationInSurvival = ALLOW_INVENTORY_ROTATION_IN_SURVIVAL.get();
+            singleCreativeReach = CREATIVE_SINGLE_REACH.get();
         } else if (event.getConfig().getSpec() == CLIENT_SPEC) {
             creativeHotbarMaxSize = CREATIVE_HOTBAR_MAX_SIZE.get();
             survivalHotbarMaxSize = SURVIVAL_HOTBAR_MAX_SIZE.get();

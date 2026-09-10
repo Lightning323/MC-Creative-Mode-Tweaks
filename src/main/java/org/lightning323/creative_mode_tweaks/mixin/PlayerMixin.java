@@ -62,14 +62,14 @@ public abstract class PlayerMixin extends LivingEntity implements Player_I {
     @Inject(method = "blockInteractionRange", at = @At("HEAD"), cancellable = true)
     private void creativeModeTweaks$overrideBlockReach(CallbackInfoReturnable<Double> cir) {
         if (this.isCreative()) {
-            cir.setReturnValue((double) Config.getSingleReach((Player) (Object) this));
+            cir.setReturnValue((double) Config.getSingleCreativeReach((Player) (Object) this));
         }
     }
 
     @Inject(method = "entityInteractionRange", at = @At("HEAD"), cancellable = true)
     private void creativeModeTweaks$overrideEntityReach(CallbackInfoReturnable<Double> cir) {
         if (this.isCreative()) {
-            cir.setReturnValue((double) Config.getSingleReach((Player) (Object) this));
+            cir.setReturnValue((double) Config.getSingleCreativeReach((Player) (Object) this));
         }
     }
 
