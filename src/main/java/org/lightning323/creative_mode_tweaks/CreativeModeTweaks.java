@@ -9,6 +9,7 @@ import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.PlayLevelSoundEvent;
 import net.neoforged.neoforge.event.RegisterGameTestsEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
@@ -31,6 +32,9 @@ public class CreativeModeTweaks {
         EffortlessBuilding.initialize(modEventBus);
         NeoForge.EVENT_BUS.addListener(PlayerEvent.PlayerLoggedInEvent.class, CreativeModeTweaks::onPlayerLogin);
         NeoForge.EVENT_BUS.addListener(PlayerEvent.PlayerChangeGameModeEvent.class, CreativeModeTweaks::onGameModeChange);
+        // Silences per-block batch sounds from build-mode placement (the
+        // action's single sound still plays client-side on click).
+        NeoForge.EVENT_BUS.addListener(PlayLevelSoundEvent.AtPosition.class, nl.requios.effortlessbuilding.network.PacketHandler::onBatchSound);
         modEventBus.addListener(CreativeModeTweaks::onRegisterTests);
     }
 

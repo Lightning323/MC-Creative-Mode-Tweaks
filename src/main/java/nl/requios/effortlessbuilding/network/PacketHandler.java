@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import net.minecraft.ChatFormatting;
 import nl.requios.effortlessbuilding.Constants;
@@ -48,6 +49,7 @@ import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
+import net.neoforged.neoforge.event.PlayLevelSoundEvent;
 import org.lightning323.creative_mode_tweaks.Config;
 import org.jetbrains.annotations.Nullable;
 
@@ -74,6 +76,32 @@ public class PacketHandler {
 
    public static void sendToClient(ServerPlayer player, SyncModifiersS2CPacket packet) {
       EffortlessBuilding.sendToClient(player, packet);
+   }
+
+   /**
+    * Mutes per-block placement sounds while a build-mode batch runs. Batch
+    * loops call vanilla {@code useOn} per block, which plays a place sound
+    * per block — thousands of blocks in one tick exhausts every nearby
+    * client's 247-channel sound pool and kills all game audio. The click
+    * already played the action's single sound client-side, so these are pure
+    * spam. Always paired with try/finally: a leaked flag would silence the
+    * handling thread indefinitely.
+    */
+   private static final ThreadLocal<Boolean> SUPPRESS_BATCH_SOUNDS = ThreadLocal.withInitial(() -> false);
+
+   public static void onBatchSound(PlayLevelSoundEvent.AtPosition event) {
+      if (SUPPRESS_BATCH_SOUNDS.get()) {
+         event.setCanceled(true);
+      }
+   }
+
+   private static InteractionResult mutedUseOn(Supplier<InteractionResult> useOn) {
+      SUPPRESS_BATCH_SOUNDS.set(true);
+      try {
+         return useOn.get();
+      } finally {
+         SUPPRESS_BATCH_SOUNDS.remove();
+      }
    }
 
    private static boolean validateAngelPlacement(boolean angelPlacement, BlockPos firstPos, ServerPlayer player) {
@@ -147,16 +175,19 @@ public class PacketHandler {
                         }
                      }
 
-                     // Random-block placement runs through the vanilla use
-                     // channel per block (placement rules, block-entity data,
-                     // setPlacedBy, stats, criteria) instead of a bare
-                     // setBlock. The stack is detached: survival consumption
-                     // stays on the manual hotbar accounting below.
-                     ItemStack placementStack = new ItemStack(entry.item);
-                     Vec3 localHit = new Vec3(packet.hitLocation().x, (double)pos.getY() + yFrac, packet.hitLocation().z);
-                     BlockHitResult serverHit = new BlockHitResult(localHit, packet.hitFace(), pos, false);
-                     UseOnContext useCtx = new OpenUseOnContext(level, player, InteractionHand.MAIN_HAND, placementStack, serverHit);
-                     InteractionResult result = blockItem.useOn(useCtx);
+            // Random-block placement runs through the vanilla use
+                      // channel per block (placement rules, block-entity data,
+                      // setPlacedBy, stats, criteria) instead of a bare
+                      // setBlock. The stack is detached: survival consumption
+                      // stays on the manual hotbar accounting below.
+                      // useOn plays a place sound per block — muted for the
+                      // batch (see SUPPRESS_BATCH_SOUNDS): the click already
+                      // played the action's single sound client-side.
+                      ItemStack placementStack = new ItemStack(entry.item);
+                      Vec3 localHit = new Vec3(packet.hitLocation().x, (double)pos.getY() + yFrac, packet.hitLocation().z);
+                      BlockHitResult serverHit = new BlockHitResult(localHit, packet.hitFace(), pos, false);
+                      UseOnContext useCtx = new OpenUseOnContext(level, player, InteractionHand.MAIN_HAND, placementStack, serverHit);
+                      InteractionResult result = mutedUseOn(() -> blockItem.useOn(useCtx));
                      if (!result.consumesAction()) {
                         continue;
                      }
@@ -297,7 +328,7 @@ public class PacketHandler {
                      Vec3 localHit = new Vec3((double)pos.getX() + (double)0.5F, (double)pos.getY() + (double)1.0F, (double)pos.getZ() + (double)0.5F);
                      BlockHitResult serverHit = new BlockHitResult(localHit, packet.hitFace(), pos, false);
                      UseOnContext useCtx = new OpenUseOnContext(worldLevel, player, InteractionHand.MAIN_HAND, held, serverHit);
-                     InteractionResult result = held.getItem().useOn(useCtx);
+                     InteractionResult result = mutedUseOn(() -> held.getItem().useOn(useCtx));
                      if (result.consumesAction()) {
                         BlockState newState = level.getBlockState(pos);
                         if (!oldState.equals(newState)) {
@@ -371,7 +402,13 @@ public class PacketHandler {
                BlockState oldState = level.getBlockState(pos);
                if (!oldState.isAir()) {
                   if (creative) {
-                     level.destroyBlock(pos, false, player);
+                     // Silent removal: destroyBlock fires a 2001 level event
+                     // (break sound + particles) per block with no audience
+                     // exclusion — thousands of blocks in one tick exhausts
+                     // the client's 247-channel sound pool and kills all game
+                     // audio. drop=false, so this is identical minus the
+                     // event; fluids flow back exactly as destroyBlock does.
+                     level.setBlock(pos, level.getFluidState(pos).createLegacyBlock(), 3);
                   } else {
                      ItemStack toolForDrops = Config.BUILDING_SURVIVAL_REQUIRE_TOOLS.get() ? InventoryHelper.findCorrectTool(player, oldState) : player.getMainHandItem();
 
