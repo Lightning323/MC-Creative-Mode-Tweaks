@@ -152,6 +152,20 @@ public class Config {
                     .translation("creative_mode_tweaks.config.use_durability")
                     .define("building.survival.use_durability", false);
 
+    public static final ModConfigSpec.DoubleValue BUILDING_SURVIVAL_BREAK_HUNGER_HARDNESS_MULT =
+            COMMON_BUILDER.comment("Hunger-exhaustion multiplier for survival build-mode breaking.",
+                            "Each broken block costs exhaustion = hardness x simulated vanilla mine ticks with the held item, scaled by this.",
+                            "Faster tools take fewer ticks, so they deplete less hunger. 0 disables hunger from breaking.",
+                            "4 exhaustion = 1 hunger point.")
+                    .translation("creative_mode_tweaks.config.break_hunger_hardness_mult")
+                    .defineInRange("building.survival.break_hunger_hardness_mult", 1.0D, 0.0D, 1000.0D);
+
+    public static final ModConfigSpec.DoubleValue BUILDING_SURVIVAL_BREAK_HUNGER_TOOL_MULT =
+            COMMON_BUILDER.comment("Extra exhaustion multiplier applied per broken block when the held item is the correct tool for that block.",
+                            "Lower it to reduce (0 to eliminate) hunger depletion while using proper tools.")
+                    .translation("creative_mode_tweaks.config.break_hunger_tool_mult")
+                    .defineInRange("building.survival.break_hunger_tool_mult", 1.0D, 0.0D, 1000.0D);
+
     public static final ModConfigSpec.IntValue BUILDING_CREATIVE_MAX_BLOCKS_PLACED =
             COMMON_BUILDER.comment("Maximum number of blocks creative players can place or break in a single action.")
                     .translation("creative_mode_tweaks.config.max_blocks_placed")

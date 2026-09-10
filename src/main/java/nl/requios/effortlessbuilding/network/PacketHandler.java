@@ -11,6 +11,7 @@ import nl.requios.effortlessbuilding.Constants;
 import nl.requios.effortlessbuilding.EffortlessBuilding;
 import nl.requios.effortlessbuilding.buildmode.BuildSettings;
 import nl.requios.effortlessbuilding.buildpipeline.AngelPlacement;
+import nl.requios.effortlessbuilding.buildpipeline.BreakHunger;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipeline;
 import nl.requios.effortlessbuilding.buildpipeline.SableCompat;
 import nl.requios.effortlessbuilding.buildpipeline.TrowelSystem;
@@ -397,6 +398,14 @@ public class PacketHandler {
             BlockState airState = Blocks.AIR.defaultBlockState();
             int broken = 0;
 
+            // Hunger cost for survival batch breaking (creative is exempt).
+            // Batch breaking bypasses vanilla per-block mining (no time passes,
+            // no exhaustion), so simulate what the held item would have spent.
+            double hungerMult = creative ? 0.0D : Config.BUILDING_SURVIVAL_BREAK_HUNGER_HARDNESS_MULT.get();
+            BreakHunger.Batch hunger = hungerMult > 0.0D
+                    ? new BreakHunger.Batch(player, hungerMult, Config.BUILDING_SURVIVAL_BREAK_HUNGER_TOOL_MULT.get())
+                    : null;
+
             for (BlockEntry entry : blockSet.validEntries()) {
                BlockPos pos = entry.blockPos;
                BlockState oldState = level.getBlockState(pos);
@@ -420,6 +429,9 @@ public class PacketHandler {
                         InventoryHelper.damageCorrectTool(player, oldState);
                      }
 
+                     if (hunger != null) {
+                        hunger.add(level, pos, oldState);
+                     }
                      level.setBlock(pos, airState, 3);
                   }
 
@@ -430,6 +442,10 @@ public class PacketHandler {
 
             if (!undoChanges.isEmpty()) {
                UndoManager.recordOperation(player, level.dimension(), undoChanges);
+            }
+
+            if (hunger != null && hunger.total() > 0.0F) {
+               player.causeFoodExhaustion(hunger.total());
             }
 
          }
