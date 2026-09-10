@@ -30,6 +30,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.phys.BlockHitResult;
@@ -93,7 +94,56 @@ public class BuildPipelineClient {
 
    public static boolean shouldInterceptPlacing() {
       Minecraft mc = Minecraft.getInstance();
-      return BuildModes.CLIENT.getBuildMode() != BuildModeEnum.DISABLED || mc.player != null && (mc.player.getMainHandItem().getItem() instanceof TrowelItem || isAngelPlacementActive(mc.player));
+      return BuildModes.CLIENT.getBuildMode() != BuildModeEnum.DISABLED && isBuildModesAllowed(mc.player)
+              || mc.player != null && (mc.player.getMainHandItem().getItem() instanceof TrowelItem || isAngelPlacementActive(mc.player));
+   }
+
+   /** Build modes need the config in survival; adventure and spectator never get them. */
+   public static boolean isBuildModesAllowed(@Nullable Player player) {
+      if (player == null) {
+         return true;
+      }
+      if (isAdventureOrSpectator(player)) {
+         return false;
+      }
+      return Config.isSurvivalBuildModesAllowed(player);
+   }
+
+   /** Same gate for undo/redo. */
+   public static boolean isUndoRedoAllowed(@Nullable Player player) {
+      if (player == null) {
+         return true;
+      }
+      if (isAdventureOrSpectator(player)) {
+         return false;
+      }
+      return Config.isSurvivalUndoRedoAllowed(player);
+   }
+
+   /** Adventure and spectator players get no build tools at all. */
+   public static boolean isAdventureOrSpectator(@Nullable Player player) {
+      if (player == null) {
+         return false;
+      }
+      if (player.isSpectator()) {
+         return true;
+      }
+      Minecraft mc = Minecraft.getInstance();
+      return mc.gameMode != null && mc.gameMode.getPlayerMode() == GameType.ADVENTURE;
+   }
+
+   /** Deny-message key for blocked build-menu access (radial, mode keys). */
+   public static String buildModesDenyMessageKey(@Nullable Player player) {
+      return isAdventureOrSpectator(player)
+              ? "creative_mode_tweaks.message.build_menu_unavailable"
+              : "creative_mode_tweaks.message.build_modes_disabled";
+   }
+
+   /** Deny-message key for blocked undo/redo access. */
+   public static String undoRedoDenyMessageKey(@Nullable Player player) {
+      return isAdventureOrSpectator(player)
+              ? "creative_mode_tweaks.message.build_menu_unavailable"
+              : "creative_mode_tweaks.message.undo_redo_disabled";
    }
 
    public static boolean shouldInterceptBreaking() {
@@ -104,9 +154,11 @@ public class BuildPipelineClient {
          Player player = mc.player;
          if (player == null) {
             return false;
-         } else if (!player.getAbilities().instabuild && !Config.BUILDING_SURVIVAL_ALLOW_BREAKING.get()) {
+         } else if (!isBuildModesAllowed(player)) {
             return false;
-         } else if (buildState == null && !player.getAbilities().instabuild) {
+         } else if (!player.getAbilities().instabuild && !Config.BUILDING_SURVIVAL_ALLOW_BREAKING.get()) {
+             return false;
+          } else if (buildState == null && !player.getAbilities().instabuild) {
             if (mc.level != null) {
                HitResult var3 = mc.hitResult;
                if (var3 instanceof BlockHitResult) {

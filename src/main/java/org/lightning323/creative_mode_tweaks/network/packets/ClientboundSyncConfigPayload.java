@@ -1,7 +1,6 @@
 package org.lightning323.creative_mode_tweaks.network.packets;
 
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
@@ -14,7 +13,9 @@ public record ClientboundSyncConfigPayload(
         boolean enhanceSurvivalHotbar,
         boolean angelPlacementAllowed,
         int angelPlacementDistance,
-        int creativeSingleReach
+        int creativeSingleReach,
+        boolean survivalBuildModesAllowed,
+        boolean survivalUndoRedoAllowed
 ) implements CustomPacketPayload {
 
     /** Sentinel meaning "no per-player override, use the config value". */
@@ -26,7 +27,9 @@ public record ClientboundSyncConfigPayload(
                 Config.enhanceSurvivalHotbar,
                 Config.BUILDING_SURVIVAL_ALLOW_ANGEL_PLACEMENT.get(),
                 Config.BUILDING_ANGEL_PLACEMENT_DISTANCE.get(),
-                resolveSingleReach(player));
+                resolveSingleReach(player),
+                Config.BUILDING_SURVIVAL_ALLOW_BUILD_MODES.get(),
+                Config.BUILDING_SURVIVAL_ALLOW_UNDO_REDO.get());
     }
 
     private static int resolveSingleReach(ServerPlayer player) {
@@ -37,14 +40,26 @@ public record ClientboundSyncConfigPayload(
     public static final Type<ClientboundSyncConfigPayload> TYPE =
             new Type<>(ResourceLocation.fromNamespaceAndPath("creative_mode_tweaks", "sync_config"));
 
-    // Codec to automatically serialize/deserialize packet data
-    public static final StreamCodec<FriendlyByteBuf, ClientboundSyncConfigPayload> STREAM_CODEC = StreamCodec.composite(
-            ByteBufCodecs.BOOL, ClientboundSyncConfigPayload::enhanceCreativeHotbar,
-            ByteBufCodecs.BOOL, ClientboundSyncConfigPayload::enhanceSurvivalHotbar,
-            ByteBufCodecs.BOOL, ClientboundSyncConfigPayload::angelPlacementAllowed,
-            ByteBufCodecs.INT, ClientboundSyncConfigPayload::angelPlacementDistance,
-            ByteBufCodecs.INT, ClientboundSyncConfigPayload::creativeSingleReach,
-            ClientboundSyncConfigPayload::new
+    // composite() caps at 6 components, so this 7-field payload uses a
+    // manual codec instead.
+    public static final StreamCodec<FriendlyByteBuf, ClientboundSyncConfigPayload> STREAM_CODEC = StreamCodec.of(
+            (buf, payload) -> {
+                buf.writeBoolean(payload.enhanceCreativeHotbar());
+                buf.writeBoolean(payload.enhanceSurvivalHotbar());
+                buf.writeBoolean(payload.angelPlacementAllowed());
+                buf.writeInt(payload.angelPlacementDistance());
+                buf.writeInt(payload.creativeSingleReach());
+                buf.writeBoolean(payload.survivalBuildModesAllowed());
+                buf.writeBoolean(payload.survivalUndoRedoAllowed());
+            },
+            buf -> new ClientboundSyncConfigPayload(
+                    buf.readBoolean(),
+                    buf.readBoolean(),
+                    buf.readBoolean(),
+                    buf.readInt(),
+                    buf.readInt(),
+                    buf.readBoolean(),
+                    buf.readBoolean())
     );
 
     @Override
@@ -61,6 +76,8 @@ public record ClientboundSyncConfigPayload(
             Config.updateClientAngelPlacementSettings(payload.angelPlacementAllowed(), payload.angelPlacementDistance());
             Config.updateClientSingleReach(
                     payload.creativeSingleReach() == NO_REACH_OVERRIDE ? null : payload.creativeSingleReach());
+            Config.updateClientSurvivalPermissions(
+                    payload.survivalBuildModesAllowed(), payload.survivalUndoRedoAllowed());
         });
     }
 }

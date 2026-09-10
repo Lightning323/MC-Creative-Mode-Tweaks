@@ -16,6 +16,7 @@ import nl.requios.effortlessbuilding.buildmode.BuildModeEnum;
 import nl.requios.effortlessbuilding.buildmode.BuildModes;
 import nl.requios.effortlessbuilding.buildmode.BuildSettings;
 import nl.requios.effortlessbuilding.buildmode.ModeOptions;
+import nl.requios.effortlessbuilding.buildpipeline.BuildPipelineClient;
 import nl.requios.effortlessbuilding.network.PacketHandler;
 import org.lightning323.creative_mode_tweaks.client.ClientModEvents;
 import net.minecraft.ChatFormatting;
@@ -108,11 +109,20 @@ public class RadialMenu extends Screen {
             modes.add(new MenuRegion(mode));
         }
 
-        buttons.add(new MenuButton(ModeOptions.ActionEnum.OPEN_MODIFIER_SETTINGS, (double) -157.0F, (double) OPTION_BUTTONS_Y_START, Direction.UP));
-        buttons.add(new MenuButton(ModeOptions.ActionEnum.UNDO, (double) -131.0F, (double) OPTION_BUTTONS_Y_START, Direction.UP));
-        buttons.add(new MenuButton(ModeOptions.ActionEnum.REDO, (double) -105.0F, (double) OPTION_BUTTONS_Y_START, Direction.UP));
+        // Side buttons live in three columns; hidden buttons are skipped and
+        // the ones below slide up to fill the void (e.g. hiding undo/redo
+        // pulls the angel/noclip buttons up a row).
+        int rowsLeft = 0;
+        int rowsMiddle = 0;
+        int rowsRight = 0;
+        buttons.add(makeSideButton(0, rowsLeft++, ModeOptions.ActionEnum.OPEN_MODIFIER_SETTINGS));
+        // Undo/redo only when allowed (always in creative): hidden in survival otherwise.
+        if (BuildPipelineClient.isUndoRedoAllowed(this.minecraft.player)) {
+            buttons.add(makeSideButton(1, rowsMiddle++, ModeOptions.ActionEnum.UNDO));
+            buttons.add(makeSideButton(2, rowsRight++, ModeOptions.ActionEnum.REDO));
+        }
 
-        MenuButton replaceBtn = new MenuButton(ModeOptions.ActionEnum.CYCLE_REPLACE_MODE, (double) -157.0F, (double) (OPTION_BUTTONS_Y_START + 26.0F), Direction.DOWN);
+        MenuButton replaceBtn = makeSideButton(0, rowsLeft++, ModeOptions.ActionEnum.CYCLE_REPLACE_MODE);
         ModeOptions.ActionEnum currentReplaceAction = BuildSettings.CLIENT.getReplaceModeActionEnum();
         replaceBtn.iconOverride = currentReplaceAction.icon;
         replaceBtn.name = I18n.get("creative_mode_tweaks.action.replace_mode", new Object[0]);
@@ -120,7 +130,7 @@ public class RadialMenu extends Screen {
         replaceBtn.description = I18n.exists(currentReplaceAction.getDescriptionKey()) ? I18n.get(currentReplaceAction.getDescriptionKey(), new Object[0]) : "";
         buttons.add(replaceBtn);
 
-        MenuButton angelPlacementBtn = new MenuButton(ModeOptions.ActionEnum.TOGGLE_ANGEL_PLACEMENT, (double) -131.0F, (double) (OPTION_BUTTONS_Y_START + 26.0F), Direction.DOWN);
+        MenuButton angelPlacementBtn = makeSideButton(1, rowsMiddle, ModeOptions.ActionEnum.TOGGLE_ANGEL_PLACEMENT);
         boolean angelPlacementEnabled = BuildSettings.CLIENT.isAngelPlacementEnabled();
         angelPlacementBtn.iconOverride = angelPlacementEnabled ? AllIcons.ANGEL_PLACEMENT_ON : AllIcons.ANGEL_PLACEMENT_OFF;
         angelPlacementBtn.subtitle = I18n.get(angelPlacementEnabled ? "options.on" : "options.off", new Object[0]);
@@ -129,9 +139,10 @@ public class RadialMenu extends Screen {
         // showing a dead button.
         if (angelPlacementBtn.enabled) {
             buttons.add(angelPlacementBtn);
+            rowsMiddle++;
         }
 
-        MenuButton nightVisionBtn = new MenuButton(ModeOptions.ActionEnum.TOGGLE_NIGHT_VISION, (double) -157.0F, (double) (OPTION_BUTTONS_Y_START + 52.0F), Direction.DOWN);
+        MenuButton nightVisionBtn = makeSideButton(0, rowsLeft, ModeOptions.ActionEnum.TOGGLE_NIGHT_VISION);
         boolean nightVisionEnabled = this.minecraft.player != null && ClientSettings.isNightVision();
         nightVisionBtn.iconOverride = nightVisionEnabled ? AllIcons.I_EYE_ON : AllIcons.I_EYE_OFF;
         nightVisionBtn.subtitle = I18n.get(nightVisionEnabled ? "options.on" : "options.off", new Object[0]);
@@ -139,9 +150,10 @@ public class RadialMenu extends Screen {
         // Creative/spectator only: hidden in survival.
         if (nightVisionBtn.enabled) {
             buttons.add(nightVisionBtn);
+            rowsLeft++;
         }
 
-        MenuButton noclipBtn = new MenuButton(ModeOptions.ActionEnum.TOGGLE_NOCLIP, (double) -131.0F, (double) (OPTION_BUTTONS_Y_START + 52.0F), Direction.DOWN);
+        MenuButton noclipBtn = makeSideButton(1, rowsMiddle, ModeOptions.ActionEnum.TOGGLE_NOCLIP);
         boolean noclipEnabled = this.minecraft.player != null && ClientSettings.isNoClip();
         noclipBtn.iconOverride = noclipEnabled ? AllIcons.I_NOCLIP_ON : AllIcons.I_NOCLIP_OFF;
         noclipBtn.subtitle = I18n.get(noclipEnabled ? "options.on" : "options.off", new Object[0]);
@@ -149,6 +161,7 @@ public class RadialMenu extends Screen {
         // Creative only: hidden in survival.
         if (noclipBtn.enabled) {
             buttons.add(noclipBtn);
+            rowsMiddle++;
         }
         ModeOptions.OptionEnum[] options = currentBuildMode.options;
 
@@ -394,39 +407,50 @@ public class RadialMenu extends Screen {
 
     private void performAction(boolean fromMouseClick) {
         if (this.switchTo != null) {
-            playRadialMenuSound();
-            BuildModes.CLIENT.setBuildMode(this.switchTo);
+            // DISABLED is always allowed through: it's the off switch.
+            if (this.switchTo != BuildModeEnum.DISABLED && !BuildPipelineClient.isBuildModesAllowed(this.minecraft.player)) {
+                this.minecraft.player.displayClientMessage(Component.translatable(BuildPipelineClient.buildModesDenyMessageKey(this.minecraft.player)), true);
+                this.switchTo = null;
+            } else {
+                playRadialMenuSound();
+                BuildModes.CLIENT.setBuildMode(this.switchTo);
 
-            if (this.minecraft.player != null) {
-                this.minecraft.player.displayClientMessage(Component.translatable(this.switchTo.getNameKey()), true);
-            }
+                if (this.minecraft.player != null) {
+                    this.minecraft.player.displayClientMessage(Component.translatable(this.switchTo.getNameKey()), true);
+                }
 
-            if (fromMouseClick) {
-                this.performedActionUsingMouse = true;
+                if (fromMouseClick) {
+                    this.performedActionUsingMouse = true;
+                }
             }
         }
 
         ModeOptions.ActionEnum action = this.doAction;
         if (action != null) {
-            playRadialMenuSound();
-            if (action == ModeOptions.ActionEnum.OPEN_MODIFIER_SETTINGS) {
-                this.performedActionUsingMouse = true;
-                this.minecraft.setScreen(new ModifiersScreen());
-                return;
-            }
-
-            if (action == ModeOptions.ActionEnum.TOGGLE_NIGHT_VISION) {
-                if (this.minecraft.player != null && (this.minecraft.player.isCreative() || this.minecraft.player.isSpectator())) {
-                    ClientSettings.setNightVision(!ClientSettings.isNightVision());
-                    this.minecraft.player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.night_vision", Component.translatable(ClientSettings.isNightVision() ? "options.on" : "options.off")), true);
-                }
-            } else if (action == ModeOptions.ActionEnum.TOGGLE_NOCLIP) {
-                if (this.minecraft.player != null && this.minecraft.player.isCreative()) {
-                    ClientSettings.setNoClip(!ClientSettings.isNoClip());
-                    this.minecraft.player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.noclip", Component.translatable(ClientSettings.isNoClip() ? "options.on" : "options.off")), true);
-                }
+            if ((action == ModeOptions.ActionEnum.UNDO || action == ModeOptions.ActionEnum.REDO)
+                    && !BuildPipelineClient.isUndoRedoAllowed(this.minecraft.player)) {
+                this.minecraft.player.displayClientMessage(Component.translatable(BuildPipelineClient.undoRedoDenyMessageKey(this.minecraft.player)), true);
             } else {
-                ModeOptions.performAction(this.minecraft.player, action);
+                playRadialMenuSound();
+                if (action == ModeOptions.ActionEnum.OPEN_MODIFIER_SETTINGS) {
+                    this.performedActionUsingMouse = true;
+                    this.minecraft.setScreen(new ModifiersScreen());
+                    return;
+                }
+
+                if (action == ModeOptions.ActionEnum.TOGGLE_NIGHT_VISION) {
+                    if (this.minecraft.player != null && (this.minecraft.player.isCreative() || this.minecraft.player.isSpectator())) {
+                        ClientSettings.setNightVision(!ClientSettings.isNightVision());
+                        this.minecraft.player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.night_vision", Component.translatable(ClientSettings.isNightVision() ? "options.on" : "options.off")), true);
+                    }
+                } else if (action == ModeOptions.ActionEnum.TOGGLE_NOCLIP) {
+                    if (this.minecraft.player != null && this.minecraft.player.isCreative()) {
+                        ClientSettings.setNoClip(!ClientSettings.isNoClip());
+                        this.minecraft.player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.noclip", Component.translatable(ClientSettings.isNoClip() ? "options.on" : "options.off")), true);
+                    }
+                } else {
+                    ModeOptions.performAction(this.minecraft.player, action);
+                }
             }
             if (fromMouseClick) {
                 this.performedActionUsingMouse = true;
@@ -438,6 +462,24 @@ public class RadialMenu extends Screen {
     public static void playRadialMenuSound() {
         float volume = 0.1F;
         Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 0.1F));
+    }
+
+    /**
+     * Places a side button in a column/row slot. Columns are the old fixed
+     * x offsets; rows step 26px from {@link #OPTION_BUTTONS_Y_START}, with
+     * the top row's labels above the button and the rest below.
+     */
+    private static MenuButton makeSideButton(int column, int row, ModeOptions.ActionEnum action) {
+        double x;
+        if (column == 0) {
+            x = -157.0F;
+        } else if (column == 1) {
+            x = -131.0F;
+        } else {
+            x = -105.0F;
+        }
+        return new MenuButton(action, x, (double) (OPTION_BUTTONS_Y_START + row * 26.0F),
+                row == 0 ? Direction.UP : Direction.DOWN);
     }
 
     private static class MenuButton {

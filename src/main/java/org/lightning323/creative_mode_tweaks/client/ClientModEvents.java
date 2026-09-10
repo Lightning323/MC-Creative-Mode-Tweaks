@@ -263,10 +263,19 @@ public class ClientModEvents {
     public static void clientGameModeChanged(Player player, GameType gameType) {
         if (player == null) return;
         LOG.debug("Client game mode set to {}", gameType);
-        if (gameType == GameType.CREATIVE || gameType == GameType.SPECTATOR) {
+        if (gameType == GameType.CREATIVE) {
         } else {
-            player.getInventory().selected = Mth.clamp(player.getInventory().selected, 0, 8);
-            ClientSettings.setNightVision(false);
+            if (gameType != GameType.SPECTATOR) {
+                player.getInventory().selected = Mth.clamp(player.getInventory().selected, 0, 8);
+                ClientSettings.setNightVision(false);
+            }
+            // Survival without build modes — and adventure/spectator always:
+            // drop any active build tool so preview and interception stop.
+            if (gameType == GameType.SPECTATOR || gameType == GameType.ADVENTURE
+                    || !Config.isSurvivalBuildModesAllowed(player)) {
+                BuildPipelineClient.cancelCurrentSequence();
+                BuildModes.CLIENT.setBuildMode(BuildModeEnum.DISABLED);
+            }
         }
     }
 

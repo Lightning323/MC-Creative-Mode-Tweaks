@@ -63,13 +63,19 @@ public class NeoForgeClientSetup {
 
          Minecraft mc = Minecraft.getInstance();
 
-         while(ClientModEvents.KEY_UNDO.consumeClick()) {
+          while(ClientModEvents.KEY_UNDO.consumeClick()) {
+             if (!BuildPipelineClient.isUndoRedoAllowed(mc.player)) {
+                continue;
+             }
             if (InputConstants.isKeyDown(mc.getWindow().getWindow(), 341) || InputConstants.isKeyDown(mc.getWindow().getWindow(), 345)) {
                PacketHandler.sendToServer(new UndoPacket());
             }
          }
 
-         while(ClientModEvents.KEY_REDO.consumeClick()) {
+          while(ClientModEvents.KEY_REDO.consumeClick()) {
+             if (!BuildPipelineClient.isUndoRedoAllowed(mc.player)) {
+                continue;
+             }
             if (InputConstants.isKeyDown(mc.getWindow().getWindow(), 341) || InputConstants.isKeyDown(mc.getWindow().getWindow(), 345)) {
                PacketHandler.sendToServer(new RedoPacket());
             }
@@ -83,6 +89,13 @@ public class NeoForgeClientSetup {
                }
 
                while(key.consumeClick()) {
+                  // DISABLED is always allowed through: it's the off switch.
+                  if (mode != BuildModeEnum.DISABLED && !BuildPipelineClient.isBuildModesAllowed(mc.player)) {
+                     if (mc.player != null) {
+                        mc.player.displayClientMessage(Component.translatable(BuildPipelineClient.buildModesDenyMessageKey(mc.player)), true);
+                     }
+                     continue;
+                  }
                   BuildModes.CLIENT.setBuildMode(mode);
                   if (mc.player != null) {
                      mc.player.displayClientMessage(Component.translatable(mode.getNameKey()), true);
@@ -102,7 +115,13 @@ public class NeoForgeClientSetup {
             }
 
             if (ClientModEvents.isKeyDown(ClientModEvents.KEY_OPEN_RADIAL_MENU)) {
-               mc.setScreen(RadialMenu.instance);
+               if (!BuildPipelineClient.isBuildModesAllowed(mc.player)) {
+                  if (mc.player != null) {
+                     mc.player.displayClientMessage(Component.translatable(BuildPipelineClient.buildModesDenyMessageKey(mc.player)), true);
+                  }
+               } else {
+                  mc.setScreen(RadialMenu.instance);
+               }
             }
 
             if (mc.player != null && mc.level != null && BuildPipelineClient.shouldInterceptPlacing()) {

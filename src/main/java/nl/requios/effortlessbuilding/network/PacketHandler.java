@@ -9,6 +9,7 @@ import java.util.function.Supplier;
 import net.minecraft.ChatFormatting;
 import nl.requios.effortlessbuilding.Constants;
 import nl.requios.effortlessbuilding.EffortlessBuilding;
+import nl.requios.effortlessbuilding.buildmode.BuildModeEnum;
 import nl.requios.effortlessbuilding.buildmode.BuildSettings;
 import nl.requios.effortlessbuilding.buildpipeline.AngelPlacement;
 import nl.requios.effortlessbuilding.buildpipeline.BreakHunger;
@@ -41,6 +42,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.item.context.UseOnContext;
+import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -123,11 +125,28 @@ public class PacketHandler {
       return true;
    }
 
-   public static void handlePlaceBuildMode(PlaceBuildModePacket packet, ServerPlayer player) {
-      if (!validateSelection(packet.firstPos(), packet.secondPos(), packet.thirdPos(), packet.fourthPos(), player)
-            || !validateAngelPlacement(packet.angelPlacement(), packet.firstPos(), player)) {
-         return;
-      }
+    /** Adventure and spectator players get no build tools at all. */
+    private static boolean isAdventureOrSpectator(ServerPlayer player) {
+       GameType gameType = player.gameMode.getGameModeForPlayer();
+       return gameType == GameType.ADVENTURE || gameType == GameType.SPECTATOR;
+    }
+
+    public static void handlePlaceBuildMode(PlaceBuildModePacket packet, ServerPlayer player) {
+       if (!player.isCreative() && isAdventureOrSpectator(player)) {
+          player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.build_menu_unavailable"), true);
+          return;
+       }
+       // DISABLED is plain single-block placement (trowel, Angel Placement),
+       // governed by their own rules — only real build modes are gated here.
+       if (!player.isCreative() && packet.buildMode() != BuildModeEnum.DISABLED
+               && !Config.BUILDING_SURVIVAL_ALLOW_BUILD_MODES.get()) {
+          player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.build_modes_disabled"), true);
+          return;
+       }
+       if (!validateSelection(packet.firstPos(), packet.secondPos(), packet.thirdPos(), packet.fourthPos(), player)
+             || !validateAngelPlacement(packet.angelPlacement(), packet.firstPos(), player)) {
+          return;
+       }
 
       SableCompat.withSelection(player.serverLevel(), packet.firstPos(), () -> handlePlaceBuildModeInSelection(packet, player));
    }
@@ -371,12 +390,17 @@ public class PacketHandler {
       }
    }
 
-   public static void handleBreakBuildMode(BreakBuildModePacket packet, ServerPlayer player) {
-      boolean creative = player.isCreative();
-      if (!validateSelection(packet.firstPos(), packet.secondPos(), packet.thirdPos(), packet.fourthPos(), player)
-            || !validateAngelPlacement(packet.angelPlacement(), packet.firstPos(), player)) {
-         return;
-      } else if (!creative && !Config.BUILDING_SURVIVAL_ALLOW_BREAKING.get()) {
+    public static void handleBreakBuildMode(BreakBuildModePacket packet, ServerPlayer player) {
+       boolean creative = player.isCreative();
+       if (!creative && isAdventureOrSpectator(player)) {
+          player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.build_menu_unavailable"), true);
+       } else if (!creative && packet.buildMode() != BuildModeEnum.DISABLED
+               && !Config.BUILDING_SURVIVAL_ALLOW_BUILD_MODES.get()) {
+          player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.build_modes_disabled"), true);
+       } else if (!validateSelection(packet.firstPos(), packet.secondPos(), packet.thirdPos(), packet.fourthPos(), player)
+             || !validateAngelPlacement(packet.angelPlacement(), packet.firstPos(), player)) {
+          return;
+       } else if (!creative && !Config.BUILDING_SURVIVAL_ALLOW_BREAKING.get()) {
          player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.breaking_disabled"), true);
       } else {
          SableCompat.withSelection(player.serverLevel(), packet.firstPos(), () -> handleBreakBuildModeInSelection(packet, player, creative));
@@ -460,8 +484,16 @@ public class PacketHandler {
       return false;
    }
 
-   public static void handleUndo(ServerPlayer player) {
-      int count = UndoManager.undo(player);
+    public static void handleUndo(ServerPlayer player) {
+       if (!player.isCreative() && isAdventureOrSpectator(player)) {
+          player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.build_menu_unavailable"), true);
+          return;
+       }
+       if (!player.isCreative() && !Config.BUILDING_SURVIVAL_ALLOW_UNDO_REDO.get()) {
+          player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.undo_redo_disabled"), true);
+          return;
+       }
+       int count = UndoManager.undo(player);
       if (count >= 0) {
          player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.undo", new Object[]{count}), true);
       } else {
@@ -470,8 +502,16 @@ public class PacketHandler {
 
    }
 
-   public static void handleRedo(ServerPlayer player) {
-      int count = UndoManager.redo(player);
+    public static void handleRedo(ServerPlayer player) {
+       if (!player.isCreative() && isAdventureOrSpectator(player)) {
+          player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.build_menu_unavailable"), true);
+          return;
+       }
+       if (!player.isCreative() && !Config.BUILDING_SURVIVAL_ALLOW_UNDO_REDO.get()) {
+          player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.undo_redo_disabled"), true);
+          return;
+       }
+       int count = UndoManager.redo(player);
       if (count >= 0) {
          player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.redo", new Object[]{count}), true);
       } else {

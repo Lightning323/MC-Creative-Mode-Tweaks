@@ -215,7 +215,8 @@ public final class PreviewRenderCache {
             clear();
             return;
         }
-        if (BuildModes.CLIENT.getBuildMode() == BuildModeEnum.DISABLED) {
+        if (BuildModes.CLIENT.getBuildMode() == BuildModeEnum.DISABLED
+                || !BuildPipelineClient.isBuildModesAllowed(player)) {
             if (this.shapedKey != null || this.submittedKey != null || this.submittedBoundaryKey != null
                     || this.hasPreview()) {
                 clear();

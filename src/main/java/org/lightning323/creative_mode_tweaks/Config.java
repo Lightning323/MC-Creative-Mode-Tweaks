@@ -110,6 +110,18 @@ public class Config {
                     .translation("creative_mode_tweaks.config.allow_angel_placement")
                     .define("building.survival.allow_angel_placement", false);
 
+    public static final ModConfigSpec.BooleanValue BUILDING_SURVIVAL_ALLOW_BUILD_MODES =
+            COMMON_BUILDER.comment("Allow survival players to use build modes and open the build mode radial menu at all.",
+                            "When off, build mode selection, placement and breaking are all disabled in survival.")
+                    .translation("creative_mode_tweaks.config.allow_build_modes")
+                    .define("building.survival.allow_build_modes", true);
+
+    public static final ModConfigSpec.BooleanValue BUILDING_SURVIVAL_ALLOW_UNDO_REDO =
+            COMMON_BUILDER.comment("Allow survival players to undo and redo build mode actions.",
+                            "When off, the undo/redo buttons are hidden in survival and the actions are rejected.")
+                    .translation("creative_mode_tweaks.config.allow_undo_redo")
+                    .define("building.survival.allow_undo_redo", true);
+
     public static final ModConfigSpec.IntValue BUILDING_SURVIVAL_MAX_BLOCKS_PLACED =
             COMMON_BUILDER.comment("Maximum number of blocks survival players can place or break in a single action.")
                     .translation("creative_mode_tweaks.config.max_blocks_placed")
@@ -227,9 +239,11 @@ public class Config {
     public static double fullInventoryPreviewHoldSeconds = 1.0;
     private static boolean clientAngelPlacementAllowed;
     private static int clientAngelPlacementDistance = 8;
+    private static boolean clientBuildModesAllowed = true;
+    private static boolean clientUndoRedoAllowed = true;
 
     /** Bounds for reach, matching the reach.* config ranges (1..256). */
-    public static final int REACH_MIN = 5;
+    public static final int REACH_MIN = 1;
     public static final int REACH_MAX = 256;
 
     /**
@@ -309,6 +323,21 @@ public class Config {
     public static void updateClientAngelPlacementSettings(boolean allowed, int distance) {
         clientAngelPlacementAllowed = allowed;
         clientAngelPlacementDistance = distance;
+    }
+
+    public static boolean isSurvivalBuildModesAllowed(Player player) {
+        return player.isCreative() || player.isSpectator()
+                || (player.level().isClientSide() ? clientBuildModesAllowed : BUILDING_SURVIVAL_ALLOW_BUILD_MODES.get());
+    }
+
+    public static boolean isSurvivalUndoRedoAllowed(Player player) {
+        return player.isCreative() || player.isSpectator()
+                || (player.level().isClientSide() ? clientUndoRedoAllowed : BUILDING_SURVIVAL_ALLOW_UNDO_REDO.get());
+    }
+
+    public static void updateClientSurvivalPermissions(boolean buildModesAllowed, boolean undoRedoAllowed) {
+        clientBuildModesAllowed = buildModesAllowed;
+        clientUndoRedoAllowed = undoRedoAllowed;
     }
 
     public static int getBuildingMaxBlocksPlaced(Player player) {

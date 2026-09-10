@@ -60,9 +60,22 @@ public class PlacedBlockTracker {
       }
    }
 
-   public static boolean isTrackedAnySide(Player player, Level level, BlockPos pos) {
-      return level.isClientSide() ? clientIsTracked(level.dimension(), pos) : isTracked(player.getUUID(), level.dimension(), pos);
-   }
+    public static boolean isTrackedAnySide(Player player, Level level, BlockPos pos) {
+       return level.isClientSide() ? clientIsTracked(level.dimension(), pos) : isTracked(player.getUUID(), level.dimension(), pos);
+    }
+
+    /** Removes a single position (e.g. its placement was undone). */
+    public static void untrack(UUID playerId, ResourceKey<Level> dimension, BlockPos pos) {
+       synchronized (data) {
+          Map<ResourceKey<Level>, LinkedHashSet<BlockPos>> dimMap = (Map)data.get(playerId);
+          if (dimMap != null) {
+             LinkedHashSet<BlockPos> set = (LinkedHashSet)dimMap.get(dimension);
+             if (set != null) {
+                set.remove(pos);
+             }
+          }
+       }
+    }
 
    public static void clearPlayer(UUID playerId) {
       synchronized (data) {
