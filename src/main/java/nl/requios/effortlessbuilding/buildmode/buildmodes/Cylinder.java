@@ -10,6 +10,7 @@ import nl.requios.effortlessbuilding.buildmode.RaycastToPlane;
 import nl.requios.effortlessbuilding.buildmode.ThreeClicksBuildMode;
 import nl.requios.effortlessbuilding.utilities.BlockEntry;
 import nl.requios.effortlessbuilding.utilities.BlockSet;
+import nl.requios.effortlessbuilding.utilities.FloodFill;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.player.Player;
@@ -288,6 +289,21 @@ public class Cylinder extends ThreeClicksBuildMode {
    @Override
    public @Nullable BlockPos getFourthSelectionPos() {
       return this.ellipseThreePoint ? this.storedExtrusion : null;
+   }
+
+   /**
+    * Flood seed at the center of the base circle, on the base plane — not the
+    * middle of the extrusion, which would usually be mid-air inside the tube.
+    * The base ellipse (3-point) shares the circle's center, so the third
+    * point is irrelevant here.
+    */
+   @Override
+   public BlockPos getFloodFillOrigin(BlockSet shapeBlocks, @Nullable BlockPos firstPos, @Nullable BlockPos secondPos,
+                                      @Nullable BlockPos thirdPos, @Nullable BlockPos fourthPos) {
+      if (firstPos != null && secondPos != null) {
+         return Circle.Disc.circle(firstPos, secondPos, this.direction).centerBlock();
+      }
+      return FloodFill.centerOf(shapeBlocks);
    }
 
    @Override

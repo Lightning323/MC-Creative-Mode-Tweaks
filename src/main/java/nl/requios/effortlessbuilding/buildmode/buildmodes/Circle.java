@@ -479,6 +479,26 @@ public class Circle extends ThreeClicksBuildMode {
          };
       }
 
+      /**
+       * Block containing the disc center: the flood-fill seed hint for
+       * disc-based shapes (same center the 2-point circle is drawn around).
+       */
+      BlockPos centerBlock() {
+         double x = switch (this.normal.getAxis()) {
+            case X -> this.base;
+            case Y, Z -> this.uAxis == Direction.Axis.X ? this.cu : this.cv;
+         };
+         double y = switch (this.normal.getAxis()) {
+            case Y -> this.base;
+            case X, Z -> this.uAxis == Direction.Axis.Y ? this.cu : this.cv;
+         };
+         double z = switch (this.normal.getAxis()) {
+            case Z -> this.base;
+            case X, Y -> this.uAxis == Direction.Axis.Z ? this.cu : this.cv;
+         };
+         return BlockPos.containing(x, y, z);
+      }
+
       AABB bounds() {
          double effB = this.rb > 0.0D ? this.rb : this.ra;
          double bx = -this.ay;

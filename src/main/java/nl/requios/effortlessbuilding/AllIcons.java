@@ -87,10 +87,10 @@ public class AllIcons {
     public static final AllIcons I_EYE_OFF = next();
     public static final AllIcons I_NOCLIP_ON = next();
     public static final AllIcons I_NOCLIP_OFF = next();
-    public static final AllIcons I_ALIGN_AUTO = next();
-    public static final AllIcons I_ALIGN_VERTICAL = next();
-    public static final AllIcons I_ALIGN_HORIZONTAL = next();
-    public static final AllIcons I_FILL_MODE = next();
+     public static final AllIcons I_ALIGN_AUTO = next();
+     public static final AllIcons I_ALIGN_VERTICAL = next();
+     public static final AllIcons I_ALIGN_HORIZONTAL = next();
+     public static final AllIcons I_REPLACE_FLOOD_FILL = next();
 
 
     public AllIcons(int x, int y) {

@@ -84,6 +84,8 @@
   "creative_mode_tweaks.action.replace_only_blocks.description": "You can only replace blocks, not air.",
   "creative_mode_tweaks.action.replace_filtered_by_offhand": "Filter By Offhand",
   "creative_mode_tweaks.action.replace_filtered_by_offhand.description": "You can only replace blocks that match the block in your offhand.",
+  "creative_mode_tweaks.action.replace_flood_fill": "Flood Fill",
+  "creative_mode_tweaks.action.replace_flood_fill.description": "You can only replace air and liquids connected to the block you point at. Solid blocks block the fill.",
   "creative_mode_tweaks.action.toggle_protect_tile_entities": "Protect Tile Entities",
   "creative_mode_tweaks.action.toggle_protect_tile_entities.description": "If enabled, blocks that hold data such as chests, furnaces, and hoppers can not be replaced.",
 

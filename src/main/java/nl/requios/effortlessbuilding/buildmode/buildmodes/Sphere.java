@@ -7,11 +7,11 @@ import nl.requios.effortlessbuilding.buildmode.ModeOptions;
 import nl.requios.effortlessbuilding.buildmode.RaycastToPlane;
 import nl.requios.effortlessbuilding.buildmode.ThreeClicksBuildMode;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipeline;
-import nl.requios.effortlessbuilding.utilities.BlockEntry;
-import nl.requios.effortlessbuilding.utilities.BlockSet;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 import org.lightning323.creative_mode_tweaks.Config;
@@ -28,75 +28,16 @@ import org.lightning323.creative_mode_tweaks.Config;
  * third point at/near the center (or at the same distance as the radius, e.g.
  * {@code thirdPos == secondPos}) collapses back to the undeformed sphere.</p>
  *
- * <p>Clicks are direct in both modes: every point is the block actually
- * pointed at (no floor-plane or height-line projection), so points 1-2 land
- * exactly where a 2-point selection would put them and the third handle can
- * be pointed anywhere. The in-progress second/third points follow the live
- * crosshair block; pointing at the sky falls back to the undeformed sphere.</p>
+ * <p>Points resolve block-first: the block under the crosshair is used when
+ * there is one (exactly like a 2-point click, in any direction), otherwise
+ * the look ray falls back to plane math so mid-air selections keep working
+ * with nothing targeted. Previews and clicks share the same resolvers, so
+ * the ghost always matches what the click stores. Pointing at the sky with
+ * no handle falls back to the undeformed sphere.</p>
  */
 public class Sphere extends ThreeClicksBuildMode {
    /** Third-point distance from the center below half a block stays a sphere. */
    private static final double MIN_POLAR = 0.5D;
-   /** Captured at first click: 3-point stores real clicked blocks for every point. */
-   private boolean threePoint;
-   /** Ellipsoid handle stored on the 3rd click (sent to the server as thirdPos). */
-   private @Nullable BlockPos storedThird;
-   /** Live crosshair block published via {@link #setPreviewPoint}: the in-progress second/third point. */
-   private @Nullable BlockPos previewHover;
-
-   @Override
-   public void initialize() {
-      super.initialize();
-      this.threePoint = false;
-      this.storedThird = null;
-      this.previewHover = null;
-   }
-
-   @Override
-   public boolean onClick(BlockSet blocks, BlockPos clickedPos, Player player) {
-      if (this.clicks == 0) {
-         if (ModeOptions.isTwoPointBuild()) {
-            return super.onClick(blocks, clickedPos, player);
-         }
-         this.threePoint = true;
-         this.storedThird = null;
-         ++this.clicks;
-         this.firstBlockEntry = new BlockEntry(clickedPos);
-         this.secondBlockEntry = null;
-         return false;
-      }
-      if (!this.threePoint) {
-         return super.onClick(blocks, clickedPos, player);
-      }
-      if (this.clicks == 1) {
-         // Second point is the block actually clicked, exactly like 2-point mode.
-         ++this.clicks;
-         this.secondBlockEntry = new BlockEntry(clickedPos);
-         return false;
-      }
-      // Third click: the block under the crosshair is the ellipsoid handle.
-      ++this.clicks;
-      this.storedThird = clickedPos;
-      return true;
-   }
-
-   @Override
-   public boolean usesDirectSecondPoint() {
-      // Every point is a directly pointed-at block (2-point flow and up),
-      // so clicks and previews resolve real targets in any direction.
-      return true;
-   }
-
-   @Override
-   public void setPreviewPoint(@Nullable BlockPos pos) {
-      super.setPreviewPoint(pos);
-      this.previewHover = pos;
-   }
-
-   @Override
-   public @Nullable BlockPos getThirdSelectionPos() {
-      return this.threePoint ? this.storedThird : null;
-   }
 
    public static List<BlockPos> getSphereBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2, int x3, int y3, int z3) {
       long dx = Math.abs((long) x3 - x1) + 1L;
@@ -272,7 +213,12 @@ public class Sphere extends ThreeClicksBuildMode {
    }
 
    public BlockPos findSecondPos(Player player, BlockPos firstPos, boolean skipRaytrace) {
-      return Floor.findFloor(player, firstPos, skipRaytrace);
+      // Prefer the block under the crosshair (exactly like a 2-point click),
+      // falling back to the floor plane through the first point so mid-air
+      // selections keep working with nothing targeted.
+      // skipRaytrace is kept for signature compatibility and ignored.
+      BlockPos hovered = hoverBlock(player);
+      return hovered != null ? hovered : Floor.findFloor(player, firstPos, skipRaytrace);
    }
 
    @Override
@@ -359,12 +305,15 @@ public class Sphere extends ThreeClicksBuildMode {
    }
 
    public @Nullable BlockPos findThirdPos(Player player, BlockPos firstPos, BlockPos secondPos, boolean skipRaytrace) {
-      // Mid-air-capable resolver kept for the abstract contract: the look
-      // ray's closest approach to the sphere center from points 1-2. The live
-      // click/preview flow uses directly pointed-at blocks instead (see
-      // {@link #usesDirectSecondPoint} and {@link #previewHover}), so this is
-      // currently only a fallback for callers without a hover point.
+      // Same deal as the second point: the pointed-at block when there is
+      // one (any direction from the center), else the look ray's closest
+      // approach to the sphere center — pure plane math, so it registers
+      // mid-air with no block under the crosshair like the other resolvers.
       // skipRaytrace is kept for signature compatibility and ignored.
+      BlockPos hovered = hoverBlock(player);
+      if (hovered != null) {
+         return hovered;
+      }
       double[] base = twoPointSphereParams(firstPos, secondPos);
       Vec3 center = new Vec3(base[0], base[1], base[2]);
       Vec3 eye = BuildPipeline.getPlayerEyePosition(player);
@@ -386,88 +335,17 @@ public class Sphere extends ThreeClicksBuildMode {
       return BlockPos.containing(hit);
    }
 
-    @Override
-    public void getPlacementBlocks(BlockSet blocks, Player player, boolean fast) {
-       if (!this.threePoint) {
-          super.getPlacementBlocks(blocks, player, fast);
-          return;
-       }
-       if (this.clicks == 0 || this.firstBlockEntry == null || this.firstBlockEntry.blockPos == null) {
-          return;
-       }
-       BlockPos firstPos = this.firstBlockEntry.blockPos;
-       boolean full = ModeOptions.getFill() == ModeOptions.ActionEnum.FULL;
-       BlockPos secondPos = this.clicks >= 2 && this.secondBlockEntry != null && this.secondBlockEntry.blockPos != null
-             ? this.secondBlockEntry.blockPos
-             : this.previewHover;
-       if (secondPos == null) {
-          return;
-       }
-       secondPos = limitToBuildRange(player, firstPos, secondPos);
-       if (this.clicks == 1) {
-          // Same live sphere the 2-point mode shows.
-          blocks.clear();
-          if (fast) {
-             forEachTwoPointSphereBlocks(firstPos, secondPos, full, blocks::addPacked);
-          } else {
-             blocks.addAllPositions(getTwoPointSphereBlocks(firstPos, secondPos));
-          }
-          blocks.firstPos = firstPos;
-          blocks.lastPos = secondPos;
-          return;
-       }
-       BlockPos thirdPos = this.storedThird != null ? this.storedThird : this.previewHover;
-       if (thirdPos == null) {
-          // No handle yet (sky): show the undeformed base sphere.
-          blocks.clear();
-          if (fast) {
-             forEachTwoPointSphereBlocks(firstPos, secondPos, full, blocks::addPacked);
-          } else {
-             blocks.addAllPositions(getTwoPointSphereBlocks(firstPos, secondPos));
-          }
-          blocks.firstPos = firstPos;
-          blocks.lastPos = secondPos;
-          return;
-       }
-       thirdPos = limitToBuildRange(player, firstPos, thirdPos);
-       blocks.clear();
-       if (fast) {
-          forEachSpheroid(firstPos, secondPos, thirdPos, full, blocks::addPacked);
-       } else {
-          blocks.addAllPositions(getSphereBlocks(player,
-                firstPos.getX(), firstPos.getY(), firstPos.getZ(),
-                secondPos.getX(), secondPos.getY(), secondPos.getZ(),
-                thirdPos.getX(), thirdPos.getY(), thirdPos.getZ()));
-       }
-       blocks.firstPos = firstPos;
-       blocks.lastPos = thirdPos;
-    }
-
-    @Override
-    public AABB getClientBoundary(Player player) {
-       if (!this.threePoint) {
-          return super.getClientBoundary(player);
-       }
-       if (this.clicks == 0 || this.firstBlockEntry == null || this.firstBlockEntry.blockPos == null) {
-          return null;
-       }
-       BlockPos firstPos = this.firstBlockEntry.blockPos;
-       BlockPos secondPos = this.clicks >= 2 && this.secondBlockEntry != null && this.secondBlockEntry.blockPos != null
-             ? this.secondBlockEntry.blockPos
-             : this.previewHover;
-       if (secondPos == null) {
-          return null;
-       }
-       BlockPos boundedSecond = limitToBuildRange(player, firstPos, secondPos);
-       if (this.clicks == 1) {
-          return getTwoPointBoundary(firstPos, boundedSecond);
-       }
-       BlockPos thirdPos = this.storedThird != null ? this.storedThird : this.previewHover;
-       if (thirdPos == null) {
-          return getTwoPointBoundary(firstPos, boundedSecond);
-       }
-       return getFinalBoundary(firstPos, boundedSecond, limitToBuildRange(player, firstPos, thirdPos));
-    }
+   /**
+    * Vanilla block hit under the crosshair within building reach, or null in
+    * air. Both-sides safe (pure level math, no client classes).
+    */
+   private static @Nullable BlockPos hoverBlock(Player player) {
+      HitResult hit = player.pick((double) Config.getBuildingReach(player), 0.0F, false);
+      if (hit.getType() != HitResult.Type.BLOCK || !(hit instanceof BlockHitResult blockHit)) {
+         return null;
+      }
+      return blockHit.getBlockPos();
+   }
 
      public List<BlockPos> getIntermediateBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2) {
         return getTwoPointSphereBlocks(new BlockPos(x1, y1, z1), new BlockPos(x2, y2, z2));
