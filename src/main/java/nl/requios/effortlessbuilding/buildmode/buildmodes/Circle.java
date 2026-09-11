@@ -345,13 +345,16 @@ public class Circle extends ThreeClicksBuildMode {
       return Disc.ellipse(firstPos, secondPos, thirdPos, normal).bounds();
    }
 
-   /**
-    * Disc on the plane through {@code base} with the given normal: center
-    * ({@code cu}, {@code cv}) in plane coordinates, semi-axes {@code ra}
-    * along unit ({@code ax}, {@code ay}) and {@code rb} along the
-    * perpendicular. A near-zero {@code rb} is a circle.
-    */
-   private record Disc(Direction normal, Direction.Axis uAxis, Direction.Axis vAxis, int base,
+    /**
+     * Disc on the plane through {@code base} with the given normal: center
+     * ({@code cu}, {@code cv}) in plane coordinates, semi-axes {@code ra}
+     * along unit ({@code ax}, {@code ay}) and {@code rb} along the
+     * perpendicular. A near-zero {@code rb} is a circle.
+     *
+     * <p>Package-visible so {@link Cone} can reuse the same base math for its
+     * tapered layers (same center/axes, scaled radii per height).</p>
+     */
+    record Disc(Direction normal, Direction.Axis uAxis, Direction.Axis vAxis, int base,
                        double cu, double cv, double ax, double ay, double ra, double rb) {
       static Disc circle(BlockPos firstPos, BlockPos secondPos, Direction normal) {
          Direction.Axis[] axes = RaycastToPlane.perpendicularAxes(normal.getAxis());
