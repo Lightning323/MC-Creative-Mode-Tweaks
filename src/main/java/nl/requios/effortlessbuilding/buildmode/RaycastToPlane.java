@@ -28,7 +28,7 @@ import org.lightning323.creative_mode_tweaks.Config;
  */
 public final class RaycastToPlane {
     /** Squared dead-zone around the eye: avoids self-intersection jitter. */
-    public static final double MIN_DIST_SQ = 2.0D;
+    public static final double MIN_DIST_SQ = 2.8D;//Set this higher to allow angles that are more perpendicular to the raycast plane
     /** Look component below this counts as parallel: no intersection. */
     private static final double PARALLEL_EPS = 1.0E-9D;
 
