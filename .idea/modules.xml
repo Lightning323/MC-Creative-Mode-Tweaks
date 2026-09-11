@@ -2,6 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/CMT.main.iml" filepath="$PROJECT_DIR$/.idea/modules/CMT.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/CMT.test.iml" filepath="$PROJECT_DIR$/.idea/modules/CMT.test.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/MC-Creative-Mode-Tweaks.main.iml" filepath="$PROJECT_DIR$/.idea/modules/MC-Creative-Mode-Tweaks.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/creative_mode_tweaks.main.iml" filepath="$PROJECT_DIR$/.idea/modules/creative_mode_tweaks.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/creative_mode_tweaks.test.iml" filepath="$PROJECT_DIR$/.idea/modules/creative_mode_tweaks.test.iml" />
