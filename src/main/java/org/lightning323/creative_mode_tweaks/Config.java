@@ -6,6 +6,7 @@ import net.neoforged.fml.event.config.ModConfigEvent;
 import net.neoforged.neoforge.common.ModConfigSpec;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
+import nl.requios.effortlessbuilding.render.preview.PreviewRenderCache;
 
 import java.util.Map;
 import java.util.UUID;
@@ -13,6 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @EventBusSubscriber(modid = CreativeModeTweaks.MODID, bus = EventBusSubscriber.Bus.MOD)
 public class Config {
+
     private static final ModConfigSpec.Builder COMMON_BUILDER = new ModConfigSpec.Builder();
     private static final ModConfigSpec.Builder CLIENT_BUILDER = new ModConfigSpec.Builder();
     private static final ModConfigSpec.Builder SERVER_BUILDER = new ModConfigSpec.Builder();
@@ -97,6 +99,11 @@ public class Config {
             CLIENT_BUILDER.comment("Prevent build modes from replacing or breaking blocks with block entities.")
                     .translation("creative_mode_tweaks.config.protect_tile_entities")
                     .define("building.protect_tile_entities", true);
+
+    public static final ModConfigSpec.BooleanValue SHOW_PLACEMENT_REJECTION_MESSAGES =
+            CLIENT_BUILDER.comment("Show messages when blocks are rejected due to placement rules.")
+                    .translation("creative_mode_tweaks.config.show_placement_rejection_messages")
+                    .define("building.show_placement_rejection_messages", false);
 
     public static final ModConfigSpec.BooleanValue BUILDING_ASYNC_BOUNDARY =
             CLIENT_BUILDER.comment("Where the preview border bakes. Both options stay off the render thread.",

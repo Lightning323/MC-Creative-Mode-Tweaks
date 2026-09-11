@@ -39,334 +39,347 @@ import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 public class BuildPipelineClient {
-   public static final BuildPipeline CLIENT = createClientPipeline();
-   public static final BreakDisplayTracker BREAK_DISPLAY = new BreakDisplayTracker();
-   private static BuildPipeline.@Nullable BuildState buildState = null;
-   private static @Nullable BlockHitResult firstClickHit = null;
-   private static @Nullable BlockPos selectionOrigin = null;
-   private static boolean angelPlacementSequence = false;
+    public static final BuildPipeline CLIENT = createClientPipeline();
+    public static final BreakDisplayTracker BREAK_DISPLAY = new BreakDisplayTracker();
+    private static BuildPipeline.@Nullable BuildState buildState = null;
+    private static @Nullable BlockHitResult firstClickHit = null;
+    private static @Nullable BlockPos selectionOrigin = null;
+    private static boolean angelPlacementSequence = false;
 
-   private static BuildPipeline createClientPipeline() {
-      BuildPipeline pipeline = new BuildPipeline();
-      pipeline.addSystem(ModifierSystem.CLIENT);
-      pipeline.addSystem(TrowelSystem.INSTANCE);
-      // Client-only constraints: memoizes tile-entity verdicts across the
-      // shapes of one drag gesture. The server pipeline (and the
-      // single-target break check below) keep using ConstraintSystem.INSTANCE
-      // with the memo off, so placement validation always reads live state.
-      ConstraintSystem previewConstraints = new ConstraintSystem();
-      previewConstraints.setPreviewMemoEnabled(true);
-      pipeline.addSystem(previewConstraints);
-      return pipeline;
-   }
+    private static BuildPipeline createClientPipeline() {
+        BuildPipeline pipeline = new BuildPipeline();
+        pipeline.addSystem(ModifierSystem.CLIENT);
+        pipeline.addSystem(TrowelSystem.INSTANCE);
+        // Client-only constraints: memoizes tile-entity verdicts across the
+        // shapes of one drag gesture. The server pipeline (and the
+        // single-target break check below) keep using ConstraintSystem.INSTANCE
+        // with the memo off, so placement validation always reads live state.
+        ConstraintSystem previewConstraints = new ConstraintSystem();
+        previewConstraints.setPreviewMemoEnabled(true);
+        pipeline.addSystem(previewConstraints);
+        return pipeline;
+    }
 
-   public static BuildPipeline.@Nullable BuildState getBuildState() {
-      return buildState;
-   }
+    public static BuildPipeline.@Nullable BuildState getBuildState() {
+        return buildState;
+    }
 
     public static @Nullable BlockHitResult getFirstClickHit() {
-       return firstClickHit;
+        return firstClickHit;
     }
 
-    /** Anchor of the in-progress selection (first click), if any. */
+    /**
+     * Anchor of the in-progress selection (first click), if any.
+     */
     public static @Nullable BlockPos getSelectionOrigin() {
-       return selectionOrigin;
+        return selectionOrigin;
     }
 
-   public static boolean isAngelPlacementActive(Player player) {
-      return BuildSettings.CLIENT.isAngelPlacementEnabled() && Config.isAngelPlacementAllowed(player);
-   }
+    public static boolean isAngelPlacementActive(Player player) {
+        return BuildSettings.CLIENT.isAngelPlacementEnabled() && Config.isAngelPlacementAllowed(player);
+    }
 
-   public static boolean shouldRenderAngelPlacementCursor(Player player) {
-      return isAngelPlacementActive(player) && buildState == null;
-   }
+    public static boolean shouldRenderAngelPlacementCursor(Player player) {
+        return isAngelPlacementActive(player) && buildState == null;
+    }
 
-   public static @Nullable AngelPlacement.Target getCurrentTarget(Minecraft mc) {
-      Player player = mc.player;
-      Level level = mc.level;
-      return player != null && level != null ? AngelPlacement.findTarget(level, player, isAngelPlacementActive(player)) : null;
-   }
+    public static @Nullable AngelPlacement.Target getCurrentTarget(Minecraft mc) {
+        Player player = mc.player;
+        Level level = mc.level;
+        return player != null && level != null ? AngelPlacement.findTarget(level, player, isAngelPlacementActive(player)) : null;
+    }
 
-   public static @Nullable BlockHitResult getCurrentTargetHit(Minecraft mc) {
-      AngelPlacement.Target target = getCurrentTarget(mc);
-      return target != null ? target.hit() : null;
-   }
+    public static @Nullable BlockHitResult getCurrentTargetHit(Minecraft mc) {
+        AngelPlacement.Target target = getCurrentTarget(mc);
+        return target != null ? target.hit() : null;
+    }
 
-   public static boolean shouldInterceptPlacing() {
-      Minecraft mc = Minecraft.getInstance();
-      return BuildModes.CLIENT.getBuildMode() != BuildModeEnum.DISABLED && isBuildModesAllowed(mc.player)
-              || mc.player != null && (mc.player.getMainHandItem().getItem() instanceof TrowelItem || isAngelPlacementActive(mc.player));
-   }
+    public static boolean shouldInterceptPlacing() {
+        Minecraft mc = Minecraft.getInstance();
+        return BuildModes.CLIENT.getBuildMode() != BuildModeEnum.DISABLED && isBuildModesAllowed(mc.player)
+                || mc.player != null && (mc.player.getMainHandItem().getItem() instanceof TrowelItem || isAngelPlacementActive(mc.player));
+    }
 
-   /** Build modes need the config in survival; adventure and spectator never get them. */
-   public static boolean isBuildModesAllowed(@Nullable Player player) {
-      if (player == null) {
-         return true;
-      }
-      if (isAdventureOrSpectator(player)) {
-         return false;
-      }
-      return Config.isSurvivalBuildModesAllowed(player);
-   }
-
-   /** Same gate for undo/redo. */
-   public static boolean isUndoRedoAllowed(@Nullable Player player) {
-      if (player == null) {
-         return true;
-      }
-      if (isAdventureOrSpectator(player)) {
-         return false;
-      }
-      return Config.isSurvivalUndoRedoAllowed(player);
-   }
-
-   /** Adventure and spectator players get no build tools at all. */
-   public static boolean isAdventureOrSpectator(@Nullable Player player) {
-      if (player == null) {
-         return false;
-      }
-      if (player.isSpectator()) {
-         return true;
-      }
-      Minecraft mc = Minecraft.getInstance();
-      return mc.gameMode != null && mc.gameMode.getPlayerMode() == GameType.ADVENTURE;
-   }
-
-   /** Deny-message key for blocked build-menu access (radial, mode keys). */
-   public static String buildModesDenyMessageKey(@Nullable Player player) {
-      return isAdventureOrSpectator(player)
-              ? "creative_mode_tweaks.message.build_menu_unavailable"
-              : "creative_mode_tweaks.message.build_modes_disabled";
-   }
-
-   /** Deny-message key for blocked undo/redo access. */
-   public static String undoRedoDenyMessageKey(@Nullable Player player) {
-      return isAdventureOrSpectator(player)
-              ? "creative_mode_tweaks.message.build_menu_unavailable"
-              : "creative_mode_tweaks.message.undo_redo_disabled";
-   }
-
-   public static boolean shouldInterceptBreaking() {
-      if (BuildModes.CLIENT.getBuildMode() == BuildModeEnum.DISABLED) {
-         return false;
-      } else {
-         Minecraft mc = Minecraft.getInstance();
-         Player player = mc.player;
-         if (player == null) {
-            return false;
-         } else if (!isBuildModesAllowed(player)) {
-            return false;
-         } else if (!player.getAbilities().instabuild && !Config.BUILDING_SURVIVAL_ALLOW_BREAKING.get()) {
-             return false;
-          } else if (buildState == null && !player.getAbilities().instabuild) {
-            if (mc.level != null) {
-               HitResult var3 = mc.hitResult;
-               if (var3 instanceof BlockHitResult) {
-                  BlockHitResult hit = (BlockHitResult)var3;
-                  BlockPos target = hit.getBlockPos();
-                  BlockSet singleTarget = new BlockSet();
-                  singleTarget.add(new BlockEntry(target));
-                  ConstraintSystem.INSTANCE.processBlocks(singleTarget, player, BuildPipeline.BuildState.BREAKING);
-                   BlockEntry entry = singleTarget.get(target);
-                  if (entry != null && !entry.isValid()) {
-                     return false;
-                  }
-               }
-            }
-
+    /**
+     * Build modes need the config in survival; adventure and spectator never get them.
+     */
+    public static boolean isBuildModesAllowed(@Nullable Player player) {
+        if (player == null) {
             return true;
-         } else {
+        }
+        if (isAdventureOrSpectator(player)) {
+            return false;
+        }
+        return Config.isSurvivalBuildModesAllowed(player);
+    }
+
+    /**
+     * Same gate for undo/redo.
+     */
+    public static boolean isUndoRedoAllowed(@Nullable Player player) {
+        if (player == null) {
             return true;
-         }
-      }
-   }
+        }
+        if (isAdventureOrSpectator(player)) {
+            return false;
+        }
+        return Config.isSurvivalUndoRedoAllowed(player);
+    }
 
-   public static void handleRightClick(Minecraft mc) {
-      handleClick(mc, BuildPipeline.BuildState.PLACING);
-   }
+    /**
+     * Adventure and spectator players get no build tools at all.
+     */
+    public static boolean isAdventureOrSpectator(@Nullable Player player) {
+        if (player == null) {
+            return false;
+        }
+        if (player.isSpectator()) {
+            return true;
+        }
+        Minecraft mc = Minecraft.getInstance();
+        return mc.gameMode != null && mc.gameMode.getPlayerMode() == GameType.ADVENTURE;
+    }
 
-   public static void handleLeftClick(Minecraft mc) {
-      handleClick(mc, BuildPipeline.BuildState.BREAKING);
-   }
+    /**
+     * Deny-message key for blocked build-menu access (radial, mode keys).
+     */
+    public static String buildModesDenyMessageKey(@Nullable Player player) {
+        return isAdventureOrSpectator(player)
+                ? "creative_mode_tweaks.message.build_menu_unavailable"
+                : "creative_mode_tweaks.message.build_modes_disabled";
+    }
 
-   private static void handleClick(Minecraft mc, BuildPipeline.BuildState action) {
-      BuildModeEnum mode = BuildModes.CLIENT.getBuildMode();
-      Player player = mc.player;
-      if (player != null && mc.level != null) {
-         BlockPos clickedPos;
-         if (mode.instance.isFirstClick()) {
-            AngelPlacement.Target target = getCurrentTarget(mc);
-            if (target == null) {
-               return;
-            }
+    /**
+     * Deny-message key for blocked undo/redo access.
+     */
+    public static String undoRedoDenyMessageKey(@Nullable Player player) {
+        return isAdventureOrSpectator(player)
+                ? "creative_mode_tweaks.message.build_menu_unavailable"
+                : "creative_mode_tweaks.message.undo_redo_disabled";
+    }
 
-            BlockHitResult hit = target.hit();
-            BlockPos markerPos = mode.instance.getSelectionMarker(hit.getBlockPos());
-            clickedPos = markerPos != null ? markerPos : resolveFirstClickPos(hit, action, mc.level);
-            buildState = action;
-            firstClickHit = hit;
-            angelPlacementSequence = target.isAngelTarget();
-            mode.instance.setFirstClickFace(hit.getDirection());
-            selectionOrigin = clickedPos;
-            BuildSelectionGuard.CLIENT.reset();
-         } else if (mode.instance.usesDirectSecondPoint()) {
-            AngelPlacement.Target target = getCurrentTarget(mc);
-            if (target == null) {
-               return;
-            }
-
-            BlockHitResult hit = target.hit();
-            BlockPos markerPos = mode.instance.getSelectionMarker(hit.getBlockPos());
-            clickedPos = markerPos != null ? markerPos : resolveFirstClickPos(hit, action, mc.level);
-            if (selectionOrigin != null && !SableCompat.isInSameSelection(mc.level, selectionOrigin, clickedPos)) {
-               rejectMixedSelection(player);
-               return;
-            }
-         } else {
-            clickedPos = player.blockPosition();
-         }
-
-         BlockPos selectionAnchor = selectionOrigin != null ? selectionOrigin : clickedPos;
-         try (SableCompat.SelectionScope ignored = SableCompat.pushSelection(mc.level, selectionAnchor)) {
-            BlockSet blocks = new BlockSet();
-            boolean shouldPlace = mode.instance.onClick(blocks, clickedPos, player);
-            if (shouldPlace) {
-               mode.instance.getPlacementBlocks(blocks, player, false);
-               CLIENT.processBlocks(blocks, player, action);
-               if (blocks.firstPos != null && blocks.lastPos != null) {
-               if (blocks.hasEntriesWithStatus(BlockStatus.OUTSIDE_REACH)) {
-                  rejectMixedSelection(player);
-                  return;
-               }
-
-               if (action == BuildPipeline.BuildState.PLACING) {
-                  ItemStack held = player.getMainHandItem();
-                   BlockEntry firstEntry = blocks.get(blocks.firstPos);
-                  SoundType soundType;
-                  if (firstEntry != null && firstEntry.blockState != null) {
-                     soundType = firstEntry.blockState.getSoundType();
-                  } else {
-                     Item var11 = held.getItem();
-                     SoundType var10000;
-                     if (var11 instanceof BlockItem) {
-                        BlockItem blockItem = (BlockItem)var11;
-                        var10000 = blockItem.getBlock().defaultBlockState().getSoundType();
-                     } else {
-                        var10000 = SoundType.STONE;
-                     }
-
-                     soundType = var10000;
-                  }
-
-                  mc.level.playLocalSound(blocks.firstPos, soundType.getPlaceSound(), SoundSource.BLOCKS, soundType.getVolume(), soundType.getPitch(), false);
-                  if (TrowelSystem.isTrowel(player.getMainHandItem())) {
-                     // Trowel placements bypass the vanilla use path (which
-                     // would swing for us), so play the hand animation here,
-                     // exactly as an item placement should.
-                     player.swing(InteractionHand.MAIN_HAND);
-                  }
-                } else {
-                  SoundType soundType = mc.level.getBlockState(blocks.firstPos).getSoundType();
-                  mc.level.playLocalSound(blocks.firstPos, soundType.getBreakSound(), SoundSource.BLOCKS, soundType.getVolume(), soundType.getPitch(), false);
-               }
-
-               BlockPos intermediate = mode.instance.getIntermediatePos();
-               BlockPos explicitThirdPos = mode.instance.getThirdSelectionPos();
-               BlockPos secondPos = intermediate != null ? intermediate : blocks.lastPos;
-               BlockPos thirdPos = explicitThirdPos != null ? explicitThirdPos : intermediate != null ? blocks.lastPos : null;
-               BlockPos fourthPos = mode.instance.getFourthSelectionPos();
-               ModeOptions.ActionEnum pointBuild = mode.instance.getPointBuildAction();
-               if (action == BuildPipeline.BuildState.PLACING) {
-                   if (!blocks.rejectedEntries().isEmpty()) {
-                     BlockStatus firstRejection = blocks.rejectedEntries().getFirst().getStatus();
-                     if (firstRejection == BlockStatus.WORLD_BORDER) {
-                        player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.world_border"), true);
-                     } else if (!player.getAbilities().instabuild) {
-                        if (firstRejection == BlockStatus.NOT_PLACED_BY_PLAYER) {
-                           player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.only_replace_placed"), true);
-                        } else if (firstRejection == BlockStatus.TOO_HARD) {
-                           player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.too_hard"), true);
-                        } else if (firstRejection == BlockStatus.PROTECTED_TILE_ENTITY) {
-                           player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.protected_tile_entity"), true);
+    public static boolean shouldInterceptBreaking() {
+        if (BuildModes.CLIENT.getBuildMode() == BuildModeEnum.DISABLED) {
+            return false;
+        } else {
+            Minecraft mc = Minecraft.getInstance();
+            Player player = mc.player;
+            if (player == null) {
+                return false;
+            } else if (!isBuildModesAllowed(player)) {
+                return false;
+            } else if (!player.getAbilities().instabuild && !Config.BUILDING_SURVIVAL_ALLOW_BREAKING.get()) {
+                return false;
+            } else if (buildState == null && !player.getAbilities().instabuild) {
+                if (mc.level != null) {
+                    HitResult var3 = mc.hitResult;
+                    if (var3 instanceof BlockHitResult) {
+                        BlockHitResult hit = (BlockHitResult) var3;
+                        BlockPos target = hit.getBlockPos();
+                        BlockSet singleTarget = new BlockSet();
+                        singleTarget.add(new BlockEntry(target));
+                        ConstraintSystem.INSTANCE.processBlocks(singleTarget, player, BuildPipeline.BuildState.BREAKING);
+                        BlockEntry entry = singleTarget.get(target);
+                        if (entry != null && !entry.isValid()) {
+                            return false;
                         }
-                     }
-                  }
+                    }
+                }
 
-                  Direction hitFace = firstClickHit != null ? firstClickHit.getDirection() : Direction.UP;
-                  Vec3 hitLocation = firstClickHit != null ? firstClickHit.getLocation() : Vec3.atCenterOf(blocks.firstPos);
-                  PacketHandler.sendToServer(new PlaceBuildModePacket(mode, blocks.firstPos, secondPos, thirdPos, fourthPos, hitFace, hitLocation, ModeOptions.getFill(), ModeOptions.getCubeFill(), ModeOptions.getRaisedEdge(), ModeOptions.getCircleStart(), pointBuild, ModeOptions.getSides(), ModeOptions.getPlaneAlign(), BuildSettings.CLIENT.getReplaceMode(), Config.BUILDING_PROTECT_TILE_ENTITIES.get(), angelPlacementSequence));
-                  PlacedBlockTracker.clientTrackAll(mc.level.dimension(), blocks.copyPositions());
-               } else {
-                   if (!blocks.rejectedEntries().isEmpty()) {
-                     BlockStatus firstRejection = blocks.rejectedEntries().getFirst().getStatus();
-                     if (firstRejection == BlockStatus.WORLD_BORDER) {
-                        player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.world_border"), true);
-                     } else if (!player.getAbilities().instabuild) {
-                        if (firstRejection == BlockStatus.NOT_PLACED_BY_PLAYER) {
-                           player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.only_break_placed"), true);
-                        } else if (firstRejection == BlockStatus.TOO_HARD) {
-                           player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.too_hard"), true);
-                        } else if (firstRejection == BlockStatus.PROTECTED_TILE_ENTITY) {
-                           player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.protected_tile_entity"), true);
-                        }
-                     }
-                  }
-
-                  Direction hitFace = firstClickHit != null ? firstClickHit.getDirection() : Direction.UP;
-                  PacketHandler.sendToServer(new BreakBuildModePacket(mode, blocks.firstPos, secondPos, thirdPos, fourthPos, hitFace, ModeOptions.getFill(), ModeOptions.getCubeFill(), ModeOptions.getRaisedEdge(), ModeOptions.getCircleStart(), pointBuild, ModeOptions.getSides(), ModeOptions.getPlaneAlign(), Config.BUILDING_PROTECT_TILE_ENTITIES.get(), angelPlacementSequence));
-               }
+                return true;
             } else {
-               Constants.LOG.warn("[EffortlessBuilding] Build mode {} produced no block positions", mode);
-               }
-
-               mode.instance.initialize();
-               buildState = null;
-               firstClickHit = null;
-               selectionOrigin = null;
-               angelPlacementSequence = false;
-               BuildSelectionGuard.CLIENT.reset();
+                return true;
             }
-         }
-      }
-   }
+        }
+    }
 
-   public static void cancelCurrentSequence() {
-      if (buildState != null) {
-         Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_TOAST_OUT, 1.0F));
-      }
+    public static void handleRightClick(Minecraft mc) {
+        handleClick(mc, BuildPipeline.BuildState.PLACING);
+    }
 
-      BuildModes.CLIENT.onCancel();
-      buildState = null;
-      firstClickHit = null;
-      selectionOrigin = null;
-      angelPlacementSequence = false;
-      BuildSelectionGuard.CLIENT.reset();
-   }
+    public static void handleLeftClick(Minecraft mc) {
+        handleClick(mc, BuildPipeline.BuildState.BREAKING);
+    }
+
+    private static void handleClick(Minecraft mc, BuildPipeline.BuildState action) {
+        BuildModeEnum mode = BuildModes.CLIENT.getBuildMode();
+        Player player = mc.player;
+        if (player != null && mc.level != null) {
+            BlockPos clickedPos;
+            if (mode.instance.isFirstClick()) {
+                AngelPlacement.Target target = getCurrentTarget(mc);
+                if (target == null) {
+                    return;
+                }
+
+                BlockHitResult hit = target.hit();
+                BlockPos markerPos = mode.instance.getSelectionMarker(hit.getBlockPos());
+                clickedPos = markerPos != null ? markerPos : resolveFirstClickPos(hit, action, mc.level);
+                buildState = action;
+                firstClickHit = hit;
+                angelPlacementSequence = target.isAngelTarget();
+                mode.instance.setFirstClickFace(hit.getDirection());
+                selectionOrigin = clickedPos;
+                BuildSelectionGuard.CLIENT.reset();
+            } else if (mode.instance.usesDirectSecondPoint()) {
+                AngelPlacement.Target target = getCurrentTarget(mc);
+                if (target == null) {
+                    return;
+                }
+
+                BlockHitResult hit = target.hit();
+                BlockPos markerPos = mode.instance.getSelectionMarker(hit.getBlockPos());
+                clickedPos = markerPos != null ? markerPos : resolveFirstClickPos(hit, action, mc.level);
+                if (selectionOrigin != null && !SableCompat.isInSameSelection(mc.level, selectionOrigin, clickedPos)) {
+                    rejectMixedSelection(player);
+                    return;
+                }
+            } else {
+                clickedPos = player.blockPosition();
+            }
+
+            BlockPos selectionAnchor = selectionOrigin != null ? selectionOrigin : clickedPos;
+            try (SableCompat.SelectionScope ignored = SableCompat.pushSelection(mc.level, selectionAnchor)) {
+                BlockSet blocks = new BlockSet();
+                boolean shouldPlace = mode.instance.onClick(blocks, clickedPos, player);
+                if (shouldPlace) {
+                    mode.instance.getPlacementBlocks(blocks, player, false);
+                    CLIENT.processBlocks(blocks, player, action);
+                    if (blocks.firstPos != null && blocks.lastPos != null) {
+                        if (blocks.hasEntriesWithStatus(BlockStatus.OUTSIDE_REACH)) {
+                            rejectMixedSelection(player);
+                            return;
+                        }
+
+                        if (action == BuildPipeline.BuildState.PLACING) {
+                            ItemStack held = player.getMainHandItem();
+                            BlockEntry firstEntry = blocks.get(blocks.firstPos);
+                            SoundType soundType;
+                            if (firstEntry != null && firstEntry.blockState != null) {
+                                soundType = firstEntry.blockState.getSoundType();
+                            } else {
+                                Item var11 = held.getItem();
+                                SoundType var10000;
+                                if (var11 instanceof BlockItem) {
+                                    BlockItem blockItem = (BlockItem) var11;
+                                    var10000 = blockItem.getBlock().defaultBlockState().getSoundType();
+                                } else {
+                                    var10000 = SoundType.STONE;
+                                }
+
+                                soundType = var10000;
+                            }
+
+                            mc.level.playLocalSound(blocks.firstPos, soundType.getPlaceSound(), SoundSource.BLOCKS, soundType.getVolume(), soundType.getPitch(), false);
+                            if (TrowelSystem.isTrowel(player.getMainHandItem())) {
+                                // Trowel placements bypass the vanilla use path (which
+                                // would swing for us), so play the hand animation here,
+                                // exactly as an item placement should.
+                                player.swing(InteractionHand.MAIN_HAND);
+                            }
+                        } else {
+                            SoundType soundType = mc.level.getBlockState(blocks.firstPos).getSoundType();
+                            mc.level.playLocalSound(blocks.firstPos, soundType.getBreakSound(), SoundSource.BLOCKS, soundType.getVolume(), soundType.getPitch(), false);
+                        }
+
+                        BlockPos intermediate = mode.instance.getIntermediatePos();
+                        BlockPos explicitThirdPos = mode.instance.getThirdSelectionPos();
+                        BlockPos secondPos = intermediate != null ? intermediate : blocks.lastPos;
+                        BlockPos thirdPos = explicitThirdPos != null ? explicitThirdPos : intermediate != null ? blocks.lastPos : null;
+                        BlockPos fourthPos = mode.instance.getFourthSelectionPos();
+                        ModeOptions.ActionEnum pointBuild = mode.instance.getPointBuildAction();
+                        if (action == BuildPipeline.BuildState.PLACING) {
+
+                            if (!blocks.rejectedEntries().isEmpty() && Config.SHOW_PLACEMENT_REJECTION_MESSAGES.get()) {
+                                BlockStatus firstRejection = blocks.rejectedEntries().getFirst().getStatus();
+                                if (firstRejection == BlockStatus.WORLD_BORDER) {
+                                    player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.world_border"), true);
+                                } else if (!player.getAbilities().instabuild) {
+                                    if (firstRejection == BlockStatus.NOT_PLACED_BY_PLAYER) {
+                                        player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.only_replace_placed"), true);
+                                    } else if (firstRejection == BlockStatus.TOO_HARD) {
+                                        player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.too_hard"), true);
+                                    } else if (firstRejection == BlockStatus.PROTECTED_TILE_ENTITY) {
+                                        player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.protected_tile_entity"), true);
+                                    }
+                                }
+                            }
+
+                            Direction hitFace = firstClickHit != null ? firstClickHit.getDirection() : Direction.UP;
+                            Vec3 hitLocation = firstClickHit != null ? firstClickHit.getLocation() : Vec3.atCenterOf(blocks.firstPos);
+                            PacketHandler.sendToServer(new PlaceBuildModePacket(mode, blocks.firstPos, secondPos, thirdPos, fourthPos, hitFace, hitLocation, ModeOptions.getFill(), ModeOptions.getCubeFill(), ModeOptions.getRaisedEdge(), ModeOptions.getCircleStart(), pointBuild, ModeOptions.getSides(), ModeOptions.getPlaneAlign(), BuildSettings.CLIENT.getReplaceMode(), Config.BUILDING_PROTECT_TILE_ENTITIES.get(), angelPlacementSequence));
+                            PlacedBlockTracker.clientTrackAll(mc.level.dimension(), blocks.copyPositions());
+                        } else {
+
+                            if (!blocks.rejectedEntries().isEmpty() && Config.SHOW_PLACEMENT_REJECTION_MESSAGES.get()) {
+                                BlockStatus firstRejection = blocks.rejectedEntries().getFirst().getStatus();
+                                if (firstRejection == BlockStatus.WORLD_BORDER) {
+                                    player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.world_border"), true);
+                                } else if (!player.getAbilities().instabuild) {
+                                    if (firstRejection == BlockStatus.NOT_PLACED_BY_PLAYER) {
+                                        player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.only_break_placed"), true);
+                                    } else if (firstRejection == BlockStatus.TOO_HARD) {
+                                        player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.too_hard"), true);
+                                    } else if (firstRejection == BlockStatus.PROTECTED_TILE_ENTITY) {
+                                        player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.protected_tile_entity"), true);
+                                    }
+                                }
+                            }
+
+                            Direction hitFace = firstClickHit != null ? firstClickHit.getDirection() : Direction.UP;
+                            PacketHandler.sendToServer(new BreakBuildModePacket(mode, blocks.firstPos, secondPos, thirdPos, fourthPos, hitFace, ModeOptions.getFill(), ModeOptions.getCubeFill(), ModeOptions.getRaisedEdge(), ModeOptions.getCircleStart(), pointBuild, ModeOptions.getSides(), ModeOptions.getPlaneAlign(), Config.BUILDING_PROTECT_TILE_ENTITIES.get(), angelPlacementSequence));
+                        }
+                    } else {
+                        Constants.LOG.warn("Build mode {} produced no block positions", mode);
+                    }
+
+                    mode.instance.initialize();
+                    buildState = null;
+                    firstClickHit = null;
+                    selectionOrigin = null;
+                    angelPlacementSequence = false;
+                    BuildSelectionGuard.CLIENT.reset();
+                }
+            }
+        }
+    }
+
+    public static void cancelCurrentSequence() {
+        if (buildState != null) {
+            Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_TOAST_OUT, 1.0F));
+        }
+
+        BuildModes.CLIENT.onCancel();
+        buildState = null;
+        firstClickHit = null;
+        selectionOrigin = null;
+        angelPlacementSequence = false;
+        BuildSelectionGuard.CLIENT.reset();
+    }
 
 
+    private static void rejectMixedSelection(Player player) {
+        player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.sublevel_out_of_bounds").withStyle(ChatFormatting.RED), true);
+        cancelCurrentSequence();
+    }
 
-   private static void rejectMixedSelection(Player player) {
-      player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.sublevel_out_of_bounds").withStyle(ChatFormatting.RED), true);
-      cancelCurrentSequence();
-   }
-
-   private static BlockPos resolveFirstClickPos(BlockHitResult hit, BuildPipeline.BuildState action, Level level) {
-      BlockPos hitPos = hit.getBlockPos();
-      if (action == BuildPipeline.BuildState.BREAKING) {
-         return hitPos;
-      } else {
-         Minecraft mc = Minecraft.getInstance();
-         if (mc.player != null && BuildPipeline.isToolInteractionItem(mc.player.getMainHandItem())) {
+    private static BlockPos resolveFirstClickPos(BlockHitResult hit, BuildPipeline.BuildState action, Level level) {
+        BlockPos hitPos = hit.getBlockPos();
+        if (action == BuildPipeline.BuildState.BREAKING) {
             return hitPos;
-         } else if (BuildSettings.CLIENT.shouldOffsetStartPosition()) {
-            return hitPos;
-         } else {
-            return level.getBlockState(hitPos).canBeReplaced() ? hitPos : hitPos.relative(hit.getDirection());
-         }
-      }
-   }
+        } else {
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.player != null && BuildPipeline.isToolInteractionItem(mc.player.getMainHandItem())) {
+                return hitPos;
+            } else if (BuildSettings.CLIENT.shouldOffsetStartPosition()) {
+                return hitPos;
+            } else {
+                return level.getBlockState(hitPos).canBeReplaced() ? hitPos : hitPos.relative(hit.getDirection());
+            }
+        }
+    }
 
-   static {
-      BuildModes.CLIENT.setBeforeDisable(BuildPipelineClient::cancelCurrentSequence);
-   }
+    static {
+        BuildModes.CLIENT.setBeforeDisable(BuildPipelineClient::cancelCurrentSequence);
+    }
 }
