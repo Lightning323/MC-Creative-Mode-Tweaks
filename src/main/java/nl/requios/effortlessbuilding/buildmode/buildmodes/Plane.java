@@ -3,10 +3,9 @@ package nl.requios.effortlessbuilding.buildmode.buildmodes;
 import java.util.List;
 import it.unimi.dsi.fastutil.longs.LongConsumer;
 import nl.requios.effortlessbuilding.buildmode.ModeOptions;
-import nl.requios.effortlessbuilding.buildmode.BuildModes;
+import nl.requios.effortlessbuilding.buildmode.RaycastToPlane;
 import nl.requios.effortlessbuilding.buildmode.TwoClicksBuildMode;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipeline;
-import org.lightning323.creative_mode_tweaks.Config;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.player.Player;
@@ -99,17 +98,9 @@ public class Plane extends TwoClicksBuildMode {
    }
 
    private static BlockPos findWallOnAxis(Player player, BlockPos firstPos, Direction.Axis axis, boolean skipRaytrace) {
-      Vec3 look = BuildPipeline.getPlayerLookVec(player);
-      Vec3 start = BuildPipeline.getPlayerEyePosition(player);
-      Vec3 planeBound = axis == Direction.Axis.X
-         ? BuildModes.findXBound(firstPos.getX(), start, look)
-         : BuildModes.findZBound(firstPos.getZ(), start, look);
-      double distanceToPlayerSq = planeBound.subtract(start).lengthSqr();
-      double reach = Config.getBuildingReach(player);
-
-      return BuildModes.isCriteriaValid(start, look, reach, player, skipRaytrace, planeBound, planeBound, distanceToPlayerSq)
-         ? BlockPos.containing(planeBound)
-         : null;
+      // Plane-only hit: registers even when the vanilla raycast hits no block.
+      // skipRaytrace is kept for signature compatibility and ignored.
+      return RaycastToPlane.findWallOnAxis(player, firstPos, axis);
    }
 
    /** Keeps wall previews and placements perpendicular to the current horizontal look direction. */

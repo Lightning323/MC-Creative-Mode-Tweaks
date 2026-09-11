@@ -3,41 +3,17 @@ package nl.requios.effortlessbuilding.buildmode.buildmodes;
 import java.util.ArrayList;
 import java.util.List;
 import it.unimi.dsi.fastutil.longs.LongConsumer;
-import nl.requios.effortlessbuilding.buildmode.BuildModes;
 import nl.requios.effortlessbuilding.buildmode.ModeOptions;
+import nl.requios.effortlessbuilding.buildmode.RaycastToPlane;
 import nl.requios.effortlessbuilding.buildmode.TwoClicksBuildMode;
-import nl.requios.effortlessbuilding.buildpipeline.BuildPipeline;
-import org.lightning323.creative_mode_tweaks.Config;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.phys.Vec3;
 
 public class Wall extends TwoClicksBuildMode {
    public static BlockPos findWall(Player player, BlockPos firstPos, boolean skipRaytrace) {
-      Vec3 look = BuildPipeline.getPlayerLookVec(player);
-      Vec3 start = BuildPipeline.getPlayerEyePosition(player);
-      List<Criteria> criteriaList = new ArrayList(3);
-      Vec3 xBound = BuildModes.findXBound((double)firstPos.getX(), start, look);
-      criteriaList.add(new Criteria(xBound, firstPos, start, look));
-      Vec3 zBound = BuildModes.findZBound((double)firstPos.getZ(), start, look);
-      criteriaList.add(new Criteria(zBound, firstPos, start, look));
-      double reach = Config.getBuildingReach(player);
-      criteriaList.removeIf((criteriax) -> !criteriax.isValid(start, look, reach, player, skipRaytrace));
-      if (criteriaList.isEmpty()) {
-         return null;
-      } else {
-         Criteria selected = (Criteria)criteriaList.get(0);
-         if (criteriaList.size() > 1) {
-            for(int i = 1; i < criteriaList.size(); ++i) {
-               Criteria criteria = (Criteria)criteriaList.get(i);
-               if (criteria.distToPlayerSq < selected.distToPlayerSq && Math.abs(criteria.angle) - Math.abs(selected.angle) < (double)3.0F) {
-                  selected = criteria;
-               }
-            }
-         }
-
-         return BlockPos.containing(selected.planeBound);
-      }
+      // Plane-only hit: registers even when the vanilla raycast hits no block.
+      // skipRaytrace is kept for signature compatibility and ignored.
+      return RaycastToPlane.findWall(player, firstPos);
    }
 
    public static List<BlockPos> getWallBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2) {
@@ -164,22 +140,5 @@ public class Wall extends TwoClicksBuildMode {
    @Override
    protected void forEachAllBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2, LongConsumer out) {
       forEachWallBlocks(x1, y1, z1, x2, y2, z2, ModeOptions.getFill() == ModeOptions.ActionEnum.FULL, out);
-   }
-
-   static class Criteria {
-      Vec3 planeBound;
-      double distToPlayerSq;
-      double angle;
-
-      Criteria(Vec3 planeBound, BlockPos firstPos, Vec3 start, Vec3 look) {
-         this.planeBound = planeBound;
-         this.distToPlayerSq = this.planeBound.subtract(start).lengthSqr();
-         Vec3 wall = this.planeBound.subtract(Vec3.atLowerCornerOf(firstPos));
-         this.angle = wall.x * look.x + wall.z * look.z;
-      }
-
-      public boolean isValid(Vec3 start, Vec3 look, double reach, Player player, boolean skipRaytrace) {
-         return BuildModes.isCriteriaValid(start, look, reach, player, skipRaytrace, this.planeBound, this.planeBound, this.distToPlayerSq);
-      }
    }
 }

@@ -991,8 +991,9 @@ public final class PreviewRenderCache {
     }
 
     // True when the new key differs from the shaped one only by aim: hover
-    // block/face/point or eye block. Anything structural (clicks, mode, held
-    // item, options, limits, dimension…) must rebuild immediately.
+    // block/face/point, eye block, or look direction. Anything structural (clicks,
+    // mode, held item, options, limits, dimension…) must rebuild immediately.
+    // Look is deliberately not compared: plane previews track it in air.
     private static boolean hoverOnlyChange(@Nullable PreviewShapeKey oldKey, PreviewShapeKey key) {
         if (oldKey == null) {
             return false;
@@ -1186,6 +1187,21 @@ public final class PreviewRenderCache {
         }
         Vec3 eye = player.getEyePosition();
 
+        // Plane-derived previews (floor/wall/line/height) move with the look ray
+        // even when the vanilla hit is null (mid-air). Without this the key is
+        // identical frame-to-frame while rotating in air, so the preview freezes
+        // instead of stopping at the imaginary plane. Direct-point modes ignore
+        // look: their hover point already captures aim.
+        float lookX = 0.0F;
+        float lookY = 0.0F;
+        float lookZ = 0.0F;
+        if (inProgress && !mode.instance.usesDirectSecondPoint()) {
+            Vec3 look = player.getLookAngle();
+            lookX = (float) look.x;
+            lookY = (float) look.y;
+            lookZ = (float) look.z;
+        }
+
         return new PreviewShapeKey(
                 mode,
                 inProgress,
@@ -1212,7 +1228,10 @@ public final class PreviewRenderCache {
                 ModeOptions.getPlaneAlign(),
                 player.getAbilities().instabuild,
                 this.configAsyncBoundary,
-                dimensionId(level));
+                dimensionId(level),
+                lookX,
+                lookY,
+                lookZ);
     }
 
     // The dimension registry id allocates a fresh String every call; cache it

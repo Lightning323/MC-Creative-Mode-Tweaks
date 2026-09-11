@@ -2,12 +2,7 @@ package nl.requios.effortlessbuilding.buildmode;
 
 import nl.requios.effortlessbuilding.utilities.BlockSet;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.ClipContext;
-import net.minecraft.world.level.ClipContext.Block;
-import net.minecraft.world.level.ClipContext.Fluid;
-import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
-import net.minecraft.world.phys.HitResult.Type;
 
 public class BuildModes {
    public static final BuildModes CLIENT = new BuildModes();
@@ -65,32 +60,68 @@ public class BuildModes {
       BuildSelectionGuard.CLIENT.reset();
    }
 
+   /**
+    * @deprecated Use {@link RaycastToPlane#intersectXPlane} instead. Kept for
+    *             compatibility; now delegates to the shared plane utils.
+    */
+   @Deprecated
    public static Vec3 findXBound(double x, Vec3 start, Vec3 look) {
+      Vec3 hit = RaycastToPlane.intersectXPlane(x, start, look);
+      if (hit != null) {
+         return hit;
+      }
+      // Legacy fallback preserved the raw formula even for parallel/behind rays
+      // (callers validated afterwards). Keep returning a finite vector here so
+      // old callers behave as before; new code should use RaycastToPlane directly.
       double y = (x - start.x) / look.x * look.y + start.y;
       double z = (x - start.x) / look.x * look.z + start.z;
       return new Vec3(x, y, z);
    }
 
+   /**
+    * @deprecated Use {@link RaycastToPlane#intersectYPlane} instead.
+    */
+   @Deprecated
    public static Vec3 findYBound(double y, Vec3 start, Vec3 look) {
+      Vec3 hit = RaycastToPlane.intersectYPlane(y, start, look);
+      if (hit != null) {
+         return hit;
+      }
       double x = (y - start.y) / look.y * look.x + start.x;
       double z = (y - start.y) / look.y * look.z + start.z;
       return new Vec3(x, y, z);
    }
 
+   /**
+    * @deprecated Use {@link RaycastToPlane#intersectZPlane} instead.
+    */
+   @Deprecated
    public static Vec3 findZBound(double z, Vec3 start, Vec3 look) {
+      Vec3 hit = RaycastToPlane.intersectZPlane(z, start, look);
+      if (hit != null) {
+         return hit;
+      }
       double x = (z - start.z) / look.z * look.x + start.x;
       double y = (z - start.z) / look.z * look.y + start.y;
       return new Vec3(x, y, z);
    }
 
+   /**
+    * Plane-only validity: the look ray stops at {@code planeBound} and registers,
+    * even when the vanilla block raycast hits nothing.
+    *
+    * @deprecated Use {@link RaycastToPlane#isValidPlaneHit} instead. The old
+    *             block-coincidence {@code clip()} check was removed on purpose:
+    *             it only accepted plane hits near a real block hit, which made
+    *             air building impossible. {@code skipRaytrace} and the
+    *             {@code lineBound}/{@code player} parameters are now ignored
+    *             (kept for signature compatibility).
+    */
+   @Deprecated
    public static boolean isCriteriaValid(Vec3 start, Vec3 look, double reach, Player player, boolean skipRaytrace, Vec3 lineBound, Vec3 planeBound, double distToPlayerSq) {
-      boolean intersects = false;
-      if (!skipRaytrace) {
-         ClipContext rayTraceContext = new ClipContext(start, lineBound, Block.COLLIDER, Fluid.NONE, player);
-         BlockHitResult rayTraceResult = player.level().clip(rayTraceContext);
-         intersects = rayTraceResult != null && rayTraceResult.getType() == Type.BLOCK && planeBound.subtract(rayTraceResult.getLocation()).lengthSqr() > (double)4.0F;
+      if (planeBound == null || !Double.isFinite(distToPlayerSq)) {
+         return false;
       }
-
-      return planeBound.subtract(start).dot(look) > (double)0.0F && distToPlayerSq > (double)2.0F && distToPlayerSq < (double)(reach * reach) && !intersects;
+      return RaycastToPlane.isValidPlaneHit(planeBound, start, look, reach);
    }
 }

@@ -31,6 +31,12 @@ import org.jetbrains.annotations.Nullable;
  *   <li>eyeBlock — block containing the camera eye. Look-vector modes
  *       (Plane/Wall/Floor) derive their second point from eye + look, snapped
  *       to blocks, so block-level eye movement is enough to catch changes.</li>
+ *   <li>lookX / lookY / lookZ — live look direction, but only for plane-derived
+ *       previews mid-selection (non-direct modes while in progress). Without it
+ *       the key never changes when rotating in mid-air (hover is null, eye is
+ *       static), so the plane preview would freeze instead of tracking the
+ *       imaginary plane. Direct-point modes leave these zero: their hover point
+ *       already captures aim.</li>
  *   <li>heldItem / trowel / replaceMode / blockAlpha — ghost appearance. A
  *       different held block (or opacity setting) re-tessellates with new states.</li>
  *   <li>offhand — the {@code FILTERED_BY_OFFHAND} replace verdict depends on
@@ -74,6 +80,9 @@ public record PreviewShapeKey(
         ModeOptions.ActionEnum planeAlign,
         boolean creative,
         boolean asyncBoundary,
-        String dimension
+        String dimension,
+        float lookX,
+        float lookY,
+        float lookZ
 ) {
 }

@@ -311,34 +311,9 @@ public abstract class ThreeClicksBuildMode extends BaseBuildMode {
     }
 
     public static BlockPos findHeight(Player player, BlockPos secondPos, boolean skipRaytrace) {
-        Vec3 look = BuildPipeline.getPlayerLookVec(player);
-        Vec3 start = BuildPipeline.getPlayerEyePosition(player);
-        List<HeightCriteria> criteriaList = new ArrayList(2);
-        Vec3 xBound = BuildModes.findXBound((double) secondPos.getX(), start, look);
-        criteriaList.add(new HeightCriteria(xBound, secondPos, start));
-        Vec3 zBound = BuildModes.findZBound((double) secondPos.getZ(), start, look);
-        criteriaList.add(new HeightCriteria(zBound, secondPos, start));
-        double reach = Config.getBuildingReach(player);
-        criteriaList.removeIf((criteriax) -> !criteriax.isValid(start, look, reach, player, skipRaytrace));
-        if (criteriaList.isEmpty()) {
-            return null;
-        } else {
-            HeightCriteria selected = (HeightCriteria) criteriaList.get(0);
-            if (criteriaList.size() > 1) {
-                for (int i = 1; i < criteriaList.size(); ++i) {
-                    HeightCriteria criteria = (HeightCriteria) criteriaList.get(i);
-                    if (criteria.distToLineSq < (double) 2.0F && selected.distToLineSq < (double) 2.0F) {
-                        if (criteria.distToPlayerSq < selected.distToPlayerSq) {
-                            selected = criteria;
-                        }
-                    } else if (criteria.distToLineSq < selected.distToLineSq) {
-                        selected = criteria;
-                    }
-                }
-            }
-
-            return BlockPos.containing(selected.lineBound);
-        }
+        // Plane-only hit: registers even when the vanilla raycast hits no block.
+        // skipRaytrace is kept for signature compatibility and ignored.
+        return RaycastToPlane.findHeight(player, secondPos);
     }
 
     protected abstract BlockPos findSecondPos(Player var1, BlockPos var2, boolean var3);
@@ -458,28 +433,5 @@ public abstract class ThreeClicksBuildMode extends BaseBuildMode {
         }
 
         return new BlockPos(x2, y2, z2);
-    }
-
-    static class HeightCriteria {
-        Vec3 planeBound;
-        Vec3 lineBound;
-        double distToLineSq;
-        double distToPlayerSq;
-
-        HeightCriteria(Vec3 planeBound, BlockPos secondPos, Vec3 start) {
-            this.planeBound = planeBound;
-            this.lineBound = this.toLongestLine(this.planeBound, secondPos);
-            this.distToLineSq = this.lineBound.subtract(this.planeBound).lengthSqr();
-            this.distToPlayerSq = this.planeBound.subtract(start).lengthSqr();
-        }
-
-        private Vec3 toLongestLine(Vec3 boundVec, BlockPos secondPos) {
-            BlockPos bound = BlockPos.containing(boundVec);
-            return new Vec3((double) secondPos.getX(), (double) bound.getY(), (double) secondPos.getZ());
-        }
-
-        public boolean isValid(Vec3 start, Vec3 look, double reach, Player player, boolean skipRaytrace) {
-            return BuildModes.isCriteriaValid(start, look, reach, player, skipRaytrace, this.lineBound, this.planeBound, this.distToPlayerSq);
-        }
     }
 }

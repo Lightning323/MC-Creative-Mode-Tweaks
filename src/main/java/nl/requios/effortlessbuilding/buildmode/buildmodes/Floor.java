@@ -3,30 +3,17 @@ package nl.requios.effortlessbuilding.buildmode.buildmodes;
 import java.util.ArrayList;
 import java.util.List;
 import it.unimi.dsi.fastutil.longs.LongConsumer;
-import nl.requios.effortlessbuilding.buildmode.BuildModes;
 import nl.requios.effortlessbuilding.buildmode.ModeOptions;
+import nl.requios.effortlessbuilding.buildmode.RaycastToPlane;
 import nl.requios.effortlessbuilding.buildmode.TwoClicksBuildMode;
-import nl.requios.effortlessbuilding.buildpipeline.BuildPipeline;
-import org.lightning323.creative_mode_tweaks.Config;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.phys.Vec3;
 
 public class Floor extends TwoClicksBuildMode {
    public static BlockPos findFloor(Player player, BlockPos firstPos, boolean skipRaytrace) {
-      Vec3 look = BuildPipeline.getPlayerLookVec(player);
-      Vec3 start = BuildPipeline.getPlayerEyePosition(player);
-      List<Criteria> criteriaList = new ArrayList(3);
-      Vec3 yBound = BuildModes.findYBound((double)firstPos.getY(), start, look);
-      criteriaList.add(new Criteria(yBound, start));
-      double reach = Config.getBuildingReach(player);
-      criteriaList.removeIf((criteria) -> !criteria.isValid(start, look, reach, player, skipRaytrace));
-      if (criteriaList.isEmpty()) {
-         return null;
-      } else {
-         Criteria selected = (Criteria)criteriaList.get(0);
-         return BlockPos.containing(selected.planeBound);
-      }
+      // Plane-only hit: registers even when the vanilla raycast hits no block.
+      // skipRaytrace is kept for signature compatibility and ignored.
+      return RaycastToPlane.findFloor(player, firstPos);
    }
 
    public static List<BlockPos> getFloorBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2) {
@@ -101,19 +88,5 @@ public class Floor extends TwoClicksBuildMode {
    @Override
    protected void forEachAllBlocks(Player player, int x1, int y1, int z1, int x2, int y2, int z2, LongConsumer out) {
       forEachFloorBlocksOption(x1, x2, y1, z1, z2, ModeOptions.getFill() == ModeOptions.ActionEnum.FULL, out);
-   }
-
-   static class Criteria {
-      Vec3 planeBound;
-      double distToPlayerSq;
-
-      Criteria(Vec3 planeBound, Vec3 start) {
-         this.planeBound = planeBound;
-         this.distToPlayerSq = this.planeBound.subtract(start).lengthSqr();
-      }
-
-      public boolean isValid(Vec3 start, Vec3 look, double reach, Player player, boolean skipRaytrace) {
-         return BuildModes.isCriteriaValid(start, look, reach, player, skipRaytrace, this.planeBound, this.planeBound, this.distToPlayerSq);
-      }
    }
 }

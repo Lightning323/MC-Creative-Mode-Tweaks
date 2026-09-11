@@ -2,16 +2,13 @@ package nl.requios.effortlessbuilding.buildmode.buildmodes;
 
 import java.util.ArrayList;
 import java.util.List;
-import nl.requios.effortlessbuilding.buildmode.BuildModes;
 import nl.requios.effortlessbuilding.buildmode.ModeOptions;
+import nl.requios.effortlessbuilding.buildmode.RaycastToPlane;
 import nl.requios.effortlessbuilding.buildmode.ThreeClicksBuildMode;
-import nl.requios.effortlessbuilding.buildpipeline.BuildPipeline;
-import org.lightning323.creative_mode_tweaks.Config;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
-import net.minecraft.world.phys.Vec3;
 
 /** Builds a hemisphere extending away from the face selected on the first click. */
 public class Dome extends ThreeClicksBuildMode {
@@ -31,45 +28,16 @@ public class Dome extends ThreeClicksBuildMode {
 
    @Override
    protected BlockPos findSecondPos(Player player, BlockPos firstPos, boolean skipRaytrace) {
-      Vec3 start = BuildPipeline.getPlayerEyePosition(player);
-      Vec3 look = BuildPipeline.getPlayerLookVec(player);
-      Vec3 planeBound = switch (this.direction.getAxis()) {
-         case X -> BuildModes.findXBound(firstPos.getX(), start, look);
-         case Y -> BuildModes.findYBound(firstPos.getY(), start, look);
-         case Z -> BuildModes.findZBound(firstPos.getZ(), start, look);
-      };
-      double distanceToPlayerSq = planeBound.subtract(start).lengthSqr();
-      return BuildModes.isCriteriaValid(start, look, Config.getBuildingReach(player), player, skipRaytrace, planeBound, planeBound, distanceToPlayerSq)
-         ? BlockPos.containing(planeBound)
-         : null;
+      // Plane-only hit: registers even when the vanilla raycast hits no block.
+      // skipRaytrace is kept for signature compatibility and ignored.
+      return RaycastToPlane.findNormalPlane(this.direction.getAxis(), player, firstPos);
    }
 
    @Override
    protected BlockPos findThirdPos(Player player, BlockPos firstPos, BlockPos secondPos, boolean skipRaytrace) {
-      Vec3 start = BuildPipeline.getPlayerEyePosition(player);
-      Vec3 look = BuildPipeline.getPlayerLookVec(player);
-      List<HeightCandidate> candidates = new ArrayList<>(2);
-      for (Direction.Axis axis : perpendicularAxes(this.direction.getAxis())) {
-         Vec3 planeBound = findAxisBound(axis, coordinate(secondPos, axis), start, look);
-         Vec3 lineBound = pointOnDirectionAxis(planeBound, secondPos, this.direction.getAxis());
-         candidates.add(new HeightCandidate(planeBound, lineBound, start));
-      }
-
-      double reach = Config.getBuildingReach(player);
-      candidates.removeIf(candidate -> !BuildModes.isCriteriaValid(start, look, reach, player, skipRaytrace, candidate.lineBound, candidate.planeBound, candidate.distanceToPlayerSq));
-      if (candidates.isEmpty()) {
-         return null;
-      }
-
-      HeightCandidate selected = candidates.getFirst();
-      for (int i = 1; i < candidates.size(); ++i) {
-         HeightCandidate candidate = candidates.get(i);
-         if (candidate.distanceToLineSq < selected.distanceToLineSq || candidate.distanceToLineSq < 2.0D && selected.distanceToLineSq < 2.0D && candidate.distanceToPlayerSq < selected.distanceToPlayerSq) {
-            selected = candidate;
-         }
-      }
-
-      return BlockPos.containing(selected.lineBound);
+      // Plane-only hit: registers even when the vanilla raycast hits no block.
+      // skipRaytrace is kept for signature compatibility and ignored.
+      return RaycastToPlane.findPerpendicularHeight(this.direction.getAxis(), player, secondPos);
    }
 
     @Override
@@ -217,42 +185,12 @@ public class Dome extends ThreeClicksBuildMode {
       };
    }
 
-   private static Vec3 findAxisBound(Direction.Axis axis, int coordinate, Vec3 start, Vec3 look) {
-      return switch (axis) {
-         case X -> BuildModes.findXBound(coordinate, start, look);
-         case Y -> BuildModes.findYBound(coordinate, start, look);
-         case Z -> BuildModes.findZBound(coordinate, start, look);
-      };
-   }
-
-   private static Vec3 pointOnDirectionAxis(Vec3 point, BlockPos base, Direction.Axis directionAxis) {
-      return switch (directionAxis) {
-         case X -> new Vec3(point.x, base.getY(), base.getZ());
-         case Y -> new Vec3(base.getX(), point.y, base.getZ());
-         case Z -> new Vec3(base.getX(), base.getY(), point.z);
-      };
-   }
-
    private static int coordinate(BlockPos pos, Direction.Axis axis) {
       return switch (axis) {
          case X -> pos.getX();
          case Y -> pos.getY();
          case Z -> pos.getZ();
       };
-   }
-
-   private static class HeightCandidate {
-      private final Vec3 planeBound;
-      private final Vec3 lineBound;
-      private final double distanceToLineSq;
-      private final double distanceToPlayerSq;
-
-      private HeightCandidate(Vec3 planeBound, Vec3 lineBound, Vec3 start) {
-         this.planeBound = planeBound;
-         this.lineBound = lineBound;
-         this.distanceToLineSq = lineBound.subtract(planeBound).lengthSqr();
-         this.distanceToPlayerSq = planeBound.subtract(start).lengthSqr();
-      }
    }
 
    private static class DomeBounds {
