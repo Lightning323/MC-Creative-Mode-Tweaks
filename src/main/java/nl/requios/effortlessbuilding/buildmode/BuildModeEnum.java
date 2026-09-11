@@ -16,7 +16,7 @@ public enum BuildModeEnum {
    CYLINDER("cylinder", new Cylinder(), BuildModeCategoryEnum.CIRCULAR, AllIcons.I_CYLINDER, new ModeOptions.OptionEnum[]{ModeOptions.OptionEnum.CIRCLE_START, ModeOptions.OptionEnum.FILL, ModeOptions.OptionEnum.POINT_BUILD}),
    CONE("cone", new Cone(), BuildModeCategoryEnum.CIRCULAR, AllIcons.I_CONE, new ModeOptions.OptionEnum[]{ModeOptions.OptionEnum.CIRCLE_START, ModeOptions.OptionEnum.FILL, ModeOptions.OptionEnum.POINT_BUILD}),
    SPHERE("sphere", new Sphere(), BuildModeCategoryEnum.CIRCULAR, AllIcons.I_SPHERE, new ModeOptions.OptionEnum[]{ModeOptions.OptionEnum.CIRCLE_START, ModeOptions.OptionEnum.POINT_BUILD, ModeOptions.OptionEnum.FILL}),
-   DOME("dome", new Dome(), BuildModeCategoryEnum.CIRCULAR, AllIcons.I_DOME, new ModeOptions.OptionEnum[]{ModeOptions.OptionEnum.CIRCLE_START, ModeOptions.OptionEnum.FILL}),
+   DOME("dome", new Dome(), BuildModeCategoryEnum.CIRCULAR, AllIcons.I_DOME, new ModeOptions.OptionEnum[]{ModeOptions.OptionEnum.CIRCLE_START, ModeOptions.OptionEnum.FILL, ModeOptions.OptionEnum.POINT_BUILD}),
 
    MESH("mesh", new Mesh(), BuildModeCategoryEnum.COMPLEX, AllIcons.I_MESH, new ModeOptions.OptionEnum[]{ModeOptions.OptionEnum.MESH_FACE}),
    PYRAMID("pyramid", new Pyramid(), BuildModeCategoryEnum.COMPLEX, AllIcons.I_PYRAMID, new ModeOptions.OptionEnum[]{ModeOptions.OptionEnum.CIRCLE_START, ModeOptions.OptionEnum.SIDES, ModeOptions.OptionEnum.FILL});
