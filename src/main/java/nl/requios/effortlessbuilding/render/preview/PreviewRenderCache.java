@@ -507,9 +507,12 @@ public final class PreviewRenderCache {
         // rehash repeatedly on the way to thousands of entries.
         int est = (int) Math.min(boundaryVol, (long) maxBlocks * 2L);
         BlockSet blocks = new BlockSet(Math.max(16, Math.min(est, PRESIZE_CAP)));
+        String shapeInfo;
         try (SableCompat.SelectionScope ignored = SableCompat.pushSelection(level, anchor)) {
             // Preview path: bare positions only, never the exact placement list.
             mode.instance.getPlacementBlocks(blocks, player, false);
+            // Same scope: the info readout raycasts through SableCompat too.
+            shapeInfo = mode.instance.getShapeInfo(player);
         }
         this.throttleMode = blocks.size() > configPreviewRenderThrottleBlocks;
 
@@ -537,9 +540,9 @@ public final class PreviewRenderCache {
         }
 
         if (this.throttleMode) {
-            shapeFast(mc, player, level, state, hit, key, blocks);
+            shapeFast(mc, player, level, state, hit, key, blocks, shapeInfo);
         } else {
-            shapeDetailed(mc, player, level, state, hit, key, blocks, anchor);
+            shapeDetailed(mc, player, level, state, hit, key, blocks, anchor, shapeInfo);
         }
     }
 
@@ -636,7 +639,7 @@ public final class PreviewRenderCache {
         this.pendingBoundaryBad = List.of();
 
         // Count + dims from the already-known bounds: no list rescan.
-        RenderHandler.updateFeedbackSimple(estimatedCount, min, max, state != null, state, overCap);
+        RenderHandler.updateFeedbackSimple(estimatedCount, min, max, state != null, state, overCap, null);
     }
 
     /**
@@ -651,7 +654,7 @@ public final class PreviewRenderCache {
     private void shapeFast(Minecraft mc, Player player, Level level,
                            BuildPipeline.@Nullable BuildState state,
                            @Nullable BlockHitResult hit, PreviewShapeKey key,
-                           BlockSet blocks) {
+                           BlockSet blocks, @Nullable String shapeInfo) {
         this.overlayMesh.setIsSimple(false);
         BuildPipeline.BuildState action = state != null ? state : BuildPipeline.BuildState.PLACING;
         // Appearance only: per-block trowel items. Hotbar scan + hash pick,
@@ -760,7 +763,7 @@ public final class PreviewRenderCache {
         // Sound + action-bar feedback, exactly like the detailed path.
         RenderHandler.updateFeedbackSimple(ok.size(),
                 new BlockPos(minX, minY, minZ), new BlockPos(maxX, maxY, maxZ),
-                state != null, state, this.overLimit);
+                state != null, state, this.overLimit, shapeInfo);
 
         if (this.wantsBlocks) {
             this.pendingMeshBlocks = Collections.unmodifiableList(meshBlocks);
@@ -782,7 +785,7 @@ public final class PreviewRenderCache {
     private void shapeDetailed(Minecraft mc, Player player, Level level,
                                BuildPipeline.@Nullable BuildState state,
                                @Nullable BlockHitResult hit, PreviewShapeKey key,
-                               BlockSet blocks, BlockPos anchor) {
+                               BlockSet blocks, BlockPos anchor, @Nullable String shapeInfo) {
         // NOTE: no sorting before processBlocks — and that is deliberate.
         // ConstraintSystem preserves GENERATION order, and the server pipeline
         // runs the exact same way. Sorting first would preview a different
@@ -974,7 +977,7 @@ public final class PreviewRenderCache {
         // from the split pass above: no second list rescan.
         RenderHandler.updateFeedbackSimple(ok.size() + bad.size(),
                 new BlockPos(minX, minY, minZ), new BlockPos(maxX, maxY, maxZ),
-                state != null, state, this.overLimit);
+                state != null, state, this.overLimit, shapeInfo);
 
         if (this.wantsBlocks) {
             this.pendingMeshBlocks = Collections.unmodifiableList(meshBlocks);

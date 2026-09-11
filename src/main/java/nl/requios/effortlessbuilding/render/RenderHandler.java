@@ -48,10 +48,12 @@ public class RenderHandler {
       *
       * @param overLimit when true the count cap cut blocks out of this shape, so
       *                  the line renders red: the whole thing won't get built.
+      * @param extraInfo optional mode readout (e.g. circle circularity),
+      *                  appended after the count/dims when non-null.
       */
      public static void updateFeedbackSimple(int count, BlockPos min, BlockPos max,
                                             boolean sequenceActive, BuildPipeline.BuildState pendingAction,
-                                            boolean overLimit) {
+                                            boolean overLimit, @Nullable String extraInfo) {
        Minecraft mc = Minecraft.getInstance();
        if (mc.player != null && mc.level != null) {
           playTickSound(mc, min, count, sequenceActive, pendingAction);
@@ -62,7 +64,7 @@ public class RenderHandler {
              cachedFeedback = buildCountMessage(count,
                      max.getX() - min.getX() + 1,
                      max.getY() - min.getY() + 1,
-                     max.getZ() - min.getZ() + 1, overLimit);
+                     max.getZ() - min.getZ() + 1, overLimit, extraInfo);
              mc.player.displayClientMessage(cachedFeedback, true);
           }
        }
@@ -104,7 +106,7 @@ public class RenderHandler {
        mc.level.playLocalSound(at, sound, SoundSource.BLOCKS, soundType.getVolume() * 0.25F, soundType.getPitch(), false);
     }
 
-    private static Component buildCountMessage(int count, int dx, int dy, int dz, boolean overLimit) {
+    private static Component buildCountMessage(int count, int dx, int dy, int dz, boolean overLimit, @Nullable String extraInfo) {
        int[] dims = Arrays.stream(new int[]{dx, dy, dz}).filter((d) -> d > 1).toArray();
        String msg;
        if (dims.length <= 1) {
@@ -122,6 +124,10 @@ public class RenderHandler {
 
           sb.append(')');
           msg = sb.toString();
+       }
+
+       if (extraInfo != null && !extraInfo.isEmpty()) {
+          msg = msg + " · " + extraInfo;
        }
 
        return overLimit ? Component.literal(msg).withStyle(ChatFormatting.RED) : Component.literal(msg);

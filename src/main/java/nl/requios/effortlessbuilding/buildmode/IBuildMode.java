@@ -112,6 +112,15 @@ public interface IBuildMode {
       return ModeOptions.getPointBuild();
    }
 
+   /**
+    * Extra one-line shape readout for the action-bar feedback (e.g. whether a
+    * circle is perfect and its axis ratio). Appended after the count/dims when
+    * non-null. Called on shape change only, so it may raycast.
+    */
+   default @Nullable String getShapeInfo(Player player) {
+      return null;
+   }
+
    default boolean isFirstClick() {
       return true;
    }
