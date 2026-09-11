@@ -5,7 +5,6 @@ import java.util.List;
 import it.unimi.dsi.fastutil.longs.LongConsumer;
 import net.minecraft.world.phys.AABB;
 import nl.requios.effortlessbuilding.utilities.BlockSet;
-import nl.requios.effortlessbuilding.utilities.FloodFill;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.player.Player;
@@ -97,24 +96,6 @@ public interface IBuildMode {
 
    default @Nullable BlockPos getIntermediatePos() {
       return null;
-   }
-
-   /**
-    * Flood-fill seed hint for the flood-fill replace mode: the shape's
-    * centerpoint, from which the breadth-first search spreads. Points may be
-    * null when unknown (in-progress preview); implementations must fall back
-    * to the shape itself then. The flood runner snaps the hint into the set,
-    * so it need not be a shape position.
-    *
-    * <p>This is the fallback seed, used only when no aimed seed (block hit
-    * plus face normal) is available. Default: the bounds-center of the
-    * enumerated shape, which is the true center for every symmetric shape
-    * (cubes, walls, spheres, discs). Modes whose natural center differs
-    * (e.g. Cylinder's base-disc center) override this.</p>
-    */
-   default BlockPos getFloodFillOrigin(BlockSet shapeBlocks, @Nullable BlockPos firstPos, @Nullable BlockPos secondPos,
-                                       @Nullable BlockPos thirdPos, @Nullable BlockPos fourthPos) {
-      return FloodFill.centerOf(shapeBlocks);
    }
 
    /** Additional selection vertices used by modes that need more than three clicks. */

@@ -792,19 +792,6 @@ public final class PreviewRenderCache {
         // subset than placed.
         this.overlayMesh.setIsSimple(false);
         BuildPipeline.BuildState action = state != null ? state : BuildPipeline.BuildState.PLACING;
-        // Flood-fill seed is the cell a block would be placed into for the
-        // live aim (replaceable hits in place, otherwise adjacent): open
-        // space by construction, so the fill never starts buried inside a
-        // solid block. Null (air aim, other modes) falls back to the shape
-        // centerpoint in the flood runner.
-        if (action == BuildPipeline.BuildState.PLACING
-                && BuildSettings.CLIENT.getReplaceMode() == BuildSettings.ReplaceMode.FLOOD_FILL
-                && hit != null) {
-            BlockPos placeCell = resolvePlacePos(hit, action, level, player);
-            blocks.floodSeed = SableCompat.isInSameSelection(level, anchor, placeCell) ? placeCell : null;
-        } else {
-            blocks.floodSeed = null;
-        }
         // Full placement logic: modifiers, reach caps, tile-entity scans,
         // survival checks, replacement handling.
         try (SableCompat.SelectionScope ignored = SableCompat.pushSelection(level, anchor)) {

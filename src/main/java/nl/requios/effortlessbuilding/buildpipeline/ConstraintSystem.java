@@ -4,13 +4,10 @@ import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import java.util.HashMap;
 import java.util.Map;
 import org.lightning323.creative_mode_tweaks.Config;
-import nl.requios.effortlessbuilding.buildmode.BuildModes;
-import nl.requios.effortlessbuilding.buildmode.BuildModeEnum;
 import nl.requios.effortlessbuilding.buildmode.BuildSettings;
 import nl.requios.effortlessbuilding.utilities.BlockEntry;
 import nl.requios.effortlessbuilding.utilities.BlockSet;
 import nl.requios.effortlessbuilding.utilities.BlockStatus;
-import nl.requios.effortlessbuilding.utilities.FloodFill;
 import nl.requios.effortlessbuilding.utilities.InventoryHelper;
 import nl.requios.effortlessbuilding.utilities.PlacedBlockTracker;
 import net.minecraft.core.BlockPos;
@@ -20,7 +17,6 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
-import org.jetbrains.annotations.Nullable;
 
 public class ConstraintSystem implements IBuildSystem {
    public static final ConstraintSystem INSTANCE = new ConstraintSystem();
@@ -83,13 +79,6 @@ public class ConstraintSystem implements IBuildSystem {
       // No max-blocks truncation: every valid block in the shape is kept and
       // placed, regardless of building.*.max_blocks_placed. (Survival stock
       // below still applies.)
-
-      // Flood-fill replace: keep only the region connected to the shape's
-      // centerpoint before survival stock and tile checks, so both count
-      // what will actually place. First rejection wins, like everything else.
-      if (!isBreaking) {
-         applyFloodFillFilter(blocks, player, level);
-      }
 
       // Survival stock: when the player cannot supply the whole shape, cut
       // it to what can actually be set — red count text plus affordable-only
@@ -212,55 +201,8 @@ public class ConstraintSystem implements IBuildSystem {
        }
     }
 
-    /**
-     * Flood-fill replace gate, shared by the live preview and server-side
-     * placement so both agree. Runs before stock/tile/survival checks (which
-     * all skip rejected entries) and after the reach/border marks above.
-     * The server learns the mode and selection points from the placement
-     * context; the preview reassembles them from the live client state.
-     *
-     * <p>The flood seeds from the aimed placement cell (block hit plus face
-     * normal), which is open space by construction, and only falls back to
-     * the shape centerpoint when no aim seed is available — so the fill never
-     * starts buried inside a solid block.</p>
-     */
-    private static void applyFloodFillFilter(BlockSet blocks, Player player, Level level) {
-       BuildModeEnum mode;
-       BlockPos firstPos;
-       BlockPos secondPos;
-       BlockPos thirdPos;
-       BlockPos fourthPos;
-       BlockPos aimSeed;
-       if (level.isClientSide()) {
-          if (BuildSettings.CLIENT.getReplaceMode() != BuildSettings.ReplaceMode.FLOOD_FILL) {
-             return;
-          }
-          mode = BuildModes.CLIENT.getBuildMode();
-          firstPos = blocks.firstPos;
-          BlockPos intermediate = mode.instance.getIntermediatePos();
-          secondPos = intermediate != null ? intermediate : blocks.lastPos;
-          thirdPos = mode.instance.getThirdSelectionPos();
-          fourthPos = mode.instance.getFourthSelectionPos();
-          aimSeed = blocks.floodSeed;
-       } else {
-          PlacementContext ctx = (PlacementContext)PLACEMENT_CTX.get();
-          if (ctx == null || ctx.replaceMode() != BuildSettings.ReplaceMode.FLOOD_FILL || ctx.mode() == null) {
-             return;
-          }
-          mode = ctx.mode();
-          firstPos = ctx.firstPos();
-          secondPos = ctx.secondPos();
-          thirdPos = ctx.thirdPos();
-          fourthPos = ctx.fourthPos();
-          aimSeed = ctx.floodSeed();
-       }
-       BlockPos seed = aimSeed != null ? aimSeed
-             : mode.instance.getFloodFillOrigin(blocks, firstPos, secondPos, thirdPos, fourthPos);
-       FloodFill.retainConnected(level, blocks, seed);
-    }
-
-    /**
-     * Survival stock cap. Mirrors the server placement accounting (which
+   /**
+    * Survival stock cap. Mirrors the server placement accounting (which
     * places up to the available stock, then stops), so preview and
     * placement agree on the affordable subset in generation order.
     * Entries beyond stock are marked {@link BlockStatus#INSUFFICIENT_ITEMS},
@@ -331,8 +273,6 @@ public class ConstraintSystem implements IBuildSystem {
       }
    }
 
-    public static record PlacementContext(boolean protectTileEntities, @Nullable BuildSettings.ReplaceMode replaceMode,
-                                          @Nullable BuildModeEnum mode, @Nullable BlockPos firstPos, @Nullable BlockPos secondPos,
-                                          @Nullable BlockPos thirdPos, @Nullable BlockPos fourthPos, @Nullable BlockPos floodSeed) {
-    }
+   public static record PlacementContext(boolean protectTileEntities) {
+   }
 }

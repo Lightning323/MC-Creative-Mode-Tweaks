@@ -46,7 +46,6 @@ public class BuildSettings {
          case 1 -> var10000 = ModeOptions.ActionEnum.REPLACE_BLOCKS_AND_AIR;
          case 2 -> var10000 = ModeOptions.ActionEnum.REPLACE_ONLY_BLOCKS;
          case 3 -> var10000 = ModeOptions.ActionEnum.REPLACE_FILTERED_BY_OFFHAND;
-         case 4 -> var10000 = ModeOptions.ActionEnum.REPLACE_FLOOD_FILL;
          default -> throw new MatchException((String)null, (Throwable)null);
       }
 
@@ -54,11 +53,7 @@ public class BuildSettings {
    }
 
    public boolean shouldOffsetStartPosition() {
-      // Flood fill resolves its start like normal block placement (in place
-      // for replaceables, adjacent for solids) so the shape starts next to
-      // the hit block instead of inside it. All other modes unchanged.
-      ReplaceMode mode = this.getReplaceMode();
-      return mode != ReplaceMode.ONLY_AIR && mode != ReplaceMode.FLOOD_FILL;
+      return this.getReplaceMode() != ReplaceMode.ONLY_AIR;
    }
 
    public static boolean canPlaceAt(Level level, BlockPos pos, ReplaceMode replaceMode, ItemStack offHandStack) {
@@ -84,12 +79,6 @@ public class BuildSettings {
                var10000 = offHandStack.getItem() == existingBlockItem;
             }
             break;
-         case 4:
-            // Flood fill gates on air/liquid connectivity (applied separately
-            // by FloodFill): only connected air and liquid is replaced, solid
-            // blocks never pass the fill.
-            var10000 = true;
-            break;
          default:
             throw new MatchException((String)null, (Throwable)null);
       }
@@ -106,12 +95,11 @@ public class BuildSettings {
       ONLY_AIR,
       BLOCKS_AND_AIR,
       ONLY_BLOCKS,
-      FILTERED_BY_OFFHAND,
-      FLOOD_FILL;
+      FILTERED_BY_OFFHAND;
 
       // $FF: synthetic method
       private static ReplaceMode[] $values() {
-         return new ReplaceMode[]{ONLY_AIR, BLOCKS_AND_AIR, ONLY_BLOCKS, FILTERED_BY_OFFHAND, FLOOD_FILL};
+         return new ReplaceMode[]{ONLY_AIR, BLOCKS_AND_AIR, ONLY_BLOCKS, FILTERED_BY_OFFHAND};
       }
    }
 }

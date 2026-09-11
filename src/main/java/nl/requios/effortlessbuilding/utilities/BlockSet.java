@@ -33,13 +33,6 @@ public class BlockSet implements Iterable<BlockEntry> {
    public BlockPos firstPos;
    public BlockPos lastPos;
    public boolean skipFirst;
-   /**
-    * Flood-fill seed override: the cell a block would be placed into for the
-    * current aim (replaceable hits in place, otherwise adjacent). Set per
-    * shape by the preview/placement driver when known; the flood runner falls
-    * back to the shape centerpoint when null.
-    */
-   public @Nullable BlockPos floodSeed;
 
    private final Long2ObjectLinkedOpenHashMap<BlockEntry> entries;
 
@@ -59,7 +52,6 @@ public class BlockSet implements Iterable<BlockEntry> {
       this.firstPos = other.firstPos;
       this.lastPos = other.lastPos;
       this.skipFirst = other.skipFirst;
-      this.floodSeed = other.floodSeed;
    }
 
    public BlockSet(List<BlockEntry> blockEntries, BlockPos firstPos, BlockPos lastPos, boolean skipFirst) {
