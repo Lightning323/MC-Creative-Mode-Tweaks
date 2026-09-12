@@ -80,13 +80,6 @@ public class ConstraintSystem implements IBuildSystem {
       // placed, regardless of building.*.max_blocks_placed. (Survival stock
       // below still applies.)
 
-      // Survival stock: when the player cannot supply the whole shape, cut
-      // it to what can actually be set — red count text plus affordable-only
-      // ghosts, identical to the max-blocks cap above. Creative is exempt.
-      if (!isBreaking && !player.getAbilities().instabuild) {
-         applySurvivalInventoryCap(blocks, player);
-      }
-
       boolean protectTiles = this.getProtectTileEntities();
       if (protectTiles) {
          if (this.useTileMemo(level, protectTiles)) {
@@ -180,26 +173,41 @@ public class ConstraintSystem implements IBuildSystem {
           }
        }
 
-       // Replacement preview for every gamemode: the server filters each
-       // position through canPlaceAt at placement time (PacketHandler), so
-       // the preview must show the same verdict — otherwise creative shows
-       // white ghosts for blocks that will silently never place, and the
-       // red rejected overlay effectively only ever appears in survival.
-       // Runs last so survival keeps its more specific statuses (first
-       // rejection wins). Client-only: BuildSettings.CLIENT touches
-       // Minecraft; the server enforces the same rule inline when placing.
-       if (!isBreaking && level.isClientSide()) {
-          BuildSettings.ReplaceMode replaceMode = BuildSettings.CLIENT.getReplaceMode();
-          if (replaceMode != BuildSettings.ReplaceMode.BLOCKS_AND_AIR) {
-             ItemStack offHand = player.getOffhandItem();
-             for (BlockEntry entry : blocks.values()) {
-                if (entry.isValid() && !BuildSettings.canPlaceAt(level, entry.blockPos, replaceMode, offHand)) {
-                   entry.markRejected(BlockStatus.NOT_REPLACEABLE);
-                }
-             }
-          }
-       }
-    }
+      // Replacement filtering for every gamemode: the server filters each
+      // position through canPlaceAt at placement time (PacketHandler), so
+      // the preview must show the same verdict — otherwise creative shows
+      // white ghosts for blocks that will silently never place, and the
+      // red rejected overlay effectively only ever appears in survival.
+      // Runs before the survival stock cap below so unplaceable positions
+      // never consume stock: otherwise the cap would reserve inventory for
+      // blocks that placement later skips, leaving leftover stacks after
+      // a partial build. First rejection still wins (markRejected only
+      // touches VALID entries), so survival keeps its more specific
+      // statuses. Server path resolves the mode from the placement
+      // context (packet); client path uses BuildSettings.CLIENT.
+      if (!isBreaking) {
+         BuildSettings.ReplaceMode replaceMode = this.getReplaceMode(level);
+         if (replaceMode != null && replaceMode != BuildSettings.ReplaceMode.BLOCKS_AND_AIR) {
+            ItemStack offHand = player.getOffhandItem();
+            for (BlockEntry entry : blocks.values()) {
+               if (entry.isValid() && !BuildSettings.canPlaceAt(level, entry.blockPos, replaceMode, offHand)) {
+                  entry.markRejected(BlockStatus.NOT_REPLACEABLE);
+               }
+            }
+         }
+      }
+
+      // Survival stock: when the player cannot supply the whole shape, cut
+      // it to what can actually be set — red count text plus affordable-only
+      // ghosts. Must run LAST, after every other placing rejection above
+      // (reach, tiles, hardness/tools, replacement): each of those is also
+      // skipped without consumption at placement time, so counting them
+      // against stock would mark later placeable blocks INSUFFICIENT while
+      // leaving inventory unspent.
+      if (!isBreaking && !player.getAbilities().instabuild) {
+         applySurvivalInventoryCap(blocks, player);
+      }
+   }
 
    /**
     * Survival stock cap. Mirrors the server placement accounting (which
@@ -273,6 +281,30 @@ public class ConstraintSystem implements IBuildSystem {
       }
    }
 
-   public static record PlacementContext(boolean protectTileEntities) {
+   /**
+    * Replacement mode for the current pipeline run. Server runs resolve
+    * from the placement context (authoritative packet value); the client
+    * preview has no context and falls back to its live setting. Null means
+    * "no filtering" (breaking runs, or a server run without a mode).
+    */
+   private BuildSettings.ReplaceMode getReplaceMode(Level level) {
+      PlacementContext ctx = (PlacementContext)PLACEMENT_CTX.get();
+      if (ctx != null && ctx.replaceMode() != null) {
+         return ctx.replaceMode();
+      }
+      if (level.isClientSide()) {
+         try {
+            return BuildSettings.CLIENT.getReplaceMode();
+         } catch (Exception e) {
+            return null;
+         }
+      }
+      return null;
+   }
+
+   public static record PlacementContext(boolean protectTileEntities, BuildSettings.ReplaceMode replaceMode) {
+      public PlacementContext(boolean protectTileEntities) {
+         this(protectTileEntities, null);
+      }
    }
 }

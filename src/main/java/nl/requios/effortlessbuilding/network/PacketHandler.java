@@ -1,5 +1,6 @@
 package nl.requios.effortlessbuilding.network;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -153,7 +154,7 @@ public class PacketHandler {
 
     private static void handlePlaceBuildModeInSelection(PlaceBuildModePacket packet, ServerPlayer player) {
        ServerLevel level = player.serverLevel();
-       BlockSet blockSet = BuildPipeline.SERVER.runServerPipeline(packet.buildMode(), packet.firstPos(), packet.secondPos(), packet.thirdPos(), packet.fourthPos(), packet.hitFace(), player, BuildPipeline.BuildState.PLACING, packet.fill(), packet.cubeFill(), packet.raisedEdge(), packet.circleStart(), packet.pointBuild(), packet.sides(), packet.planeAlign(), packet.protectTileEntities());
+       BlockSet blockSet = BuildPipeline.SERVER.runServerPipeline(packet.buildMode(), packet.firstPos(), packet.secondPos(), packet.thirdPos(), packet.fourthPos(), packet.hitFace(), player, BuildPipeline.BuildState.PLACING, packet.fill(), packet.cubeFill(), packet.raisedEdge(), packet.circleStart(), packet.pointBuild(), packet.sides(), packet.planeAlign(), packet.protectTileEntities(), packet.replaceMode());
       if (blockSet == null) {
          Constants.LOG.warn("[EffortlessBuilding] Received PlaceBuildModePacket but mode {} returned no blocks", packet.buildMode());
       } else {
@@ -175,7 +176,12 @@ public class PacketHandler {
             Map<Item, Integer> used = new HashMap();
             double yFrac = packet.hitLocation().y - Math.floor(packet.hitLocation().y);
 
-            for (BlockEntry entry : blockSet.validEntries()) {
+            // Candidates include INSUFFICIENT_ITEMS entries past the stock cap:
+            // the cap now runs after every other rejection, so those are
+            // placeable positions cut only for stock. Placement-time skips
+            // below (useOn failure, missing support) don't consume, so later
+            // candidates must refill the stock instead of leaving leftovers.
+            for (BlockEntry entry : placeableCandidates(blockSet)) {
                BlockPos pos = entry.blockPos;
                Item var22 = entry.item;
                if (!(var22 instanceof BlockItem blockItem)) {
@@ -255,9 +261,13 @@ public class PacketHandler {
                   available = inventoryCount + ae2Extracted;
                }
 
-               double yFrac = packet.hitLocation().y - Math.floor(packet.hitLocation().y);
+                double yFrac = packet.hitLocation().y - Math.floor(packet.hitLocation().y);
 
-               for (BlockEntry entry : blockSet.validEntries()) {
+                // See trowel loop above: iterate past the stock cap so
+                // placement-time skips (unreplaceable, missing support)
+                // refill from later affordable positions instead of
+                // leaving inventory unspent.
+                for (BlockEntry entry : placeableCandidates(blockSet)) {
                   BlockPos pos = entry.blockPos;
                   if (!creative && placed >= available) {
                      break;
@@ -421,7 +431,7 @@ public class PacketHandler {
 
     private static void handleBreakBuildModeInSelection(BreakBuildModePacket packet, ServerPlayer player, boolean creative) {
           ServerLevel level = player.serverLevel();
-          BlockSet blockSet = BuildPipeline.SERVER.runServerPipeline(packet.buildMode(), packet.firstPos(), packet.secondPos(), packet.thirdPos(), packet.fourthPos(), packet.firstClickFace(), player, BuildPipeline.BuildState.BREAKING, packet.fill(), packet.cubeFill(), packet.raisedEdge(), packet.circleStart(), packet.pointBuild(), packet.sides(), packet.planeAlign(), packet.protectTileEntities());
+          BlockSet blockSet = BuildPipeline.SERVER.runServerPipeline(packet.buildMode(), packet.firstPos(), packet.secondPos(), packet.thirdPos(), packet.fourthPos(), packet.firstClickFace(), player, BuildPipeline.BuildState.BREAKING, packet.fill(), packet.cubeFill(), packet.raisedEdge(), packet.circleStart(), packet.pointBuild(), packet.sides(), packet.planeAlign(), packet.protectTileEntities(), null);
          if (blockSet == null) {
             Constants.LOG.warn("[EffortlessBuilding] Received BreakBuildModePacket but mode {} returned no blocks", packet.buildMode());
          } else {
@@ -494,6 +504,25 @@ public class PacketHandler {
 
       player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.sublevel_out_of_bounds").withStyle(ChatFormatting.RED), true);
       return false;
+   }
+
+   /**
+    * Placement candidates in pipeline order: VALID entries plus
+    * INSUFFICIENT_ITEMS entries past the stock cap. The cap runs after
+    * every other rejection, so INSUFFICIENT entries are placeable
+    * positions cut only for stock — safe to refill from when an earlier
+    * candidate is skipped at placement time (unreplaceable, missing
+    * support, failed useOn) without consuming. All other rejections
+    * (tiles, hardness, borders, ...) stay excluded.
+    */
+   private static List<BlockEntry> placeableCandidates(BlockSet blockSet) {
+      List<BlockEntry> result = new ArrayList<>(blockSet.size());
+      for (BlockEntry entry : blockSet) {
+         if (entry.isValid() || entry.getStatus() == BlockStatus.INSUFFICIENT_ITEMS) {
+            result.add(entry);
+         }
+      }
+      return result;
    }
 
     public static void handleUndo(ServerPlayer player) {
