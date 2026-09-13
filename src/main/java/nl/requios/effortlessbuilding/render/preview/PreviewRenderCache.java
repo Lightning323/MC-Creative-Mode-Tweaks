@@ -786,10 +786,14 @@ public final class PreviewRenderCache {
                                BuildPipeline.@Nullable BuildState state,
                                @Nullable BlockHitResult hit, PreviewShapeKey key,
                                BlockSet blocks, BlockPos anchor, @Nullable String shapeInfo) {
-        // NOTE: no sorting before processBlocks — and that is deliberate.
-        // ConstraintSystem preserves GENERATION order, and the server pipeline
-        // runs the exact same way. Sorting first would preview a different
-        // subset than placed.
+        // Sort by distance BEFORE processBlocks. The server sorts by distance
+        // too (PacketHandler) before its placement loops, then fills the
+        // nearest affordable positions and skips unsupported ones. Sorting the
+        // preview first keeps the survival stock cap on the same order, so the
+        // white ghosts are exactly the positions the server will place — not a
+        // different generation-order subset. The throttled fast path
+        // (shapeFast) stays unsorted and constraint-free by design.
+        blocks.sortByDistance();
         this.overlayMesh.setIsSimple(false);
         BuildPipeline.BuildState action = state != null ? state : BuildPipeline.BuildState.PLACING;
         // Full placement logic: modifiers, reach caps, tile-entity scans,
@@ -797,12 +801,8 @@ public final class PreviewRenderCache {
         try (SableCompat.SelectionScope ignored = SableCompat.pushSelection(level, anchor)) {
             BuildPipelineClient.CLIENT.processBlocks(blocks, player, action);
         }
-        // Display ordering is generation order (already deterministic): the
-        // old distance sort + full re-put cost O(n log n) per shape change
-        // while nothing downstream needs it — the overlay bake is
-        // order-independent, ghosts are sectioned, and feedback needs only
-        // count + dims. Server placement keeps its own sort.
-        // (sortByDistance retained on BlockSet for the server/legacy paths.)
+        // Display order matches the server's placement order (distance from
+        // first click) after the sort above.
 
         // Single pass: split + global flags + feedback bounds together, no
         // second hasEntriesWithStatus scan, no per-key map re-lookup, and no

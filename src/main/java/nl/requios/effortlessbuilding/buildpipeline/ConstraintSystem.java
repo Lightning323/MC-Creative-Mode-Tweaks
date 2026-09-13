@@ -11,12 +11,17 @@ import nl.requios.effortlessbuilding.utilities.BlockStatus;
 import nl.requios.effortlessbuilding.utilities.InventoryHelper;
 import nl.requios.effortlessbuilding.utilities.PlacedBlockTracker;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
 
 public class ConstraintSystem implements IBuildSystem {
    public static final ConstraintSystem INSTANCE = new ConstraintSystem();
@@ -197,13 +202,27 @@ public class ConstraintSystem implements IBuildSystem {
          }
       }
 
+      // Survival support preview: blocks that would pop without support are
+      // rejected BEFORE the stock cap. Otherwise the cap reserves inventory
+      // for positions the placement loop skips (canSurvive), and the
+      // "affordable" cut lands on the wrong blocks. Mirrors the server
+      // placement loop's state resolution (PacketHandler) so the verdict
+      // matches what actually places: getStateForPlacement (default-state
+      // fallback) + entry transforms, then canSurvive. Client-only: the
+      // server placement loop already skips unsupported blocks, and the
+      // preview is the only place that must predict them. The throttled fast
+      // path never runs constraints, so this stays on the detailed preview.
+      if (!isBreaking && level.isClientSide()) {
+         applySurvivalCanSurvive(level, player, blocks);
+      }
+
       // Survival stock: when the player cannot supply the whole shape, cut
       // it to what can actually be set — red count text plus affordable-only
       // ghosts. Must run LAST, after every other placing rejection above
-      // (reach, tiles, hardness/tools, replacement): each of those is also
-      // skipped without consumption at placement time, so counting them
-      // against stock would mark later placeable blocks INSUFFICIENT while
-      // leaving inventory unspent.
+      // (reach, tiles, hardness/tools, replacement, support): each of those
+      // is also skipped without consumption at placement time, so counting
+      // them against stock would mark later placeable blocks INSUFFICIENT
+      // while leaving inventory unspent.
       if (!isBreaking && !player.getAbilities().instabuild) {
          applySurvivalInventoryCap(blocks, player);
       }
@@ -212,7 +231,9 @@ public class ConstraintSystem implements IBuildSystem {
    /**
     * Survival stock cap. Mirrors the server placement accounting (which
     * places up to the available stock, then stops), so preview and
-    * placement agree on the affordable subset in generation order.
+    * placement agree on the affordable subset. Runs in the client preview's
+    * distance order (shapeDetailed sorts before processBlocks), matching the
+    * server's sortByDistance placement order.
     * Entries beyond stock are marked {@link BlockStatus#INSUFFICIENT_ITEMS},
     * which the preview renders red with a red count line.
     */
@@ -250,6 +271,56 @@ public class ConstraintSystem implements IBuildSystem {
             entry.markRejected(BlockStatus.INSUFFICIENT_ITEMS);
          } else {
             --remaining;
+         }
+      }
+   }
+
+   /**
+    * Preview-only survival support filter ({@link BlockStatus#CANNOT_SURVIVE}).
+    * Runs before the stock cap so unsupported positions never reserve stock.
+    * The state is resolved exactly like the server placement loop: the held
+    * stack's {@code getStateForPlacement} (or the trowel-picked block),
+    * default-state fallback, entry transforms, then {@code canSurvive}. Only
+    * every entry's block matters — no world mutation, no consumption.
+    */
+   private static void applySurvivalCanSurvive(Level level, Player player, BlockSet blocks) {
+      boolean trowel = TrowelSystem.isHoldingTrowel(player);
+      BlockHitResult firstHit = BuildPipelineClient.getFirstClickHit();
+      Direction face = firstHit != null ? firstHit.getDirection() : Direction.UP;
+      double yFrac = firstHit != null ? firstHit.getLocation().y - Math.floor(firstHit.getLocation().y) : 0.5D;
+      for (BlockEntry entry : blocks.values()) {
+         if (!entry.isValid()) {
+            continue;
+         }
+         ItemStack stack;
+         BlockItem blockItem;
+         if (trowel) {
+            if (!(entry.item instanceof BlockItem bi)) {
+               continue;
+            }
+            blockItem = bi;
+            stack = new ItemStack(bi);
+         } else {
+            ItemStack held = player.getMainHandItem();
+            if (!(held.getItem() instanceof BlockItem bi)) {
+               continue;
+            }
+            blockItem = bi;
+            stack = held;
+         }
+         Vec3 localHit = new Vec3(
+               firstHit != null ? firstHit.getLocation().x : (double) entry.blockPos.getX() + 0.5D,
+               (double) entry.blockPos.getY() + yFrac,
+               firstHit != null ? firstHit.getLocation().z : (double) entry.blockPos.getZ() + 0.5D);
+         BlockHitResult serverHit = new BlockHitResult(localHit, face, entry.blockPos, false);
+         BlockPlaceContext ctx = new OpenBlockPlaceContext(level, player, InteractionHand.MAIN_HAND, stack, serverHit);
+         BlockState state = blockItem.getBlock().getStateForPlacement(ctx);
+         if (state == null) {
+            state = blockItem.getBlock().defaultBlockState();
+         }
+         state = entry.applyTransforms(state);
+         if (!state.canSurvive(level, entry.blockPos)) {
+            entry.markRejected(BlockStatus.CANNOT_SURVIVE);
          }
       }
    }
@@ -305,6 +376,12 @@ public class ConstraintSystem implements IBuildSystem {
    public static record PlacementContext(boolean protectTileEntities, BuildSettings.ReplaceMode replaceMode) {
       public PlacementContext(boolean protectTileEntities) {
          this(protectTileEntities, null);
+      }
+   }
+
+   private static final class OpenBlockPlaceContext extends BlockPlaceContext {
+      OpenBlockPlaceContext(Level level, Player player, InteractionHand hand, ItemStack stack, BlockHitResult hit) {
+         super(level, player, hand, stack, hit);
       }
    }
 }
