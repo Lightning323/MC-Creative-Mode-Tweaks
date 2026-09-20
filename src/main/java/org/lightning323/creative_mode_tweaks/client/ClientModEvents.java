@@ -160,14 +160,6 @@ public class ClientModEvents {
         }
     }
 
-//    @SubscribeEvent
-//    public static void onScreenEventClosing(ScreenEvent.Opening event) {
-//        LocalPlayer player = Minecraft.getInstance().player;
-//        if (player != null && event.getScreen() instanceof CreativeModeInventoryScreen) {
-//        }
-//    }
-
-
     @SubscribeEvent
     public static void onPlayerLoggedIn(ClientPlayerNetworkEvent.LoggingIn event) {
         ClientSettings.setNoClip(Config.NOCLIP_ON_LOGIN.get()); //Set noclip when we login to true or false

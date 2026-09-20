@@ -91,10 +91,10 @@ public class NeoForgeClientSetup {
                while(key.consumeClick()) {
                   // DISABLED is always allowed through: it's the off switch.
                   if (mode != BuildModeEnum.DISABLED && !BuildPipelineClient.isBuildModesAllowed(mc.player)) {
-                     if (mc.player != null) {
-                        mc.player.displayClientMessage(Component.translatable(BuildPipelineClient.buildModesDenyMessageKey(mc.player)), true);
-                     }
-                     continue;
+                      if (mc.player != null) {
+                         Config.printClientMessage(mc.player, Component.translatable(BuildPipelineClient.buildModesDenyMessageKey(mc.player)), true);
+                      }
+                      continue;
                   }
                   BuildModes.CLIENT.setBuildMode(mode);
                   if (mc.player != null) {
@@ -115,11 +115,11 @@ public class NeoForgeClientSetup {
             }
 
             if (ClientModEvents.isKeyDown(ClientModEvents.KEY_OPEN_RADIAL_MENU)) {
-               if (!BuildPipelineClient.isBuildModesAllowed(mc.player)) {
-                  if (mc.player != null) {
-                     mc.player.displayClientMessage(Component.translatable(BuildPipelineClient.buildModesDenyMessageKey(mc.player)), true);
-                  }
-               } else {
+                if (!BuildPipelineClient.isBuildModesAllowed(mc.player)) {
+                   if (mc.player != null) {
+                      Config.printClientMessage(mc.player, Component.translatable(BuildPipelineClient.buildModesDenyMessageKey(mc.player)), true);
+                   }
+                } else {
                   mc.setScreen(RadialMenu.instance);
                }
             }

@@ -16,13 +16,9 @@ public class ClientSettings {
     public static final double MAX_GAMMA = 8.5;
 
     public static void setNoClip(boolean noClipEnabled) {
-        if (Minecraft.getInstance().player.isCreative()) {
-            Player_I player_i = (Player_I) Minecraft.getInstance().player;
-            //Send the packet to the server
-            PacketDistributor.sendToServer(new PacketToggleNoclip(noClipEnabled));
-            //Set the value on the client as well
-            player_i.setNoClip(noClipEnabled);
-        }
+        Player_I player_i = (Player_I) Minecraft.getInstance().player;
+        PacketDistributor.sendToServer(new PacketToggleNoclip(noClipEnabled));
+        player_i.setNoClip(noClipEnabled);
     }
 
     public static boolean isNoClip() {

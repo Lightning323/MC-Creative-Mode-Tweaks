@@ -409,7 +409,7 @@ public class RadialMenu extends Screen {
         if (this.switchTo != null) {
             // DISABLED is always allowed through: it's the off switch.
             if (this.switchTo != BuildModeEnum.DISABLED && !BuildPipelineClient.isBuildModesAllowed(this.minecraft.player)) {
-                this.minecraft.player.displayClientMessage(Component.translatable(BuildPipelineClient.buildModesDenyMessageKey(this.minecraft.player)), true);
+                Config.printClientMessage(this.minecraft.player, Component.translatable(BuildPipelineClient.buildModesDenyMessageKey(this.minecraft.player)), true);
                 this.switchTo = null;
             } else {
                 playRadialMenuSound();
@@ -429,7 +429,7 @@ public class RadialMenu extends Screen {
         if (action != null) {
             if ((action == ModeOptions.ActionEnum.UNDO || action == ModeOptions.ActionEnum.REDO)
                     && !BuildPipelineClient.isUndoRedoAllowed(this.minecraft.player)) {
-                this.minecraft.player.displayClientMessage(Component.translatable(BuildPipelineClient.undoRedoDenyMessageKey(this.minecraft.player)), true);
+                Config.printClientMessage(this.minecraft.player, Component.translatable(BuildPipelineClient.undoRedoDenyMessageKey(this.minecraft.player)), true);
             } else {
                 playRadialMenuSound();
                 if (action == ModeOptions.ActionEnum.OPEN_MODIFIER_SETTINGS) {

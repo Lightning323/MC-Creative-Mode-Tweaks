@@ -1,6 +1,7 @@
 package org.lightning323.creative_mode_tweaks;
 
 import com.mojang.logging.LogUtils;
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.IEventBus;
@@ -13,6 +14,7 @@ import net.neoforged.neoforge.event.RegisterGameTestsEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 import nl.requios.effortlessbuilding.EffortlessBuilding;
+import org.lightning323.creative_mode_tweaks.client.utils.ClientSettings;
 import org.lightning323.creative_mode_tweaks.network.packets.ClientboundSyncConfigPayload;
 import org.lightning323.creative_mode_tweaks.network.packets.PacketGameModeChanged;
 import org.slf4j.Logger;
@@ -46,6 +48,7 @@ public class CreativeModeTweaks {
             //Update the client-side config
             PacketDistributor.sendToPlayer(player, new ClientboundSyncConfigPayload(player));
         }
+
     }
 
     public static void onPlayerLogout(PlayerEvent.PlayerLoggedOutEvent event) {

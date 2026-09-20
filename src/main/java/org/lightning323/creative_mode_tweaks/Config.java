@@ -1,5 +1,9 @@
 package org.lightning323.creative_mode_tweaks;
 
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.event.config.ModConfigEvent;
@@ -105,6 +109,11 @@ public class Config {
                     .translation("creative_mode_tweaks.config.show_placement_rejection_messages")
                     .define("building.show_placement_rejection_messages", false);
 
+    public static final ModConfigSpec.BooleanValue SHOW_VERBOSE_MESSAGES =
+            CLIENT_BUILDER.comment("Show messages when building modes or undo/redo are unavailable.")
+                    .translation("creative_mode_tweaks.config.show_verbose_messages")
+                    .define("building.show_verbose_messages", false);
+
     public static final ModConfigSpec.BooleanValue BUILDING_ASYNC_BOUNDARY =
             CLIENT_BUILDER.comment("Where the preview border bakes. Both options stay off the render thread.",
                             "On: border rides the ghost-block worker (one bake, one handoff; lags behind slow ghosts).",
@@ -204,7 +213,6 @@ public class Config {
                     .defineInRange("building.creative.max_blocks_placed", 500000, 1, Integer.MAX_VALUE);
 
 
-
     public static final ModConfigSpec.IntValue BUILDING_CREATIVE_MAX_BLOCKS_PER_AXIS =
             COMMON_BUILDER.comment("Maximum size of a creative build-mode shape along any axis.")
                     .translation("creative_mode_tweaks.config.max_blocks_per_axis")
@@ -249,7 +257,9 @@ public class Config {
     private static boolean clientBuildModesAllowed = true;
     private static boolean clientUndoRedoAllowed = true;
 
-    /** Bounds for reach, matching the reach.* config ranges (1..256). */
+    /**
+     * Bounds for reach, matching the reach.* config ranges (1..256).
+     */
     public static final int REACH_MIN = 1;
     public static final int REACH_MAX = 256;
 
@@ -280,7 +290,9 @@ public class Config {
         return Mth.clamp((int) Math.round(dist), REACH_MIN, REACH_MAX);
     }
 
-    /** Building reach derived from a single reach via the configured offset. */
+    /**
+     * Building reach derived from a single reach via the configured offset.
+     */
     public static int deriveBuildingReach(int singleReach) {
         return Mth.clamp(singleReach + getCreativeReachOffset(), REACH_MIN, REACH_MAX);
     }
@@ -299,22 +311,36 @@ public class Config {
         return serverSingleReachOverrides.getOrDefault(player.getUUID(), CREATIVE_SINGLE_REACH.get());
     }
 
-    /** Server-side only. */
+    public static void printClientMessage(Player player, MutableComponent translatable, boolean actionBar) {
+        if (SHOW_VERBOSE_MESSAGES.get()) {
+            player.displayClientMessage(translatable, actionBar);
+        }
+    }
+
+    /**
+     * Server-side only.
+     */
     public static void setServerSingleReach(UUID playerId, int singleReach) {
         serverSingleReachOverrides.put(playerId, Mth.clamp(singleReach, REACH_MIN, REACH_MAX));
     }
 
-    /** Server-side only. */
+    /**
+     * Server-side only.
+     */
     public static void clearServerSingleReach(UUID playerId) {
         serverSingleReachOverrides.remove(playerId);
     }
 
-    /** Server-side only. Null = no override. */
+    /**
+     * Server-side only. Null = no override.
+     */
     public static Integer getServerSingleReachOverride(UUID playerId) {
         return serverSingleReachOverrides.get(playerId);
     }
 
-    /** Client-side only. Null = no override, use the config value. */
+    /**
+     * Client-side only. Null = no override, use the config value.
+     */
     public static void updateClientSingleReach(Integer singleReach) {
         clientSingleReachOverride = singleReach == null ? null : Mth.clamp(singleReach, REACH_MIN, REACH_MAX);
     }
