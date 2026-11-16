@@ -49,6 +49,7 @@
 
   "creative_mode_tweaks.message.plane_mode": "Vlak: %s",
   "creative_mode_tweaks.message.angel_placement": "Luchtplaatsing: %s",
+  "creative_mode_tweaks.message.delete_blocks_with_data": "Delete Blocks With Data: %s",
 
   "creative_mode_tweaks.action.undo": "Ongedaan maken",
   "creative_mode_tweaks.action.redo": "Opnieuw uitvoeren",
@@ -63,6 +64,8 @@
   "creative_mode_tweaks.action.cycle_replace_mode.description": "Door de vervangmodi bladeren.",
   "creative_mode_tweaks.action.toggle_angel_placement": "Luchtplaatsing",
   "creative_mode_tweaks.action.toggle_angel_placement.description": "Richt op het verst beschikbare luchtblok op de ingestelde afstand.",
+  "creative_mode_tweaks.action.toggle_delete_blocks_with_data": "Delete Blocks With Data",
+  "creative_mode_tweaks.action.toggle_delete_blocks_with_data.description": "If enabled, blocks with block data (such as chests) can be deleted. Their contents will be dropped to preserve them.",
   "creative_mode_tweaks.action.replace_only_air": "Alleen lucht vervangen",
   "creative_mode_tweaks.action.replace_only_air.description": "Je kunt alleen blokken plaatsen waar lucht was. Vervangbare blokken zoals gras kunnen nog steeds worden vervangen.",
   "creative_mode_tweaks.action.replace_blocks_and_air": "Blokken en lucht vervangen",
@@ -100,6 +103,7 @@
   "creative_mode_tweaks.message.only_replace_placed": "Je kunt alleen blokken vervangen die je in deze sessie hebt geplaatst",
   "creative_mode_tweaks.message.breaking_disabled": "Blokken breken met bouwmodi is uitgeschakeld in de overlevingsmodus",
   "creative_mode_tweaks.message.angel_placement_disabled": "Luchtplaatsing is uitgeschakeld in de overlevingsmodus.",
+  "creative_mode_tweaks.message.delete_blocks_with_data_disabled": "Deleting blocks with data is disabled.",
   "creative_mode_tweaks.message.too_hard": "Sommige blokken overschreden de maximale hardheid",
   "creative_mode_tweaks.message.protected_tile_entity": "Sommige blokken waren beschermd (blokentiteiten)",
   "creative_mode_tweaks.message.world_border": "Sommige blokken bevinden zich buiten de wereldgrens of bouwdhoogte",
@@ -115,6 +119,10 @@
   "creative_mode_tweaks.config.angel_placement_distance.tooltip": "Afstand vanaf de speler waarop luchtplaatsing een luchtblok richt.",
   "creative_mode_tweaks.config.allow_angel_placement": "Luchtplaatsing toestaan",
   "creative_mode_tweaks.config.allow_angel_placement.tooltip": "Indien ingeschakeld, kunnen overlevingsspelers luchtplaatsing gebruiken.",
+  "creative_mode_tweaks.config.allow_delete_blocks_with_data_survival": "Allow Delete Blocks With Data (Survival)",
+  "creative_mode_tweaks.config.allow_delete_blocks_with_data_survival.tooltip": "If on, survival players can toggle deleting blocks with block data.",
+  "creative_mode_tweaks.config.allow_delete_blocks_with_data_creative": "Allow Delete Blocks With Data (Creative)",
+  "creative_mode_tweaks.config.allow_delete_blocks_with_data_creative.tooltip": "If on, creative players can toggle deleting blocks with block data.",
   "creative_mode_tweaks.config.max_blocks_placed": "Max. blokken tegelijk geplaatst",
   "creative_mode_tweaks.config.max_blocks_placed.tooltip": "Maximum aantal blokken dat in één actie wordt geplaatst.",
   "creative_mode_tweaks.config.max_blocks_per_axis": "Max. blokken per as",
@@ -147,5 +155,7 @@
   "creative_mode_tweaks.config.max_block_previews.tooltip": "Maximum aantal blokmodellen weergegeven in het voorbeeld.\nLagere waarden verbeteren de prestaties bij grote vormen.\nContouren worden altijd getekend voor alle blokken.",
   "creative_mode_tweaks.config.protect_tile_entities": "Blokentiteiten beschermen",
   "creative_mode_tweaks.config.protect_tile_entities.tooltip": "Indien ingeschakeld, kunnen blokken met gegevens zoals kisten, fornuizen en trechters niet worden vervangen of gebroken.",
+  "creative_mode_tweaks.config.delete_blocks_with_data_default": "Delete Blocks With Data by Default",
+  "creative_mode_tweaks.config.delete_blocks_with_data_default.tooltip": "Default on/off state for the Delete Blocks With Data toggle.",
   "creative_mode_tweaks.button.save": "Opslaan"
 }

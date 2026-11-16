@@ -17,7 +17,6 @@ import nl.requios.effortlessbuilding.buildmode.BuildModes;
 import nl.requios.effortlessbuilding.buildmode.BuildSettings;
 import nl.requios.effortlessbuilding.buildmode.ModeOptions;
 import nl.requios.effortlessbuilding.buildpipeline.BuildPipelineClient;
-import nl.requios.effortlessbuilding.network.PacketHandler;
 import org.lightning323.creative_mode_tweaks.client.ClientModEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -44,7 +43,9 @@ public class RadialMenu extends Screen {
     private final Vector4f highlightColor = new Vector4f(0.6F, 0.8F, 1.0F, 0.6F);
     private final Vector4f selectedColor = new Vector4f(0.0F, 0.5F, 1.0F, 0.5F);
     private final Vector4f highlightSelectedColor = new Vector4f(0.2F, 0.7F, 1.0F, 0.7F);
-    /** Shared vertical baseline for every control placed beside the radial menu. */
+    /**
+     * Shared vertical baseline for every control placed beside the radial menu.
+     */
     private static final float OPTION_BUTTONS_Y_START = -40.0F;
     public BuildModeEnum switchTo = null;
     public ModeOptions.ActionEnum doAction = null;
@@ -74,6 +75,8 @@ public class RadialMenu extends Screen {
     }
 
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
+        this.switchTo = null;
+        this.doAction = null;
         BuildModeEnum currentBuildMode = BuildModes.CLIENT.getBuildMode();
         graphics.pose().pushPose();
         graphics.pose().translate(0.0F, 0.0F, 200.0F);
@@ -122,42 +125,60 @@ public class RadialMenu extends Screen {
             buttons.add(makeSideButton(2, rowsRight++, ModeOptions.ActionEnum.REDO));
         }
 
-        MenuButton replaceBtn = makeSideButton(0, rowsLeft++, ModeOptions.ActionEnum.CYCLE_REPLACE_MODE);
+        int column = 0;
+        MenuButton replaceBtn = makeSideButton(column, rowsLeft++, ModeOptions.ActionEnum.CYCLE_REPLACE_MODE);
         ModeOptions.ActionEnum currentReplaceAction = BuildSettings.CLIENT.getReplaceModeActionEnum();
         replaceBtn.iconOverride = currentReplaceAction.icon;
         replaceBtn.name = I18n.get("creative_mode_tweaks.action.replace_mode", new Object[0]);
         replaceBtn.subtitle = I18n.get(currentReplaceAction.getNameKey(), new Object[0]);
         replaceBtn.description = I18n.exists(currentReplaceAction.getDescriptionKey()) ? I18n.get(currentReplaceAction.getDescriptionKey(), new Object[0]) : "";
         buttons.add(replaceBtn);
+        column++;
 
-        MenuButton angelPlacementBtn = makeSideButton(1, rowsMiddle, ModeOptions.ActionEnum.TOGGLE_ANGEL_PLACEMENT);
+        MenuButton angelPlacementBtn = makeSideButton(column, rowsMiddle, ModeOptions.ActionEnum.TOGGLE_ANGEL_PLACEMENT);
         boolean angelPlacementEnabled = BuildSettings.CLIENT.isAngelPlacementEnabled();
         angelPlacementBtn.iconOverride = angelPlacementEnabled ? AllIcons.ANGEL_PLACEMENT_ON : AllIcons.ANGEL_PLACEMENT_OFF;
         angelPlacementBtn.subtitle = I18n.get(angelPlacementEnabled ? "options.on" : "options.off", new Object[0]);
         angelPlacementBtn.enabled = this.minecraft.player == null || Config.isAngelPlacementAllowed(this.minecraft.player);
+
         // Untoggled in survival (unless the config allows it): hide instead of
         // showing a dead button.
         if (angelPlacementBtn.enabled) {
             buttons.add(angelPlacementBtn);
+            column++;
             rowsMiddle++;
         }
 
-        MenuButton nightVisionBtn = makeSideButton(0, rowsLeft, ModeOptions.ActionEnum.TOGGLE_NIGHT_VISION);
+        MenuButton deleteDataBtn = makeSideButton(column, rowsRight, ModeOptions.ActionEnum.TOGGLE_DELETE_BLOCKS_WITH_DATA);
+        boolean deleteDataEnabled = BuildSettings.CLIENT.isDeleteBlocksWithDataEnabled();
+        deleteDataBtn.iconOverride = deleteDataEnabled ? AllIcons.DELETE_BLOCKS_WITH_DATA : AllIcons.PRESERVE_BLOCKS_WITH_DATA;
+        deleteDataBtn.subtitle = I18n.get(deleteDataEnabled ? "options.on" : "options.off", new Object[0]);
+        deleteDataBtn.enabled = this.minecraft.player == null || Config.isDeleteBlocksWithDataAllowed(this.minecraft.player);
+        buttons.add(deleteDataBtn);
+        column++;
+        rowsRight++;
+
+
+        column = 0;
+        MenuButton nightVisionBtn = makeSideButton(column, rowsLeft, ModeOptions.ActionEnum.TOGGLE_NIGHT_VISION);
         boolean nightVisionEnabled = this.minecraft.player != null && ClientSettings.isNightVision();
         nightVisionBtn.iconOverride = nightVisionEnabled ? AllIcons.I_EYE_ON : AllIcons.I_EYE_OFF;
         nightVisionBtn.subtitle = I18n.get(nightVisionEnabled ? "options.on" : "options.off", new Object[0]);
         nightVisionBtn.enabled = this.minecraft.player != null && (this.minecraft.player.isCreative() || this.minecraft.player.isSpectator());
+
         // Creative/spectator only: hidden in survival.
         if (nightVisionBtn.enabled) {
             buttons.add(nightVisionBtn);
             rowsLeft++;
+            column++;
         }
 
-        MenuButton noclipBtn = makeSideButton(1, rowsMiddle, ModeOptions.ActionEnum.TOGGLE_NOCLIP);
+        MenuButton noclipBtn = makeSideButton(column, rowsMiddle, ModeOptions.ActionEnum.TOGGLE_NOCLIP);
         boolean noclipEnabled = this.minecraft.player != null && ClientSettings.isNoClip();
         noclipBtn.iconOverride = noclipEnabled ? AllIcons.I_NOCLIP_ON : AllIcons.I_NOCLIP_OFF;
         noclipBtn.subtitle = I18n.get(noclipEnabled ? "options.on" : "options.off", new Object[0]);
         noclipBtn.enabled = this.minecraft.player != null && this.minecraft.player.isCreative();
+        column++;
         // Creative only: hidden in survival.
         if (noclipBtn.enabled) {
             buttons.add(noclipBtn);
@@ -259,7 +280,7 @@ public class RadialMenu extends Screen {
             double by1 = btn.y1 * scale;
             double by2 = btn.y2 * scale;
             boolean isHighlighted = bx1 <= mouseXCenter && bx2 >= mouseXCenter && by1 <= mouseYCenter && by2 >= mouseYCenter;
-            boolean isSelected = btn.enabled && (btn.action == ModeOptions.getBuildSpeed() || btn.action == ModeOptions.getFill() || btn.action == ModeOptions.getCubeFill() || btn.action == ModeOptions.getRaisedEdge() || btn.action == ModeOptions.getLineThickness() || btn.action == ModeOptions.getCircleStart() || btn.action == ModeOptions.getPointBuild() || btn.action == ModeOptions.getMeshFace() || btn.action == ModeOptions.getSides() || btn.action == ModeOptions.getPlaneAlign() || btn.action == ModeOptions.ActionEnum.CYCLE_REPLACE_MODE && BuildSettings.CLIENT.getReplaceMode() != BuildSettings.ReplaceMode.ONLY_AIR || btn.action == ModeOptions.ActionEnum.TOGGLE_ANGEL_PLACEMENT && BuildSettings.CLIENT.isAngelPlacementEnabled() || btn.action == ModeOptions.ActionEnum.TOGGLE_NIGHT_VISION && ClientSettings.isNightVision() || btn.action == ModeOptions.ActionEnum.TOGGLE_NOCLIP && ClientSettings.isNoClip());
+            boolean isSelected = btn.enabled && (btn.action == ModeOptions.getBuildSpeed() || btn.action == ModeOptions.getFill() || btn.action == ModeOptions.getCubeFill() || btn.action == ModeOptions.getRaisedEdge() || btn.action == ModeOptions.getLineThickness() || btn.action == ModeOptions.getCircleStart() || btn.action == ModeOptions.getPointBuild() || btn.action == ModeOptions.getMeshFace() || btn.action == ModeOptions.getSides() || btn.action == ModeOptions.getPlaneAlign() || btn.action == ModeOptions.ActionEnum.CYCLE_REPLACE_MODE && BuildSettings.CLIENT.getReplaceMode() != BuildSettings.ReplaceMode.ONLY_AIR || btn.action == ModeOptions.ActionEnum.TOGGLE_ANGEL_PLACEMENT && BuildSettings.CLIENT.isAngelPlacementEnabled() || btn.action == ModeOptions.ActionEnum.TOGGLE_DELETE_BLOCKS_WITH_DATA && BuildSettings.CLIENT.isDeleteBlocksWithDataEnabled() || btn.action == ModeOptions.ActionEnum.TOGGLE_NIGHT_VISION && ClientSettings.isNightVision() || btn.action == ModeOptions.ActionEnum.TOGGLE_NOCLIP && ClientSettings.isNoClip());
             Vector4f color;
             if (!btn.enabled) {
                 color = isHighlighted ? this.disabledHighlightColor : this.disabledSideButtonColor;

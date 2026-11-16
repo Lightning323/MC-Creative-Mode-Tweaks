@@ -85,7 +85,7 @@ public class ConstraintSystem implements IBuildSystem {
       // placed, regardless of building.*.max_blocks_placed. (Survival stock
       // below still applies.)
 
-      boolean protectTiles = this.getProtectTileEntities();
+      boolean protectTiles = this.getEffectiveProtectTileEntities(level, player);
       if (protectTiles) {
          if (this.useTileMemo(level, protectTiles)) {
             // Same level, same setting, recent bucket: re-apply memoized
@@ -352,6 +352,23 @@ public class ConstraintSystem implements IBuildSystem {
       }
    }
 
+   private boolean getEffectiveProtectTileEntities(Level level, Player player) {
+      PlacementContext ctx = (PlacementContext)PLACEMENT_CTX.get();
+      if (ctx != null) {
+         return ctx.protectTileEntities() && !ctx.deleteBlocksWithData();
+      } else {
+         try {
+            boolean protectTiles = Config.BUILDING_PROTECT_TILE_ENTITIES.get();
+            if (level.isClientSide() && protectTiles && BuildSettings.CLIENT.isDeleteBlocksWithDataEnabled() && Config.isDeleteBlocksWithDataAllowed(player)) {
+               return false;
+            }
+            return protectTiles;
+         } catch (Exception var3) {
+            return false;
+         }
+      }
+   }
+
    /**
     * Replacement mode for the current pipeline run. Server runs resolve
     * from the placement context (authoritative packet value); the client
@@ -373,9 +390,13 @@ public class ConstraintSystem implements IBuildSystem {
       return null;
    }
 
-   public static record PlacementContext(boolean protectTileEntities, BuildSettings.ReplaceMode replaceMode) {
+   public static record PlacementContext(boolean protectTileEntities, boolean deleteBlocksWithData, BuildSettings.ReplaceMode replaceMode) {
       public PlacementContext(boolean protectTileEntities) {
-         this(protectTileEntities, null);
+         this(protectTileEntities, false, (BuildSettings.ReplaceMode)null);
+      }
+
+      public PlacementContext(boolean protectTileEntities, BuildSettings.ReplaceMode replaceMode) {
+         this(protectTileEntities, false, replaceMode);
       }
    }
 

@@ -12,7 +12,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
-public record PlaceBuildModePacket(BuildModeEnum buildMode, BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos, @Nullable BlockPos fourthPos, Direction hitFace, Vec3 hitLocation, ModeOptions.ActionEnum fill, ModeOptions.ActionEnum cubeFill, ModeOptions.ActionEnum raisedEdge, ModeOptions.ActionEnum circleStart, ModeOptions.ActionEnum pointBuild, ModeOptions.ActionEnum sides, ModeOptions.ActionEnum planeAlign, BuildSettings.ReplaceMode replaceMode, boolean protectTileEntities, boolean angelPlacement) implements CustomPacketPayload {
+public record PlaceBuildModePacket(BuildModeEnum buildMode, BlockPos firstPos, BlockPos secondPos, @Nullable BlockPos thirdPos, @Nullable BlockPos fourthPos, Direction hitFace, Vec3 hitLocation, ModeOptions.ActionEnum fill, ModeOptions.ActionEnum cubeFill, ModeOptions.ActionEnum raisedEdge, ModeOptions.ActionEnum circleStart, ModeOptions.ActionEnum pointBuild, ModeOptions.ActionEnum sides, ModeOptions.ActionEnum planeAlign, BuildSettings.ReplaceMode replaceMode, boolean protectTileEntities, boolean angelPlacement, boolean deleteBlocksWithData) implements CustomPacketPayload {
    public static final CustomPacketPayload.Type<PlaceBuildModePacket> TYPE = new CustomPacketPayload.Type(ResourceLocation.fromNamespaceAndPath("creative_mode_tweaks", "place_build_mode"));
    public static final StreamCodec<FriendlyByteBuf, PlaceBuildModePacket> STREAM_CODEC = StreamCodec.of(PlaceBuildModePacket::encode, PlaceBuildModePacket::decode);
 
@@ -44,6 +44,7 @@ public record PlaceBuildModePacket(BuildModeEnum buildMode, BlockPos firstPos, B
       buf.writeVarInt(p.replaceMode.ordinal());
       buf.writeBoolean(p.protectTileEntities);
       buf.writeBoolean(p.angelPlacement);
+      buf.writeBoolean(p.deleteBlocksWithData);
    }
 
    private static PlaceBuildModePacket decode(FriendlyByteBuf buf) {
@@ -64,7 +65,8 @@ public record PlaceBuildModePacket(BuildModeEnum buildMode, BlockPos firstPos, B
       BuildSettings.ReplaceMode replaceMode = BuildSettings.ReplaceMode.values()[buf.readVarInt()];
       boolean protectTileEntities = buf.readBoolean();
       boolean angelPlacement = buf.readBoolean();
-      return new PlaceBuildModePacket(buildMode, firstPos, secondPos, thirdPos, fourthPos, hitFace, hitLocation, fill, cubeFill, raisedEdge, circleStart, pointBuild, sides, planeAlign, replaceMode, protectTileEntities, angelPlacement);
+      boolean deleteBlocksWithData = buf.readBoolean();
+      return new PlaceBuildModePacket(buildMode, firstPos, secondPos, thirdPos, fourthPos, hitFace, hitLocation, fill, cubeFill, raisedEdge, circleStart, pointBuild, sides, planeAlign, replaceMode, protectTileEntities, angelPlacement, deleteBlocksWithData);
    }
 
    public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {

@@ -11,10 +11,12 @@ public class BuildSettings {
    public static final BuildSettings CLIENT = new BuildSettings();
    private ReplaceMode replaceMode;
    private boolean angelPlacement;
+   private boolean deleteBlocksWithData;
 
    public BuildSettings() {
       this.replaceMode = ReplaceMode.ONLY_AIR;
       this.angelPlacement = false;
+      this.deleteBlocksWithData = false;
    }
 
    public void cycleReplaceMode() {
@@ -37,6 +39,19 @@ public class BuildSettings {
 
    public boolean isAngelPlacementEnabled() {
       return this.angelPlacement;
+   }
+
+   public boolean toggleDeleteBlocksWithData() {
+      this.deleteBlocksWithData = !this.deleteBlocksWithData;
+      return this.deleteBlocksWithData;
+   }
+
+   public void setDeleteBlocksWithData(boolean deleteBlocksWithData) {
+      this.deleteBlocksWithData = deleteBlocksWithData;
+   }
+
+   public boolean isDeleteBlocksWithDataEnabled() {
+      return this.deleteBlocksWithData;
    }
 
    public ModeOptions.ActionEnum getReplaceModeActionEnum() {

@@ -83,7 +83,11 @@ public class Config {
 
     private static final ModConfigSpec.DoubleValue FLIGHT_SPEED =
             COMMON_BUILDER.comment("Flight speed (vanilla is 0.05)")
-                    .defineInRange("flight.flight_speed", 0.08, 0.05, 1.0);
+                    .defineInRange("flight.flight_speed", 0.08, 0.05, 1000.0);
+
+    private static final ModConfigSpec.DoubleValue FLIGHT_SPEED_SPRINTING =
+            COMMON_BUILDER.comment("Should the flight speed be different when sprinting? (vanilla is 0.05)")
+                    .defineInRange("flight.flight_speed", 0.1, 0.05, 1000.0);
 
     public static final ModConfigSpec.BooleanValue NOCLIP_ON_LOGIN =
             COMMON_BUILDER.comment("If No-Clip should be enabled or disabled by default when logging in")
@@ -103,6 +107,13 @@ public class Config {
             CLIENT_BUILDER.comment("Prevent build modes from replacing or breaking blocks with block entities.")
                     .translation("creative_mode_tweaks.config.protect_tile_entities")
                     .define("building.protect_tile_entities", true);
+
+    public static final ModConfigSpec.BooleanValue BUILDING_DELETE_BLOCKS_WITH_DATA_DEFAULT =
+            CLIENT_BUILDER.comment("Default state of the Delete Blocks With Data toggle.")
+                    .translation("creative_mode_tweaks.config.delete_blocks_with_data_default")
+                    .define("building.delete_blocks_with_data_default", true);
+
+    private static boolean deleteBlocksWithDataDefaultApplied;
 
     public static final ModConfigSpec.BooleanValue SHOW_PLACEMENT_REJECTION_MESSAGES =
             CLIENT_BUILDER.comment("Show messages when blocks are rejected due to placement rules.")
@@ -125,6 +136,16 @@ public class Config {
             COMMON_BUILDER.comment("Allow survival players to use Angel Placement to target air blocks at a distance.")
                     .translation("creative_mode_tweaks.config.allow_angel_placement")
                     .define("building.survival.allow_angel_placement", false);
+
+    public static final ModConfigSpec.BooleanValue BUILDING_SURVIVAL_ALLOW_DELETE_BLOCKS_WITH_DATA =
+            COMMON_BUILDER.comment("Allow survival players to use the toggle that deletes blocks with block data.")
+                    .translation("creative_mode_tweaks.config.allow_delete_blocks_with_data_survival")
+                    .define("building.survival.allow_delete_blocks_with_data", true);
+
+    public static final ModConfigSpec.BooleanValue BUILDING_CREATIVE_ALLOW_DELETE_BLOCKS_WITH_DATA =
+            COMMON_BUILDER.comment("Allow creative players to use the toggle that deletes blocks with block data.")
+                    .translation("creative_mode_tweaks.config.allow_delete_blocks_with_data_creative")
+                    .define("building.creative.allow_delete_blocks_with_data", true);
 
     public static final ModConfigSpec.BooleanValue BUILDING_SURVIVAL_ALLOW_BUILD_MODES =
             COMMON_BUILDER.comment("Allow survival players to use build modes and open the build mode radial menu at all.",
@@ -241,6 +262,7 @@ public class Config {
     // Variables for cached access
     public static boolean disableFlightInertia;
     public static float flightSpeed;
+    public static float flightSpeedSprinting;
     public static boolean enhanceCreativeHotbar;
     public static boolean enhanceSurvivalHotbar;
 
@@ -256,6 +278,8 @@ public class Config {
     private static int clientAngelPlacementDistance = 8;
     private static boolean clientBuildModesAllowed = true;
     private static boolean clientUndoRedoAllowed = true;
+    private static boolean clientSurvivalDeleteBlocksWithDataAllowed = true;
+    private static boolean clientCreativeDeleteBlocksWithDataAllowed = true;
 
     /**
      * Bounds for reach, matching the reach.* config ranges (1..256).
@@ -373,6 +397,18 @@ public class Config {
         clientUndoRedoAllowed = undoRedoAllowed;
     }
 
+    public static boolean isDeleteBlocksWithDataAllowed(Player player) {
+        if (player.isCreative() || player.isSpectator()) {
+            return player.level().isClientSide() ? clientCreativeDeleteBlocksWithDataAllowed : BUILDING_CREATIVE_ALLOW_DELETE_BLOCKS_WITH_DATA.get();
+        }
+        return player.level().isClientSide() ? clientSurvivalDeleteBlocksWithDataAllowed : BUILDING_SURVIVAL_ALLOW_DELETE_BLOCKS_WITH_DATA.get();
+    }
+
+    public static void updateClientDeleteBlocksWithDataPermissions(boolean survivalAllowed, boolean creativeAllowed) {
+        clientSurvivalDeleteBlocksWithDataAllowed = survivalAllowed;
+        clientCreativeDeleteBlocksWithDataAllowed = creativeAllowed;
+    }
+
     public static int getBuildingMaxBlocksPlaced(Player player) {
         return player.isCreative() ? BUILDING_CREATIVE_MAX_BLOCKS_PLACED.get() : BUILDING_SURVIVAL_MAX_BLOCKS_PLACED.get();
     }
@@ -404,6 +440,7 @@ public class Config {
         if (event.getConfig().getSpec() == COMMON_SPEC) {
             disableFlightInertia = DISABLE_FLIGHT_INERTIA.get();
             flightSpeed = FLIGHT_SPEED.get().floatValue();
+            flightSpeedSprinting = FLIGHT_SPEED_SPRINTING.get().floatValue();
             enhanceCreativeHotbar = ENHANCE_CREATIVE_HOTBAR.get();
             enhanceSurvivalHotbar = ENHANCE_SURVIVAL_HOTBAR.get();
             allowInventoryRotationInSurvival = ALLOW_INVENTORY_ROTATION_IN_SURVIVAL.get();
@@ -414,6 +451,10 @@ public class Config {
             hotbarMaxScrollMargin = HOTBAR_MAX_SCROLL_MARGIN.get();
             showFullInventoryWhileRotating = HOTBAR_SHOW_FULL_INVENTORY_WHILE_ROTATING.get();
             fullInventoryPreviewHoldSeconds = HOTBAR_FULL_INVENTORY_PREVIEW_HOLD_SECONDS.get();
+            if (!deleteBlocksWithDataDefaultApplied) {
+                nl.requios.effortlessbuilding.buildmode.BuildSettings.CLIENT.setDeleteBlocksWithData(BUILDING_DELETE_BLOCKS_WITH_DATA_DEFAULT.get());
+                deleteBlocksWithDataDefaultApplied = true;
+            }
         }
     }
 }

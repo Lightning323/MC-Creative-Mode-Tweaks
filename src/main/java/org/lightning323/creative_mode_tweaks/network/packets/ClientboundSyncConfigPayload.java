@@ -15,7 +15,9 @@ public record ClientboundSyncConfigPayload(
         int angelPlacementDistance,
         int creativeSingleReach,
         boolean survivalBuildModesAllowed,
-        boolean survivalUndoRedoAllowed
+        boolean survivalUndoRedoAllowed,
+        boolean survivalDeleteBlocksWithDataAllowed,
+        boolean creativeDeleteBlocksWithDataAllowed
 ) implements CustomPacketPayload {
 
     /** Sentinel meaning "no per-player override, use the config value". */
@@ -29,7 +31,9 @@ public record ClientboundSyncConfigPayload(
                 Config.BUILDING_ANGEL_PLACEMENT_DISTANCE.get(),
                 resolveSingleReach(player),
                 Config.BUILDING_SURVIVAL_ALLOW_BUILD_MODES.get(),
-                Config.BUILDING_SURVIVAL_ALLOW_UNDO_REDO.get());
+                Config.BUILDING_SURVIVAL_ALLOW_UNDO_REDO.get(),
+                Config.BUILDING_SURVIVAL_ALLOW_DELETE_BLOCKS_WITH_DATA.get(),
+                Config.BUILDING_CREATIVE_ALLOW_DELETE_BLOCKS_WITH_DATA.get());
     }
 
     private static int resolveSingleReach(ServerPlayer player) {
@@ -40,7 +44,7 @@ public record ClientboundSyncConfigPayload(
     public static final Type<ClientboundSyncConfigPayload> TYPE =
             new Type<>(ResourceLocation.fromNamespaceAndPath("creative_mode_tweaks", "sync_config"));
 
-    // composite() caps at 6 components, so this 7-field payload uses a
+    // composite() caps at 6 components, so this payload uses a
     // manual codec instead.
     public static final StreamCodec<FriendlyByteBuf, ClientboundSyncConfigPayload> STREAM_CODEC = StreamCodec.of(
             (buf, payload) -> {
@@ -51,6 +55,8 @@ public record ClientboundSyncConfigPayload(
                 buf.writeInt(payload.creativeSingleReach());
                 buf.writeBoolean(payload.survivalBuildModesAllowed());
                 buf.writeBoolean(payload.survivalUndoRedoAllowed());
+                buf.writeBoolean(payload.survivalDeleteBlocksWithDataAllowed());
+                buf.writeBoolean(payload.creativeDeleteBlocksWithDataAllowed());
             },
             buf -> new ClientboundSyncConfigPayload(
                     buf.readBoolean(),
@@ -58,6 +64,8 @@ public record ClientboundSyncConfigPayload(
                     buf.readBoolean(),
                     buf.readInt(),
                     buf.readInt(),
+                    buf.readBoolean(),
+                    buf.readBoolean(),
                     buf.readBoolean(),
                     buf.readBoolean())
     );
@@ -78,6 +86,8 @@ public record ClientboundSyncConfigPayload(
                     payload.creativeSingleReach() == NO_REACH_OVERRIDE ? null : payload.creativeSingleReach());
             Config.updateClientSurvivalPermissions(
                     payload.survivalBuildModesAllowed(), payload.survivalUndoRedoAllowed());
+            Config.updateClientDeleteBlocksWithDataPermissions(
+                    payload.survivalDeleteBlocksWithDataAllowed(), payload.creativeDeleteBlocksWithDataAllowed());
         });
     }
 }

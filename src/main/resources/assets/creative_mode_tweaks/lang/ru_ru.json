@@ -49,6 +49,7 @@
 
   "creative_mode_tweaks.message.plane_mode": "Плоскость: %s",
   "creative_mode_tweaks.message.angel_placement": "Воздушное размещение: %s",
+  "creative_mode_tweaks.message.delete_blocks_with_data": "Delete Blocks With Data: %s",
 
   "creative_mode_tweaks.action.undo": "Отменить",
   "creative_mode_tweaks.action.redo": "Повторить",
@@ -63,6 +64,8 @@
   "creative_mode_tweaks.action.cycle_replace_mode.description": "Переключение между режимами замены.",
   "creative_mode_tweaks.action.toggle_angel_placement": "Воздушное размещение",
   "creative_mode_tweaks.action.toggle_angel_placement.description": "Выбирает самый дальний доступный блок воздуха на настроенном расстоянии.",
+  "creative_mode_tweaks.action.toggle_delete_blocks_with_data": "Delete Blocks With Data",
+  "creative_mode_tweaks.action.toggle_delete_blocks_with_data.description": "If enabled, blocks with block data (such as chests) can be deleted. Their contents will be dropped to preserve them.",
   "creative_mode_tweaks.action.replace_only_air": "Заменять только воздух",
   "creative_mode_tweaks.action.replace_only_air.description": "Блоки можно размещать только там, где был воздух. Заменяемые блоки, такие как трава, всё равно можно заменить.",
   "creative_mode_tweaks.action.replace_blocks_and_air": "Заменять блоки и воздух",
@@ -100,6 +103,7 @@
   "creative_mode_tweaks.message.only_replace_placed": "Вы можете заменять только блоки, размещённые в этой сессии",
   "creative_mode_tweaks.message.breaking_disabled": "Ломание блоков с помощью режимов строительства отключено в режиме выживания",
   "creative_mode_tweaks.message.angel_placement_disabled": "Воздушное размещение отключено в режиме выживания.",
+  "creative_mode_tweaks.message.delete_blocks_with_data_disabled": "Deleting blocks with data is disabled.",
   "creative_mode_tweaks.message.too_hard": "Некоторые блоки превысили максимальную твёрдость",
   "creative_mode_tweaks.message.protected_tile_entity": "Некоторые блоки были защищены (блочные сущности)",
   "creative_mode_tweaks.message.world_border": "Некоторые блоки находятся за пределами границы мира или высоты строительства",
@@ -115,6 +119,10 @@
   "creative_mode_tweaks.config.angel_placement_distance.tooltip": "Расстояние от игрока, на котором воздушное размещение выбирает блок воздуха.",
   "creative_mode_tweaks.config.allow_angel_placement": "Разрешить воздушное размещение",
   "creative_mode_tweaks.config.allow_angel_placement.tooltip": "Если включено, игроки в выживании могут использовать воздушное размещение.",
+  "creative_mode_tweaks.config.allow_delete_blocks_with_data_survival": "Allow Delete Blocks With Data (Survival)",
+  "creative_mode_tweaks.config.allow_delete_blocks_with_data_survival.tooltip": "If on, survival players can toggle deleting blocks with block data.",
+  "creative_mode_tweaks.config.allow_delete_blocks_with_data_creative": "Allow Delete Blocks With Data (Creative)",
+  "creative_mode_tweaks.config.allow_delete_blocks_with_data_creative.tooltip": "If on, creative players can toggle deleting blocks with block data.",
   "creative_mode_tweaks.config.max_blocks_placed": "Макс. блоков за раз",
   "creative_mode_tweaks.config.max_blocks_placed.tooltip": "Максимальное количество блоков, размещаемых за одно действие.",
   "creative_mode_tweaks.config.max_blocks_per_axis": "Макс. блоков по оси",
@@ -147,5 +155,7 @@
   "creative_mode_tweaks.config.max_block_previews.tooltip": "Максимальное количество моделей блоков, отображаемых в предпросмотре.\nМеньшие значения улучшают производительность с большими формами.\nКонтуры всегда отображаются для всех блоков.",
   "creative_mode_tweaks.config.protect_tile_entities": "Защита блочных сущностей",
   "creative_mode_tweaks.config.protect_tile_entities.tooltip": "Если включено, блоки с данными, такие как сундуки, печи и воронки, не могут быть заменены или сломаны.",
+  "creative_mode_tweaks.config.delete_blocks_with_data_default": "Delete Blocks With Data by Default",
+  "creative_mode_tweaks.config.delete_blocks_with_data_default.tooltip": "Default on/off state for the Delete Blocks With Data toggle.",
   "creative_mode_tweaks.button.save": "Сохранить"
 }

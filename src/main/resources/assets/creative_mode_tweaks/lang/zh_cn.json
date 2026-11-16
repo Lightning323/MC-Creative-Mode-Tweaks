@@ -49,6 +49,7 @@
 
   "creative_mode_tweaks.message.plane_mode": "平面：%s",
   "creative_mode_tweaks.message.angel_placement": "空中放置：%s",
+  "creative_mode_tweaks.message.delete_blocks_with_data": "Delete Blocks With Data: %s",
 
   "creative_mode_tweaks.action.undo": "撤销",
   "creative_mode_tweaks.action.redo": "重做",
@@ -63,6 +64,8 @@
   "creative_mode_tweaks.action.cycle_replace_mode.description": "循环切换替换模式。",
   "creative_mode_tweaks.action.toggle_angel_placement": "空中放置",
   "creative_mode_tweaks.action.toggle_angel_placement.description": "在设定距离处瞄准最远的可用空气方块。",
+  "creative_mode_tweaks.action.toggle_delete_blocks_with_data": "Delete Blocks With Data",
+  "creative_mode_tweaks.action.toggle_delete_blocks_with_data.description": "If enabled, blocks with block data (such as chests) can be deleted. Their contents will be dropped to preserve them.",
   "creative_mode_tweaks.action.replace_only_air": "仅替换空气",
   "creative_mode_tweaks.action.replace_only_air.description": "只在空气位置放置方块，草等可替换方块仍会被替换。",
   "creative_mode_tweaks.action.replace_blocks_and_air": "替换方块与空气",
@@ -100,6 +103,7 @@
   "creative_mode_tweaks.message.only_replace_placed": "你只能替换本次游戏中放置的方块",
   "creative_mode_tweaks.message.breaking_disabled": "在生存模式中，建造模式无法用于破坏方块",
   "creative_mode_tweaks.message.angel_placement_disabled": "空中放置已在生存模式中禁用。",
+  "creative_mode_tweaks.message.delete_blocks_with_data_disabled": "Deleting blocks with data is disabled.",
   "creative_mode_tweaks.message.too_hard": "部分方块超过了最大硬度限制",
   "creative_mode_tweaks.message.protected_tile_entity": "部分方块受到保护（方块实体）",
   "creative_mode_tweaks.message.world_border": "部分方块超出了世界边界或建造高度",
@@ -115,6 +119,10 @@
   "creative_mode_tweaks.config.angel_placement_distance.tooltip": "空中放置瞄准空气方块时与玩家的距离。",
   "creative_mode_tweaks.config.allow_angel_placement": "允许空中放置",
   "creative_mode_tweaks.config.allow_angel_placement.tooltip": "开启后，生存模式玩家可以使用空中放置。",
+  "creative_mode_tweaks.config.allow_delete_blocks_with_data_survival": "Allow Delete Blocks With Data (Survival)",
+  "creative_mode_tweaks.config.allow_delete_blocks_with_data_survival.tooltip": "If on, survival players can toggle deleting blocks with block data.",
+  "creative_mode_tweaks.config.allow_delete_blocks_with_data_creative": "Allow Delete Blocks With Data (Creative)",
+  "creative_mode_tweaks.config.allow_delete_blocks_with_data_creative.tooltip": "If on, creative players can toggle deleting blocks with block data.",
   "creative_mode_tweaks.config.max_blocks_placed": "单次最大放置数量",
   "creative_mode_tweaks.config.max_blocks_placed.tooltip": "单次操作中最多可放置的方块数量。",
   "creative_mode_tweaks.config.max_blocks_per_axis": "每轴最大方块数",
@@ -147,5 +155,7 @@
   "creative_mode_tweaks.config.max_block_previews.tooltip": "预览中渲染的最大方块模型数量。\n数值越低，大型形状的性能越好。\n所有方块的轮廓线始终显示。",
   "creative_mode_tweaks.config.protect_tile_entities": "保护方块实体",
   "creative_mode_tweaks.config.protect_tile_entities.tooltip": "开启后，包含数据的方块（如箱子、熔炉、漏斗）不可被替换或破坏。",
+  "creative_mode_tweaks.config.delete_blocks_with_data_default": "Delete Blocks With Data by Default",
+  "creative_mode_tweaks.config.delete_blocks_with_data_default.tooltip": "Default on/off state for the Delete Blocks With Data toggle.",
   "creative_mode_tweaks.button.save": "保存"
 }

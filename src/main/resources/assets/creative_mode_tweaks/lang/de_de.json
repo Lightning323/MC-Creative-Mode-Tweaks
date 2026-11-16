@@ -49,6 +49,7 @@
 
   "creative_mode_tweaks.message.plane_mode": "Ebene: %s",
   "creative_mode_tweaks.message.angel_placement": "Engelplatzierung: %s",
+  "creative_mode_tweaks.message.delete_blocks_with_data": "Delete Blocks With Data: %s",
 
   "creative_mode_tweaks.action.undo": "Rückgängig",
   "creative_mode_tweaks.action.redo": "Wiederholen",
@@ -63,6 +64,8 @@
   "creative_mode_tweaks.action.cycle_replace_mode.description": "Durch die Ersetzungsmodi wechseln.",
   "creative_mode_tweaks.action.toggle_angel_placement": "Engelplatzierung",
   "creative_mode_tweaks.action.toggle_angel_placement.description": "Zielt auf den am weitesten entfernten verfügbaren Luftblock in der konfigurierten Entfernung.",
+  "creative_mode_tweaks.action.toggle_delete_blocks_with_data": "Delete Blocks With Data",
+  "creative_mode_tweaks.action.toggle_delete_blocks_with_data.description": "If enabled, blocks with block data (such as chests) can be deleted. Their contents will be dropped to preserve them.",
   "creative_mode_tweaks.action.replace_only_air": "Nur Luft ersetzen",
   "creative_mode_tweaks.action.replace_only_air.description": "Blöcke können nur dort platziert werden, wo Luft war. Ersetzbare Blöcke wie Gras können weiterhin ersetzt werden.",
   "creative_mode_tweaks.action.replace_blocks_and_air": "Blöcke und Luft ersetzen",
@@ -100,6 +103,7 @@
   "creative_mode_tweaks.message.only_replace_placed": "Du kannst nur Blöcke ersetzen, die du in dieser Sitzung platziert hast",
   "creative_mode_tweaks.message.breaking_disabled": "Das Abbauen von Blöcken mit Baumodi ist im Überlebensmodus deaktiviert",
   "creative_mode_tweaks.message.angel_placement_disabled": "Engelplatzierung ist im Überlebensmodus deaktiviert.",
+  "creative_mode_tweaks.message.delete_blocks_with_data_disabled": "Deleting blocks with data is disabled.",
   "creative_mode_tweaks.message.too_hard": "Einige Blöcke haben die maximale Härte überschritten",
   "creative_mode_tweaks.message.protected_tile_entity": "Einige Blöcke wurden geschützt (Blockentitäten)",
   "creative_mode_tweaks.message.world_border": "Einige Blöcke befinden sich außerhalb der Weltgrenze oder Bauhöhe",
@@ -115,6 +119,10 @@
   "creative_mode_tweaks.config.angel_placement_distance.tooltip": "Entfernung vom Spieler, in der die Engelplatzierung einen Luftblock anvisiert.",
   "creative_mode_tweaks.config.allow_angel_placement": "Engelplatzierung erlauben",
   "creative_mode_tweaks.config.allow_angel_placement.tooltip": "Wenn aktiviert, können Überlebensspieler die Engelplatzierung verwenden.",
+  "creative_mode_tweaks.config.allow_delete_blocks_with_data_survival": "Allow Delete Blocks With Data (Survival)",
+  "creative_mode_tweaks.config.allow_delete_blocks_with_data_survival.tooltip": "If on, survival players can toggle deleting blocks with block data.",
+  "creative_mode_tweaks.config.allow_delete_blocks_with_data_creative": "Allow Delete Blocks With Data (Creative)",
+  "creative_mode_tweaks.config.allow_delete_blocks_with_data_creative.tooltip": "If on, creative players can toggle deleting blocks with block data.",
   "creative_mode_tweaks.config.max_blocks_placed": "Max. Blöcke auf einmal",
   "creative_mode_tweaks.config.max_blocks_placed.tooltip": "Maximale Anzahl von Blöcken, die in einer Aktion platziert werden.",
   "creative_mode_tweaks.config.max_blocks_per_axis": "Max. Blöcke pro Achse",
@@ -147,5 +155,7 @@
   "creative_mode_tweaks.config.max_block_previews.tooltip": "Maximale Anzahl gerenderter Blockmodelle in der Vorschau.\nNiedrigere Werte verbessern die Leistung bei großen Formen.\nUmrisse werden immer für alle Blöcke gezeichnet.",
   "creative_mode_tweaks.config.protect_tile_entities": "Blockentitäten schützen",
   "creative_mode_tweaks.config.protect_tile_entities.tooltip": "Wenn aktiviert, können Blöcke mit Daten wie Truhen, Öfen und Trichter nicht ersetzt oder abgebaut werden.",
+  "creative_mode_tweaks.config.delete_blocks_with_data_default": "Delete Blocks With Data by Default",
+  "creative_mode_tweaks.config.delete_blocks_with_data_default.tooltip": "Default on/off state for the Delete Blocks With Data toggle.",
   "creative_mode_tweaks.button.save": "Speichern"
 }

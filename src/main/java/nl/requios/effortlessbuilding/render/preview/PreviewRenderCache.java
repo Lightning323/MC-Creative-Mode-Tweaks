@@ -1297,7 +1297,12 @@ public final class PreviewRenderCache {
 
     private static boolean readProtectTiles() {
         try {
-            return Config.BUILDING_PROTECT_TILE_ENTITIES.get();
+            boolean protectTiles = Config.BUILDING_PROTECT_TILE_ENTITIES.get();
+            Minecraft mc = Minecraft.getInstance();
+            if (protectTiles && mc.player != null && BuildSettings.CLIENT.isDeleteBlocksWithDataEnabled() && Config.isDeleteBlocksWithDataAllowed(mc.player)) {
+                return false;
+            }
+            return protectTiles;
         } catch (Exception ignored) {
             return false;
         }

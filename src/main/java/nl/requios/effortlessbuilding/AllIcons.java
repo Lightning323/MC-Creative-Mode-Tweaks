@@ -90,7 +90,8 @@ public class AllIcons {
     public static final AllIcons I_ALIGN_AUTO = next();
     public static final AllIcons I_ALIGN_VERTICAL = next();
     public static final AllIcons I_ALIGN_HORIZONTAL = next();
-    public static final AllIcons I_FILL_MODE = next();
+    public static final AllIcons DELETE_BLOCKS_WITH_DATA = next();
+    public static final AllIcons PRESERVE_BLOCKS_WITH_DATA = next();
 
 
     public AllIcons(int x, int y) {

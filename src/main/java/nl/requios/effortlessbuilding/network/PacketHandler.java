@@ -53,6 +53,8 @@ import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.Container;
+import net.minecraft.world.Containers;
 import net.neoforged.neoforge.event.PlayLevelSoundEvent;
 import org.lightning323.creative_mode_tweaks.Config;
 import org.jetbrains.annotations.Nullable;
@@ -126,6 +128,17 @@ public class PacketHandler {
         return true;
     }
 
+    private static boolean isDeleteBlocksWithDataEnabledForPlayer(boolean deleteBlocksWithData, ServerPlayer player) {
+        return deleteBlocksWithData && Config.isDeleteBlocksWithDataAllowed(player);
+    }
+
+    private static void dropBlockEntityContents(ServerLevel level, BlockPos pos) {
+        BlockEntity blockEntity = level.getBlockEntity(pos);
+        if (blockEntity instanceof Container container) {
+            Containers.dropContents(level, pos, container);
+        }
+    }
+
     /**
      * Adventure and spectator players get no build tools at all.
      */
@@ -156,7 +169,8 @@ public class PacketHandler {
 
     private static void handlePlaceBuildModeInSelection(PlaceBuildModePacket packet, ServerPlayer player) {
         ServerLevel level = player.serverLevel();
-        BlockSet blockSet = BuildPipeline.SERVER.runServerPipeline(packet.buildMode(), packet.firstPos(), packet.secondPos(), packet.thirdPos(), packet.fourthPos(), packet.hitFace(), player, BuildPipeline.BuildState.PLACING, packet.fill(), packet.cubeFill(), packet.raisedEdge(), packet.circleStart(), packet.pointBuild(), packet.sides(), packet.planeAlign(), packet.protectTileEntities(), packet.replaceMode());
+        boolean deleteBlocksWithData = isDeleteBlocksWithDataEnabledForPlayer(packet.deleteBlocksWithData(), player);
+        BlockSet blockSet = BuildPipeline.SERVER.runServerPipeline(packet.buildMode(), packet.firstPos(), packet.secondPos(), packet.thirdPos(), packet.fourthPos(), packet.hitFace(), player, BuildPipeline.BuildState.PLACING, packet.fill(), packet.cubeFill(), packet.raisedEdge(), packet.circleStart(), packet.pointBuild(), packet.sides(), packet.planeAlign(), packet.protectTileEntities(), deleteBlocksWithData, packet.replaceMode());
         if (blockSet == null) {
             Constants.LOG.warn("[EffortlessBuilding] Received PlaceBuildModePacket but mode {} returned no blocks", packet.buildMode());
         } else {
@@ -192,6 +206,9 @@ public class PacketHandler {
                     if ((creative || used.getOrDefault(entry.item, 0) < available.getOrDefault(entry.item, 0)) && BuildSettings.canPlaceAt(level, pos, replaceMode, offHand)) {
                         BlockState oldState = level.getBlockState(pos);
                         if (!creative && !oldState.canBeReplaced()) {
+                            if (deleteBlocksWithData) {
+                                dropBlockEntityContents(level, pos);
+                            }
                             ItemStack toolForDrops = Config.BUILDING_SURVIVAL_REQUIRE_TOOLS.get() ? InventoryHelper.findCorrectTool(player, oldState) : player.getMainHandItem();
 
                             for (ItemStack drop : Block.getDrops(oldState, level, pos, level.getBlockEntity(pos), player, toolForDrops)) {
@@ -278,6 +295,9 @@ public class PacketHandler {
                         if (BuildSettings.canPlaceAt(level, pos, replaceMode, offHand)) {
                             BlockState oldState = level.getBlockState(pos);
                             if (!creative && !oldState.canBeReplaced()) {
+                                if (deleteBlocksWithData) {
+                                    dropBlockEntityContents(level, pos);
+                                }
                                 ItemStack toolForDrops = Config.BUILDING_SURVIVAL_REQUIRE_TOOLS.get() ? InventoryHelper.findCorrectTool(player, oldState) : player.getMainHandItem();
 
                                 for (ItemStack drop : Block.getDrops(oldState, level, pos, level.getBlockEntity(pos), player, toolForDrops)) {
@@ -338,6 +358,9 @@ public class PacketHandler {
                                 if (BuildSettings.canPlaceAt(level, pos, replaceMode, offHand)) {
                                     BlockState oldState = level.getBlockState(pos);
                                     if (!creative && !oldState.canBeReplaced()) {
+                                        if (deleteBlocksWithData) {
+                                            dropBlockEntityContents(level, pos);
+                                        }
                                         ItemStack toolForDrops = Config.BUILDING_SURVIVAL_REQUIRE_TOOLS.get() ? InventoryHelper.findCorrectTool(player, oldState) : player.getMainHandItem();
 
                                         for (ItemStack drop : Block.getDrops(oldState, level, pos, level.getBlockEntity(pos), player, toolForDrops)) {
@@ -433,7 +456,8 @@ public class PacketHandler {
 
     private static void handleBreakBuildModeInSelection(BreakBuildModePacket packet, ServerPlayer player, boolean creative) {
         ServerLevel level = player.serverLevel();
-        BlockSet blockSet = BuildPipeline.SERVER.runServerPipeline(packet.buildMode(), packet.firstPos(), packet.secondPos(), packet.thirdPos(), packet.fourthPos(), packet.firstClickFace(), player, BuildPipeline.BuildState.BREAKING, packet.fill(), packet.cubeFill(), packet.raisedEdge(), packet.circleStart(), packet.pointBuild(), packet.sides(), packet.planeAlign(), packet.protectTileEntities(), null);
+        boolean deleteBlocksWithData = isDeleteBlocksWithDataEnabledForPlayer(packet.deleteBlocksWithData(), player);
+        BlockSet blockSet = BuildPipeline.SERVER.runServerPipeline(packet.buildMode(), packet.firstPos(), packet.secondPos(), packet.thirdPos(), packet.fourthPos(), packet.firstClickFace(), player, BuildPipeline.BuildState.BREAKING, packet.fill(), packet.cubeFill(), packet.raisedEdge(), packet.circleStart(), packet.pointBuild(), packet.sides(), packet.planeAlign(), packet.protectTileEntities(), deleteBlocksWithData, null);
         if (blockSet == null) {
             Constants.LOG.warn("[EffortlessBuilding] Received BreakBuildModePacket but mode {} returned no blocks", packet.buildMode());
         } else {
@@ -459,6 +483,9 @@ public class PacketHandler {
                 BlockState oldState = level.getBlockState(pos);
                 if (!oldState.isAir()) {
                     if (creative) {
+                        if (deleteBlocksWithData) {
+                            dropBlockEntityContents(level, pos);
+                        }
                         // Silent removal: destroyBlock fires a 2001 level event
                         // (break sound + particles) per block with no audience
                         // exclusion — thousands of blocks in one tick exhausts
@@ -467,6 +494,9 @@ public class PacketHandler {
                         // event; fluids flow back exactly as destroyBlock does.
                         level.setBlock(pos, level.getFluidState(pos).createLegacyBlock(), 3);
                     } else {
+                        if (deleteBlocksWithData) {
+                            dropBlockEntityContents(level, pos);
+                        }
                         ItemStack toolForDrops = Config.BUILDING_SURVIVAL_REQUIRE_TOOLS.get() ? InventoryHelper.findCorrectTool(player, oldState) : player.getMainHandItem();
 
                         for (ItemStack drop : Block.getDrops(oldState, level, pos, level.getBlockEntity(pos), player, toolForDrops)) {

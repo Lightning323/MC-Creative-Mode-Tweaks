@@ -49,6 +49,7 @@
 
   "creative_mode_tweaks.message.plane_mode": "Plan : %s",
   "creative_mode_tweaks.message.angel_placement": "Placement aérien : %s",
+  "creative_mode_tweaks.message.delete_blocks_with_data": "Delete Blocks With Data: %s",
 
   "creative_mode_tweaks.action.undo": "Annuler",
   "creative_mode_tweaks.action.redo": "Rétablir",
@@ -63,6 +64,8 @@
   "creative_mode_tweaks.action.cycle_replace_mode.description": "Faire défiler les modes de remplacement.",
   "creative_mode_tweaks.action.toggle_angel_placement": "Placement aérien",
   "creative_mode_tweaks.action.toggle_angel_placement.description": "Cible le bloc d'air disponible le plus éloigné à la distance configurée.",
+  "creative_mode_tweaks.action.toggle_delete_blocks_with_data": "Delete Blocks With Data",
+  "creative_mode_tweaks.action.toggle_delete_blocks_with_data.description": "If enabled, blocks with block data (such as chests) can be deleted. Their contents will be dropped to preserve them.",
   "creative_mode_tweaks.action.replace_only_air": "Remplacer uniquement l'air",
   "creative_mode_tweaks.action.replace_only_air.description": "Vous ne pouvez placer des blocs que là où il y avait de l'air. Les blocs remplaçables comme l'herbe peuvent toujours être remplacés.",
   "creative_mode_tweaks.action.replace_blocks_and_air": "Remplacer les blocs et l'air",
@@ -100,6 +103,7 @@
   "creative_mode_tweaks.message.only_replace_placed": "Vous ne pouvez remplacer que les blocs que vous avez placés lors de cette session",
   "creative_mode_tweaks.message.breaking_disabled": "La destruction de blocs avec les modes de construction est désactivée en survie",
   "creative_mode_tweaks.message.angel_placement_disabled": "Le placement aérien est désactivé en survie.",
+  "creative_mode_tweaks.message.delete_blocks_with_data_disabled": "Deleting blocks with data is disabled.",
   "creative_mode_tweaks.message.too_hard": "Certains blocs ont dépassé la dureté maximale",
   "creative_mode_tweaks.message.protected_tile_entity": "Certains blocs étaient protégés (entités de blocs)",
   "creative_mode_tweaks.message.world_border": "Certains blocs sont en dehors de la limite du monde ou de la hauteur de construction",
@@ -115,6 +119,10 @@
   "creative_mode_tweaks.config.angel_placement_distance.tooltip": "Distance du joueur à laquelle le placement aérien cible un bloc d'air.",
   "creative_mode_tweaks.config.allow_angel_placement": "Autoriser le placement aérien",
   "creative_mode_tweaks.config.allow_angel_placement.tooltip": "Si activé, les joueurs en survie peuvent utiliser le placement aérien.",
+  "creative_mode_tweaks.config.allow_delete_blocks_with_data_survival": "Allow Delete Blocks With Data (Survival)",
+  "creative_mode_tweaks.config.allow_delete_blocks_with_data_survival.tooltip": "If on, survival players can toggle deleting blocks with block data.",
+  "creative_mode_tweaks.config.allow_delete_blocks_with_data_creative": "Allow Delete Blocks With Data (Creative)",
+  "creative_mode_tweaks.config.allow_delete_blocks_with_data_creative.tooltip": "If on, creative players can toggle deleting blocks with block data.",
   "creative_mode_tweaks.config.max_blocks_placed": "Max. blocs placés à la fois",
   "creative_mode_tweaks.config.max_blocks_placed.tooltip": "Nombre maximum de blocs placés en une seule action.",
   "creative_mode_tweaks.config.max_blocks_per_axis": "Max. blocs par axe",
@@ -147,5 +155,7 @@
   "creative_mode_tweaks.config.max_block_previews.tooltip": "Nombre maximum de modèles de blocs rendus dans l'aperçu.\nDes valeurs plus faibles améliorent les performances avec de grandes formes.\nLes contours sont toujours dessinés pour tous les blocs.",
   "creative_mode_tweaks.config.protect_tile_entities": "Protéger les entités de blocs",
   "creative_mode_tweaks.config.protect_tile_entities.tooltip": "Si activé, les blocs contenant des données comme les coffres, fourneaux et entonnoirs ne peuvent pas être remplacés ou détruits.",
+  "creative_mode_tweaks.config.delete_blocks_with_data_default": "Delete Blocks With Data by Default",
+  "creative_mode_tweaks.config.delete_blocks_with_data_default.tooltip": "Default on/off state for the Delete Blocks With Data toggle.",
   "creative_mode_tweaks.button.save": "Enregistrer"
 }

@@ -40,7 +40,10 @@ public final class PlayerTicker {
 
     public void afterSuperCall(LocalPlayer player) {
         if (player.getAbilities().flying && (player.isSpectator() || player.isCreative())) {
-            player.getAbilities().setFlyingSpeed(Config.flightSpeed);
+
+
+            player.getAbilities().setFlyingSpeed(player.isSprinting() ? Config.flightSpeedSprinting : Config.flightSpeed);
+
 
             if (Config.disableFlightInertia) {
                 final Input input = player.input;

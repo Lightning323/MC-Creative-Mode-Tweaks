@@ -190,6 +190,11 @@ public class ModeOptions {
             case 35:
                planeAlign = ActionEnum.ALIGN_VERTICAL;
                break;
+            case 36:
+               if (Config.isDeleteBlocksWithDataAllowed(player)) {
+                  BuildSettings.CLIENT.toggleDeleteBlocksWithData();
+               }
+               break;
          }
 
          if (player.level().isClientSide && action != ActionEnum.OPEN_MODIFIER_SETTINGS && action != ActionEnum.PREVIOUS_BUILD_MODE && action != ActionEnum.DISABLE_BUILD_MODE_TOGGLE && action != ActionEnum.UNDO && action != ActionEnum.REDO) {
@@ -198,6 +203,12 @@ public class ModeOptions {
                   player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.angel_placement", Component.translatable(BuildSettings.CLIENT.isAngelPlacementEnabled() ? "options.on" : "options.off")), true);
                } else {
                   player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.angel_placement_disabled"), true);
+               }
+            } else if (action == ActionEnum.TOGGLE_DELETE_BLOCKS_WITH_DATA) {
+               if (Config.isDeleteBlocksWithDataAllowed(player)) {
+                  player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.delete_blocks_with_data", Component.translatable(BuildSettings.CLIENT.isDeleteBlocksWithDataEnabled() ? "options.on" : "options.off")), true);
+               } else {
+                  player.displayClientMessage(Component.translatable("creative_mode_tweaks.message.delete_blocks_with_data_disabled"), true);
                }
             } else {
                player.displayClientMessage(Component.translatable(action.getNameKey()), true);
@@ -256,7 +267,8 @@ public class ModeOptions {
       TOGGLE_NOCLIP("toggle_noclip", AllIcons.I_PLAYER),
       ALIGN_AUTO("align_auto", AllIcons.I_ALIGN_AUTO),
       ALIGN_HORIZONTAL("align_horizontal", AllIcons.I_ALIGN_HORIZONTAL),
-      ALIGN_VERTICAL("align_vertical", AllIcons.I_ALIGN_VERTICAL);
+      ALIGN_VERTICAL("align_vertical", AllIcons.I_ALIGN_VERTICAL),
+      TOGGLE_DELETE_BLOCKS_WITH_DATA("toggle_delete_blocks_with_data", AllIcons.DELETE_BLOCKS_WITH_DATA);
 
       public String name;
       public AllIcons icon;
@@ -280,7 +292,7 @@ public class ModeOptions {
 
       // $FF: synthetic method
       private static ActionEnum[] $values() {
-         return new ActionEnum[]{UNDO, REDO, OPEN_MODIFIER_SETTINGS, PREVIOUS_BUILD_MODE, DISABLE_BUILD_MODE_TOGGLE, CYCLE_REPLACE_MODE, REPLACE_ONLY_AIR, REPLACE_BLOCKS_AND_AIR, REPLACE_ONLY_BLOCKS, REPLACE_FILTERED_BY_OFFHAND, NORMAL_SPEED, FAST_SPEED, FULL, HOLLOW, CUBE_FULL, CUBE_HOLLOW, CUBE_SKELETON, SHORT_EDGE, LONG_EDGE, THICKNESS_1, THICKNESS_3, THICKNESS_5, CIRCLE_START_CORNER, CIRCLE_START_CENTER, TOGGLE_ANGEL_PLACEMENT, TWO_POINT_BUILD, THREE_POINT_BUILD, MESH_TRIANGLE, MESH_QUAD, THREE_SIDED, FOUR_SIDED, TOGGLE_NIGHT_VISION, TOGGLE_NOCLIP, ALIGN_AUTO, ALIGN_HORIZONTAL, ALIGN_VERTICAL};
+         return new ActionEnum[]{UNDO, REDO, OPEN_MODIFIER_SETTINGS, PREVIOUS_BUILD_MODE, DISABLE_BUILD_MODE_TOGGLE, CYCLE_REPLACE_MODE, REPLACE_ONLY_AIR, REPLACE_BLOCKS_AND_AIR, REPLACE_ONLY_BLOCKS, REPLACE_FILTERED_BY_OFFHAND, NORMAL_SPEED, FAST_SPEED, FULL, HOLLOW, CUBE_FULL, CUBE_HOLLOW, CUBE_SKELETON, SHORT_EDGE, LONG_EDGE, THICKNESS_1, THICKNESS_3, THICKNESS_5, CIRCLE_START_CORNER, CIRCLE_START_CENTER, TOGGLE_ANGEL_PLACEMENT, TWO_POINT_BUILD, THREE_POINT_BUILD, MESH_TRIANGLE, MESH_QUAD, THREE_SIDED, FOUR_SIDED, TOGGLE_NIGHT_VISION, TOGGLE_NOCLIP, ALIGN_AUTO, ALIGN_HORIZONTAL, ALIGN_VERTICAL, TOGGLE_DELETE_BLOCKS_WITH_DATA};
       }
    }
 

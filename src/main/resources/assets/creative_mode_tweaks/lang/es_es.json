@@ -49,6 +49,7 @@
 
   "creative_mode_tweaks.message.plane_mode": "Plano: %s",
   "creative_mode_tweaks.message.angel_placement": "Colocación aérea: %s",
+  "creative_mode_tweaks.message.delete_blocks_with_data": "Delete Blocks With Data: %s",
 
   "creative_mode_tweaks.action.undo": "Deshacer",
   "creative_mode_tweaks.action.redo": "Rehacer",
@@ -63,6 +64,8 @@
   "creative_mode_tweaks.action.cycle_replace_mode.description": "Ciclar por los modos de reemplazo.",
   "creative_mode_tweaks.action.toggle_angel_placement": "Colocación aérea",
   "creative_mode_tweaks.action.toggle_angel_placement.description": "Apunta al bloque de aire disponible más lejano a la distancia configurada.",
+  "creative_mode_tweaks.action.toggle_delete_blocks_with_data": "Delete Blocks With Data",
+  "creative_mode_tweaks.action.toggle_delete_blocks_with_data.description": "If enabled, blocks with block data (such as chests) can be deleted. Their contents will be dropped to preserve them.",
   "creative_mode_tweaks.action.replace_only_air": "Reemplazar solo aire",
   "creative_mode_tweaks.action.replace_only_air.description": "Solo puedes colocar bloques donde había aire. Los bloques reemplazables como la hierba aún se pueden reemplazar.",
   "creative_mode_tweaks.action.replace_blocks_and_air": "Reemplazar bloques y aire",
@@ -100,6 +103,7 @@
   "creative_mode_tweaks.message.only_replace_placed": "Solo puedes reemplazar bloques que colocaste en esta sesión",
   "creative_mode_tweaks.message.breaking_disabled": "Romper bloques con modos de construcción está desactivado en supervivencia",
   "creative_mode_tweaks.message.angel_placement_disabled": "La colocación aérea está desactivada en supervivencia.",
+  "creative_mode_tweaks.message.delete_blocks_with_data_disabled": "Deleting blocks with data is disabled.",
   "creative_mode_tweaks.message.too_hard": "Algunos bloques superaron la dureza máxima",
   "creative_mode_tweaks.message.protected_tile_entity": "Algunos bloques estaban protegidos (entidades de bloque)",
   "creative_mode_tweaks.message.world_border": "Algunos bloques están fuera del borde del mundo o de la altura de construcción",
@@ -115,6 +119,10 @@
   "creative_mode_tweaks.config.angel_placement_distance.tooltip": "Distancia desde el jugador a la que la colocación aérea apunta a un bloque de aire.",
   "creative_mode_tweaks.config.allow_angel_placement": "Permitir colocación aérea",
   "creative_mode_tweaks.config.allow_angel_placement.tooltip": "Si está activado, los jugadores en supervivencia pueden usar la colocación aérea.",
+  "creative_mode_tweaks.config.allow_delete_blocks_with_data_survival": "Allow Delete Blocks With Data (Survival)",
+  "creative_mode_tweaks.config.allow_delete_blocks_with_data_survival.tooltip": "If on, survival players can toggle deleting blocks with block data.",
+  "creative_mode_tweaks.config.allow_delete_blocks_with_data_creative": "Allow Delete Blocks With Data (Creative)",
+  "creative_mode_tweaks.config.allow_delete_blocks_with_data_creative.tooltip": "If on, creative players can toggle deleting blocks with block data.",
   "creative_mode_tweaks.config.max_blocks_placed": "Máx. bloques colocados a la vez",
   "creative_mode_tweaks.config.max_blocks_placed.tooltip": "Número máximo de bloques colocados en una sola acción.",
   "creative_mode_tweaks.config.max_blocks_per_axis": "Máx. bloques por eje",
@@ -147,5 +155,7 @@
   "creative_mode_tweaks.config.max_block_previews.tooltip": "Número máximo de modelos de bloque renderizados en la vista previa.\nValores más bajos mejoran el rendimiento con formas grandes.\nLos contornos siempre se dibujan para todos los bloques.",
   "creative_mode_tweaks.config.protect_tile_entities": "Proteger entidades de bloque",
   "creative_mode_tweaks.config.protect_tile_entities.tooltip": "Si está activado, los bloques que almacenan datos como cofres, hornos y tolvas no pueden ser reemplazados ni rotos.",
+  "creative_mode_tweaks.config.delete_blocks_with_data_default": "Delete Blocks With Data by Default",
+  "creative_mode_tweaks.config.delete_blocks_with_data_default.tooltip": "Default on/off state for the Delete Blocks With Data toggle.",
   "creative_mode_tweaks.button.save": "Guardar"
 }

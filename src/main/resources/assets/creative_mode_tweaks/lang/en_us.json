@@ -56,6 +56,7 @@
 
   "creative_mode_tweaks.message.plane_mode": "Plane: %s",
   "creative_mode_tweaks.message.angel_placement": "Angel Placement: %s",
+  "creative_mode_tweaks.message.delete_blocks_with_data": "Delete Blocks With Data: %s",
   "creative_mode_tweaks.message.night_vision": "Night Vision: %s",
   "creative_mode_tweaks.message.noclip": "Noclip: %s",
 
@@ -72,6 +73,8 @@
   "creative_mode_tweaks.action.cycle_replace_mode.description": "Cycle through replace modes.",
   "creative_mode_tweaks.action.toggle_angel_placement": "Angel Placement",
   "creative_mode_tweaks.action.toggle_angel_placement.description": "Target the furthest available air block at the configured distance.",
+  "creative_mode_tweaks.action.toggle_delete_blocks_with_data": "Delete Blocks With Data",
+  "creative_mode_tweaks.action.toggle_delete_blocks_with_data.description": "If enabled, blocks with block data (such as chests) can be deleted. Their contents will be dropped to preserve them.",
   "creative_mode_tweaks.action.toggle_night_vision": "Night Vision",
   "creative_mode_tweaks.action.toggle_night_vision.description": "Brighten the world and remove normal fog while enabled.",
   "creative_mode_tweaks.action.toggle_noclip": "Noclip",
@@ -132,6 +135,7 @@
   "creative_mode_tweaks.message.build_menu_unavailable": "Build tools are not available in this game mode",
   "creative_mode_tweaks.message.undo_redo_disabled": "Undo and redo are disabled in survival",
   "creative_mode_tweaks.message.angel_placement_disabled": "Angel Placement is disabled in survival.",
+  "creative_mode_tweaks.message.delete_blocks_with_data_disabled": "Deleting blocks with data is disabled.",
   "creative_mode_tweaks.message.too_hard": "Some blocks exceeded the maximum hardness",
   "creative_mode_tweaks.message.protected_tile_entity": "Some blocks were protected (tile entities)",
   "creative_mode_tweaks.message.world_border": "Some blocks are outside the world border or build height",
@@ -146,6 +150,10 @@
   "creative_mode_tweaks.config.angel_placement_distance.tooltip": "Distance from the player at which Angel Placement targets an air block.",
   "creative_mode_tweaks.config.allow_angel_placement": "Allow Angel Placement",
   "creative_mode_tweaks.config.allow_angel_placement.tooltip": "If on, survival players can use Angel Placement.",
+  "creative_mode_tweaks.config.allow_delete_blocks_with_data_survival": "Allow Delete Blocks With Data (Survival)",
+  "creative_mode_tweaks.config.allow_delete_blocks_with_data_survival.tooltip": "If on, survival players can toggle deleting blocks with block data.",
+  "creative_mode_tweaks.config.allow_delete_blocks_with_data_creative": "Allow Delete Blocks With Data (Creative)",
+  "creative_mode_tweaks.config.allow_delete_blocks_with_data_creative.tooltip": "If on, creative players can toggle deleting blocks with block data.",
   "creative_mode_tweaks.config.max_blocks_placed": "Max Blocks Placed At Once",
   "creative_mode_tweaks.config.max_blocks_placed.tooltip": "Maximum number of blocks placed in a single action.",
   "creative_mode_tweaks.config.max_blocks_per_axis": "Max Blocks Per Axis",
@@ -188,5 +196,7 @@
   "creative_mode_tweaks.config.max_block_previews.tooltip": "Maximum number of block models rendered in the preview.\nLower values improve performance with large shapes.\nOutlines are always drawn for all blocks.",
   "creative_mode_tweaks.config.protect_tile_entities": "Protect Tile Entities",
   "creative_mode_tweaks.config.protect_tile_entities.tooltip": "If on, blocks that hold data such as chests, furnaces, and hoppers cannot be replaced or broken.",
+  "creative_mode_tweaks.config.delete_blocks_with_data_default": "Delete Blocks With Data by Default",
+  "creative_mode_tweaks.config.delete_blocks_with_data_default.tooltip": "Default on/off state for the Delete Blocks With Data toggle.",
   "creative_mode_tweaks.button.save": "Save"
 }
