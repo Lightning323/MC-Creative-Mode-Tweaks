@@ -87,7 +87,7 @@ public class Config {
 
     private static final ModConfigSpec.DoubleValue FLIGHT_SPEED_SPRINTING =
             COMMON_BUILDER.comment("Should the flight speed be different when sprinting? (vanilla is 0.05)")
-                    .defineInRange("flight.flight_speed", 0.1, 0.05, 1000.0);
+                    .defineInRange("flight.flight_speed_sprinting", 0.1, 0.05, 1000.0);
 
     public static final ModConfigSpec.BooleanValue NOCLIP_ON_LOGIN =
             COMMON_BUILDER.comment("If No-Clip should be enabled or disabled by default when logging in")
